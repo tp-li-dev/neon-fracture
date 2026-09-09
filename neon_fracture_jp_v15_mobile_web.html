@@ -1,0 +1,3444 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>NEON FRACTURE v15 — モバイルWeb最適化版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          boxShadow: {
+            neon: '0 0 35px rgba(34,211,238,.22)',
+            violet: '0 0 40px rgba(168,85,247,.20)',
+          },
+          animation: {
+            float: 'float 6s ease-in-out infinite',
+            pulseSoft: 'pulseSoft 2.3s ease-in-out infinite',
+          },
+          keyframes: {
+            float: {
+              '0%,100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-8px)' },
+            },
+            pulseSoft: {
+              '0%,100%': { opacity: '.58' },
+              '50%': { opacity: '1' },
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      background: #05070d;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    #app {
+      position: fixed !important;
+      inset: 0;
+      width: 100%;
+      height: 100dvh;
+      min-height: 0;
+      overflow: hidden;
+    }
+    body { margin: 0; user-select: none; -webkit-user-select: none; }
+    canvas { display: block; }
+    .glass {
+      background: linear-gradient(180deg, rgba(15,23,42,.75), rgba(8,12,24,.48));
+      border: 1px solid rgba(148,163,184,.16);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 18px 70px rgba(0,0,0,.30);
+      backdrop-filter: blur(18px);
+    }
+    .scanlines::after {
+      content: "";
+      position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,.018) 0px,
+        rgba(255,255,255,.018) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+      mix-blend-mode: screen;
+      opacity: .45;
+    }
+    .noise {
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(34,211,238,.11), transparent 28%),
+        radial-gradient(circle at 78% 30%, rgba(168,85,247,.10), transparent 25%),
+        radial-gradient(circle at 50% 84%, rgba(59,130,246,.09), transparent 32%);
+    }
+    .hud-label { letter-spacing: .18em; text-transform: uppercase; }
+
+    /* Mobile twin-stick controls */
+    body.mobile-input canvas,
+    body.mobile-input #mobileControls,
+    body.mobile-input .mobile-stick,
+    body.mobile-input #mobileDashBtn,
+    body.mobile-input #mobilePauseBtn {
+      touch-action: none;
+      overscroll-behavior: none;
+    }
+    #mobileControls {
+      position: absolute;
+      inset: 0;
+      z-index: 32;
+      pointer-events: none;
+    }
+    .mobile-stick {
+      position: absolute;
+      width: 138px;
+      height: 138px;
+      border-radius: 9999px;
+      border: 1px solid rgba(148,163,184,.18);
+      background:
+        radial-gradient(circle at center, rgba(15,23,42,.40) 0 35%, rgba(15,23,42,.18) 36% 67%, rgba(15,23,42,.05) 68%);
+      box-shadow: inset 0 0 30px rgba(2,6,23,.45), 0 8px 35px rgba(0,0,0,.20);
+      backdrop-filter: blur(5px);
+      pointer-events: auto;
+      touch-action: none;
+    }
+    .mobile-stick::after {
+      content: "";
+      position: absolute;
+      inset: 15px;
+      border: 1px dashed rgba(148,163,184,.11);
+      border-radius: inherit;
+    }
+    .mobile-stick-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 52px;
+      height: 52px;
+      margin: -26px 0 0 -26px;
+      border-radius: 9999px;
+      background: rgba(226,232,240,.10);
+      border: 1px solid rgba(226,232,240,.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 24px rgba(34,211,238,.10);
+      transform: translate(0,0);
+      pointer-events: none;
+    }
+    #moveStick {
+      left: max(22px, env(safe-area-inset-left));
+      bottom: max(22px, env(safe-area-inset-bottom));
+    }
+    #aimStick {
+      right: max(22px, env(safe-area-inset-right));
+      bottom: max(22px, env(safe-area-inset-bottom));
+      border-color: rgba(34,211,238,.22);
+    }
+    #aimStick .mobile-stick-knob {
+      border-color: rgba(103,232,249,.40);
+      background: rgba(34,211,238,.10);
+    }
+    #mobileDashBtn {
+      position: absolute;
+      right: calc(max(22px, env(safe-area-inset-right)) + 150px);
+      bottom: calc(max(22px, env(safe-area-inset-bottom)) + 18px);
+      width: 74px;
+      height: 74px;
+      border-radius: 9999px;
+      border: 1px solid rgba(168,85,247,.30);
+      background: rgba(88,28,135,.20);
+      color: rgb(233,213,255);
+      font-weight: 900;
+      font-size: 10px;
+      letter-spacing: .08em;
+      pointer-events: auto;
+      touch-action: none;
+      box-shadow: 0 0 28px rgba(168,85,247,.10);
+    }
+    #mobilePauseBtn {
+      position: absolute;
+      top: max(14px, env(safe-area-inset-top));
+      right: max(14px, env(safe-area-inset-right));
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      border: 1px solid rgba(148,163,184,.18);
+      background: rgba(15,23,42,.62);
+      color: rgb(203,213,225);
+      font-weight: 900;
+      pointer-events: auto;
+      touch-action: none;
+      backdrop-filter: blur(8px);
+    }
+    #mobileFireHint {
+      position: absolute;
+      right: calc(max(22px, env(safe-area-inset-right)) + 23px);
+      bottom: calc(max(22px, env(safe-area-inset-bottom)) + 145px);
+      font-size: 9px;
+      color: rgba(165,243,252,.55);
+      font-weight: 800;
+      letter-spacing: .06em;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #rotateHint {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      background: rgba(2,6,23,.97);
+      text-align: center;
+    }
+
+
+    .upgrade-card { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+    .upgrade-card:hover {
+      transform: translateY(-4px) scale(1.015);
+      border-color: rgba(34,211,238,.5);
+      box-shadow: 0 0 45px rgba(34,211,238,.13);
+      background: linear-gradient(180deg, rgba(15,23,42,.94), rgba(8,15,27,.80));
+    }
+    .key {
+      min-width: 1.9rem; height: 1.9rem; padding: 0 .45rem;
+      display: inline-flex; align-items:center; justify-content:center;
+      border: 1px solid rgba(148,163,184,.24);
+      border-bottom-color: rgba(148,163,184,.45);
+      border-radius: .45rem;
+      background: rgba(15,23,42,.72);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 3px 0 rgba(2,6,23,.65);
+      font-size: .72rem; font-weight: 800; color: rgb(226,232,240);
+    }
+
+    @media (pointer: coarse) and (orientation: portrait) {
+      body.mobile-game-active #rotateHint {
+        display: block;
+        inset: auto 12px auto 12px;
+        top: max(10px, env(safe-area-inset-top));
+        padding: 0;
+        background: transparent;
+        pointer-events: none;
+      }
+      body.mobile-game-active #rotateHint > div {
+        max-width: none;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(2,6,23,.82);
+        backdrop-filter: blur(10px);
+      }
+      body.mobile-game-active #rotateHint .text-5xl { display:none; }
+      body.mobile-game-active #rotateHint h2 { font-size: 13px; margin-top: 2px; }
+      body.mobile-game-active #rotateHint p { display:none; }
+      body.mobile-game-active #rotateHint .hud-label { font-size: 7px; }
+    }
+
+  
+    /* Real mobile browsers: menus use the full screen, while gameplay keeps the fixed 16:9 FOV. */
+    #startScreen, #howScreen, #pauseScreen, #gameOverScreen, #upgradeScreen {
+      z-index: 20;
+    }
+    #metaScreen { z-index: 45; }
+
+    @media (pointer: coarse) {
+      #howScreen, #pauseScreen, #gameOverScreen, #upgradeScreen {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+      }
+      #metaScreen {
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+      }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-height: 620px) {
+      #startScreen {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        align-items: center !important;
+        justify-content: center !important;
+        padding:
+          max(8px, env(safe-area-inset-top))
+          max(12px, env(safe-area-inset-right))
+          max(8px, env(safe-area-inset-bottom))
+          max(12px, env(safe-area-inset-left)) !important;
+      }
+
+      #startScreen .start-layout {
+        grid-template-columns: minmax(0, 1.38fr) minmax(250px, .62fr) !important;
+        gap: 10px !important;
+        max-width: 1120px !important;
+        align-items: stretch !important;
+      }
+
+      #startScreen .start-main-card,
+      #startScreen .start-help-card {
+        padding: 15px 17px !important;
+        border-radius: 20px !important;
+      }
+
+      #startScreen .start-eyebrow {
+        margin-bottom: 9px !important;
+        gap: 8px !important;
+      }
+      #startScreen .start-eyebrow .hud-label {
+        font-size: 8px !important;
+      }
+
+      #startScreen .start-title {
+        font-size: clamp(42px, 12.5vh, 60px) !important;
+        line-height: .80 !important;
+      }
+
+      #startScreen .start-desc {
+        margin-top: 11px !important;
+        font-size: 10px !important;
+        line-height: 1.5 !important;
+        max-width: 620px !important;
+      }
+
+      #startScreen .start-actions {
+        margin-top: 11px !important;
+        gap: 6px !important;
+        flex-wrap: nowrap !important;
+      }
+      #startScreen .start-actions button {
+        padding: 8px 11px !important;
+        font-size: 10px !important;
+        border-radius: 9px !important;
+        white-space: nowrap;
+      }
+
+      #startScreen .start-credit {
+        margin-top: 9px !important;
+        padding: 8px 11px !important;
+        border-radius: 12px !important;
+        max-width: 370px !important;
+      }
+      #startScreen .start-credit .text-2xl {
+        font-size: 16px !important;
+        line-height: 1.1 !important;
+      }
+      #startScreen .start-credit .text-\[10px\] {
+        font-size: 8px !important;
+        line-height: 1.35 !important;
+      }
+
+      #startScreen .start-stats {
+        margin-top: 9px !important;
+        padding-top: 7px !important;
+        gap: 5px 12px !important;
+        font-size: 8px !important;
+      }
+
+      #startScreen .start-help-title {
+        margin-bottom: 8px !important;
+        font-size: 8px !important;
+      }
+      #startScreen .start-help-list > * + * {
+        margin-top: 7px !important;
+      }
+      #startScreen .start-control-row {
+        min-height: 29px;
+        gap: 8px !important;
+      }
+      #startScreen .start-control-row .text-sm {
+        font-size: 10px !important;
+      }
+      #startScreen .start-control-row .text-xs {
+        display: none !important;
+      }
+
+      #startScreen .key {
+        min-width: 1.35rem !important;
+        height: 1.35rem !important;
+        padding: 0 .28rem !important;
+        font-size: .50rem !important;
+        border-radius: .32rem !important;
+      }
+
+      #startScreen .start-flow-card {
+        margin-top: 9px !important;
+        padding: 9px 11px !important;
+        border-radius: 12px !important;
+      }
+      #startScreen .start-flow-card .text-\[10px\] {
+        font-size: 7px !important;
+      }
+      #startScreen .start-flow-card p {
+        margin-top: 4px !important;
+        font-size: 9px !important;
+        line-height: 1.35 !important;
+      }
+
+      .mobile-stick {
+        width: clamp(96px, 26vh, 118px);
+        height: clamp(96px, 26vh, 118px);
+      }
+      .mobile-stick-knob {
+        width: 44px;
+        height: 44px;
+        margin: -22px 0 0 -22px;
+      }
+      #moveStick {
+        left: max(14px, env(safe-area-inset-left));
+        bottom: max(12px, env(safe-area-inset-bottom));
+      }
+      #aimStick {
+        right: max(14px, env(safe-area-inset-right));
+        bottom: max(12px, env(safe-area-inset-bottom));
+      }
+      #mobileDashBtn {
+        right: calc(max(14px, env(safe-area-inset-right)) + clamp(105px, 29vh, 128px));
+        bottom: calc(max(12px, env(safe-area-inset-bottom)) + 8px);
+        width: 60px;
+        height: 60px;
+      }
+      #mobileFireHint {
+        display: none;
+      }
+      #mobilePauseBtn {
+        top: max(8px, env(safe-area-inset-top));
+        right: max(10px, env(safe-area-inset-right));
+        width: 40px;
+        height: 40px;
+      }
+
+      /* Gameplay HUD is smaller but still aligned to the fixed camera bounds. */
+      #hud {
+        transform: scale(.82);
+        transform-origin: top center;
+      }
+      #xpHud {
+        transform: translateX(-50%) scale(.82);
+        transform-origin: bottom center;
+      }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-height: 430px) {
+      #startScreen .start-main-card,
+      #startScreen .start-help-card {
+        padding: 11px 13px !important;
+      }
+      #startScreen .start-title {
+        font-size: clamp(36px, 12vh, 48px) !important;
+      }
+      #startScreen .start-desc {
+        margin-top: 7px !important;
+        line-height: 1.35 !important;
+      }
+      #startScreen .start-actions {
+        margin-top: 8px !important;
+      }
+      #startScreen .start-credit {
+        margin-top: 7px !important;
+      }
+      #startScreen .start-stats {
+        margin-top: 6px !important;
+        padding-top: 5px !important;
+      }
+      #startScreen .start-flow-card {
+        margin-top: 6px !important;
+      }
+      #startScreen .start-flow-card p {
+        display: none !important;
+      }
+      #startScreen .start-help-list > * + * {
+        margin-top: 5px !important;
+      }
+    }
+
+  </style>
+</head>
+<body class="font-display text-slate-100">
+  <div id="app" class="relative w-screen h-screen overflow-hidden noise scanlines">
+    <canvas id="game" class="absolute inset-0 w-full h-full"></canvas>
+
+    <!-- Top HUD -->
+    <div id="hud" class="absolute inset-x-0 top-0 p-4 md:p-6 pointer-events-none opacity-0 transition-opacity duration-300">
+      <div class="flex items-start justify-between gap-4">
+        <div class="glass rounded-2xl px-4 py-3 min-w-[220px] md:min-w-[300px]">
+          <div class="flex items-center justify-between mb-2">
+            <span class="hud-label text-[10px] text-cyan-300/80 font-black">耐久値</span>
+            <span id="hpText" class="text-xs font-black text-slate-300">100 / 100</span>
+          </div>
+          <div class="h-2.5 bg-slate-950/80 rounded-full overflow-hidden ring-1 ring-white/5">
+            <div id="hpBar" class="h-full w-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-cyan-400 transition-all duration-200"></div>
+          </div>
+          <div class="flex items-center justify-between mt-3">
+            <div>
+              <div class="hud-label text-[9px] text-slate-500 font-bold">レベル</div>
+              <div id="levelText" class="text-lg font-black">01</div>
+            </div>
+            <div class="text-right">
+              <div class="hud-label text-[9px] text-slate-500 font-bold">スコア</div>
+              <div id="scoreText" class="text-lg font-black tracking-tight">000000</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl px-4 py-3 text-right min-w-[190px]">
+          <div class="hud-label text-[9px] text-violet-300/80 font-black">連続撃破</div>
+          <div class="flex items-end justify-end gap-2 mt-1">
+            <span id="comboText" class="text-4xl leading-none font-black tracking-tighter">x1.0</span>
+            <span id="comboKills" class="text-[10px] text-slate-500 pb-1">0 連鎖</span>
+          </div>
+          <div class="mt-2 h-1.5 rounded-full bg-slate-950/80 overflow-hidden">
+            <div id="comboBar" class="h-full w-0 bg-gradient-to-r from-violet-500 to-cyan-400 transition-all duration-100"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="absolute left-1/2 -translate-x-1/2 top-6 text-center">
+        <div id="waveText" class="hud-label text-[10px] font-black text-slate-400">ウェーブ 01</div>
+        <div id="objectiveText" class="mt-1 text-xs font-bold text-slate-200/80">ネオン空間を生き残れ。</div>
+      </div>
+    </div>
+
+    <!-- XP footer -->
+    <div id="xpHud" class="absolute left-1/2 bottom-5 -translate-x-1/2 w-[min(620px,88vw)] pointer-events-none opacity-0 transition-opacity duration-300">
+      <div class="flex items-center justify-between mb-1 px-1">
+        <span class="hud-label text-[9px] text-slate-500 font-black">共鳴経験値</span>
+        <div class="flex items-center gap-3">
+          <span id="rarityBoostText" class="text-[9px] text-violet-300 font-bold">希少共鳴 0 / 3</span>
+          <span id="xpText" class="text-[10px] text-cyan-200 font-bold">0 / 10</span>
+        </div>
+      </div>
+      <div class="h-2.5 glass rounded-full overflow-hidden">
+        <div id="xpBar" class="h-full w-0 bg-gradient-to-r from-blue-500 via-violet-500 to-cyan-300 shadow-neon transition-all duration-150"></div>
+      </div>
+      <div class="hidden sm:flex justify-center gap-4 mt-2 text-[9px] text-slate-500 font-bold">
+        <span><b class="text-cyan-300">◆</b> 断片</span>
+        <span><b class="text-blue-300">◆</b> 高密度</span>
+        <span><b class="text-emerald-300">◆</b> 生命</span>
+        <span><b class="text-violet-300">◆</b> 希少</span>
+        <span><b class="text-amber-300">◆</b> ボスコア</span>
+      </div>
+    </div>
+
+    <!-- Start screen -->
+    <section id="startScreen" class="absolute inset-0 flex items-center justify-center p-5 md:p-10">
+      <div class="absolute -top-32 -left-32 w-[40vw] h-[40vw] rounded-full bg-cyan-500/5 blur-3xl animate-pulseSoft"></div>
+      <div class="absolute -bottom-40 -right-28 w-[44vw] h-[44vw] rounded-full bg-violet-500/6 blur-3xl animate-pulseSoft"></div>
+
+      <div class="relative w-full max-w-6xl grid lg:grid-cols-[1.3fr_.7fr] gap-6 items-stretch start-layout">
+        <div class="glass rounded-[2rem] p-7 md:p-11 overflow-hidden relative shadow-neon start-main-card">
+          <div class="absolute right-[-6%] top-[-20%] text-[18rem] md:text-[28rem] leading-none font-black text-white/[.018] rotate-12 pointer-events-none">N</div>
+          <div class="relative z-10">
+            <div class="flex items-center gap-3 mb-8 start-eyebrow">
+              <span class="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_18px_rgba(34,211,238,.9)]"></span>
+              <span class="hud-label text-[10px] font-black text-cyan-200/80">HTML 1ファイル完結・ブラウザローグライト</span>
+            </div>
+
+            <h1 class="text-5xl sm:text-7xl md:text-8xl font-black tracking-[-0.07em] leading-[.84] start-title">
+              NEON<br>
+              <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-violet-400">FRACTURE</span>
+            </h1>
+
+            <p class="mt-7 max-w-2xl text-sm md:text-base leading-7 text-slate-400 start-desc">
+              有限の巨大ネオンフィールドを駆け回り、押し寄せる敵を撃ち抜いて能力を組み替える。
+              一瞬の判断とビルド構築を混ぜた、短時間で何度も遊べるアリーナ・ローグライト。
+            </p>
+
+            <div class="mt-9 flex flex-wrap items-center gap-3 start-actions">
+              <button id="startBtn" class="pointer-events-auto group rounded-xl px-6 py-3.5 bg-slate-100 text-slate-950 font-black text-sm hover:bg-cyan-200 transition shadow-xl shadow-cyan-950/30">
+                ゲーム開始
+                <span class="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
+              </button>
+              <button id="howBtn" class="pointer-events-auto rounded-xl px-5 py-3.5 border border-white/10 bg-white/[.035] text-sm font-bold text-slate-300 hover:bg-white/[.07] transition">
+                遊び方を見る
+              </button>
+              <button id="metaBtn" class="pointer-events-auto rounded-xl px-5 py-3.5 border border-amber-300/20 bg-amber-300/[.06] text-sm font-black text-amber-200 hover:bg-amber-300/[.11] transition">
+                研究・カード工房
+              </button>
+            </div>
+
+            <div class="mt-6 rounded-2xl px-5 py-4 border border-amber-300/10 bg-amber-300/[.035] flex items-center justify-between gap-4 max-w-md start-credit">
+              <div>
+                <div class="hud-label text-[9px] text-amber-300/70 font-black">所持クレジット</div>
+                <div class="mt-1 text-2xl font-black"><span id="creditStart">0</span> <span class="text-xs text-amber-300">CR</span></div>
+              </div>
+              <div class="text-right text-[10px] leading-5 text-slate-500">スコアをCRへ変換<br>恒久強化とモジュールに使用</div>
+            </div>
+
+            <div class="mt-7 pt-6 border-t border-white/[.07] flex flex-wrap gap-x-8 gap-y-3 text-xs text-slate-500 start-stats">
+              <span>ハイスコア <b id="highScoreStart" class="ml-2 text-slate-300">0</b></span>
+              <span>最高ウェーブ <b id="bestWaveStart" class="ml-2 text-slate-300">0</b></span>
+              <span>固定16:9仮想盤面 / 解像度による視界差なし</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass rounded-[2rem] p-7 md:p-8 flex flex-col justify-between shadow-violet start-help-card">
+          <div>
+            <div class="hud-label text-[10px] font-black text-violet-300/80 mb-5 start-help-title">操作方法</div>
+            <div class="space-y-5 start-help-list">
+              <div class="flex items-center justify-between gap-4 start-control-row">
+                <div><div class="font-black text-sm">移動</div><div class="text-xs text-slate-500 mt-1">止まると包囲される</div></div>
+                <div class="flex gap-1"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></div>
+              </div>
+              <div class="flex items-center justify-between gap-4 start-control-row">
+                <div><div class="font-black text-sm">照準・射撃</div><div class="text-xs text-slate-500 mt-1">マウス方向へ自動照準</div></div>
+                <div class="flex gap-1"><span class="key">マウス</span><span class="key">左クリック</span></div>
+              </div>
+              <div class="flex items-center justify-between gap-4 start-control-row">
+                <div><div class="font-black text-sm">ダッシュ</div><div class="text-xs text-slate-500 mt-1">短時間だけ無敵</div></div>
+                <div><span class="key">SPACE</span></div>
+              </div>
+              <div class="flex items-center justify-between gap-4 start-control-row">
+                <div><div class="font-black text-sm">ポーズ</div><div class="text-xs text-slate-500 mt-1">戦略を立て直す</div></div>
+                <div><span class="key">ESC</span></div>
+              </div>
+              <div class="flex items-center justify-between gap-4 border-t border-white/[.05] pt-5">
+                <div>
+                  <div class="font-black text-sm text-cyan-100">モバイル操作</div>
+                  <div class="text-xs text-slate-500 mt-1">左スティック移動 / 右スティック照準＋射撃</div>
+                </div>
+                <div class="text-[10px] text-cyan-300/70 font-black">横画面</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-8 rounded-2xl p-5 bg-gradient-to-br from-cyan-400/[.07] to-violet-500/[.07] border border-white/[.06] start-flow-card">
+            <div class="text-[10px] hud-label text-cyan-200/70 font-black">ゲームの流れ</div>
+            <p class="mt-2 text-sm leading-6 text-slate-400">
+              探索する → フローフィールドを使って位置を変える → 敵を倒す → カードと能力を組む → ボスを撃破する。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tutorial -->
+    <section id="howScreen" class="hidden absolute inset-0 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-6">
+      <div class="glass rounded-3xl max-w-2xl w-full p-8">
+        <div class="flex justify-between gap-4">
+          <div>
+            <div class="hud-label text-[10px] text-cyan-300 font-black">攻略ガイド</div>
+            <h2 class="text-3xl font-black mt-2">生き残るコツ</h2>
+          </div>
+          <button id="howClose" class="pointer-events-auto h-10 w-10 rounded-xl border border-white/10 hover:bg-white/10 text-slate-400">✕</button>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4 mt-7">
+          <div class="rounded-2xl p-5 bg-white/[.035] border border-white/[.07]">
+            <div class="font-black text-cyan-200">01 — 常に動く</div>
+            <p class="mt-2 text-xs leading-6 text-slate-400">敵はあなたの現在位置へ集まる。円を描くように動けば密度をコントロールできる。</p>
+          </div>
+          <div class="rounded-2xl p-5 bg-white/[.035] border border-white/[.07]">
+            <div class="font-black text-violet-200">02 — ダッシュを温存</div>
+            <p class="mt-2 text-xs leading-6 text-slate-400">SPACEは移動技ではなく緊急回避。敵をすり抜ける瞬間に使うと強い。</p>
+          </div>
+          <div class="rounded-2xl p-5 bg-white/[.035] border border-white/[.07]">
+            <div class="font-black text-emerald-200">03 — ビルドを寄せる</div>
+            <p class="mt-2 text-xs leading-6 text-slate-400">ラン中スキルに加え、恒久カードを最大3枚装備できる。トリガー・条件・確率・効果・強度を組み合わせて戦闘ロジックそのものを作れる。</p>
+          </div>
+          <div class="rounded-2xl p-5 bg-white/[.035] border border-white/[.07]">
+            <div class="font-black text-amber-200">04 — コンボを切らさない</div>
+            <p class="mt-2 text-xs leading-6 text-slate-400">経験値には5種類ある。生命経験値は回復、希少経験値はアップグレードのレア度を高め、ボスコアはエピックを保証する。</p>
+          </div>
+        </div>
+
+        <div class="mt-7 rounded-2xl border border-cyan-300/10 bg-cyan-300/[.035] p-5">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="hud-label text-[9px] text-cyan-300/70 font-black">FLOW FIELD</div>
+              <div class="font-black mt-1">フローフィールドとは？</div>
+            </div>
+            <div class="text-[9px] text-slate-500">すべて通過可能 / 壁判定なし</div>
+          </div>
+          <p class="mt-3 text-xs leading-6 text-slate-400">
+            マップ上の大きな円形領域。敵もプレイヤーも引っ掛からず、そのまま通り抜けられる。
+            円へ入った瞬間だけ効果が発動し、同じフィールドは8秒間再使用できない。
+          </p>
+          <div class="grid sm:grid-cols-3 gap-2 mt-4">
+            <div class="rounded-xl border border-cyan-300/10 bg-slate-950/25 p-3">
+              <div class="font-black text-cyan-200 text-xs">» FLOW</div>
+              <div class="text-[10px] text-slate-500 mt-1 leading-5">1.65秒間、移動速度 +25%</div>
+            </div>
+            <div class="rounded-xl border border-violet-300/10 bg-slate-950/25 p-3">
+              <div class="font-black text-violet-200 text-xs">◫ CHARGE</div>
+              <div class="text-[10px] text-slate-500 mt-1 leading-5">ダッシュゲージを38%回復</div>
+            </div>
+            <div class="rounded-xl border border-amber-300/10 bg-slate-950/25 p-3">
+              <div class="font-black text-amber-200 text-xs">∞ LINK</div>
+              <div class="text-[10px] text-slate-500 mt-1 leading-5">コンボ猶予を1.25秒延長</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Upgrade screen -->
+    <section id="upgradeScreen" class="hidden absolute inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-5 md:p-8">
+      <div class="w-full max-w-6xl">
+        <div class="text-center mb-7">
+          <div class="hud-label text-[10px] text-cyan-300/80 font-black">共鳴レベル上昇</div>
+          <h2 class="mt-2 text-4xl md:text-5xl font-black tracking-tight">アップグレードを選択</h2>
+          <p class="mt-2 text-sm text-slate-500">1つ選択。組み合わせ次第で毎回違うビルドになる。</p>
+        </div>
+        <div id="upgradeCards" class="grid md:grid-cols-3 gap-4 md:gap-5"></div>
+      </div>
+    </section>
+
+    <!-- Boss warning -->
+    <section id="bossWarning" class="hidden absolute inset-0 pointer-events-none flex items-center justify-center">
+      <div class="text-center animate-pulseSoft">
+        <div class="hud-label text-xs md:text-sm text-rose-300 font-black">巨大異常体を検出</div>
+        <div class="mt-3 text-5xl md:text-8xl font-black tracking-[-.06em] text-rose-100">ボスウェーブ</div>
+      </div>
+    </section>
+
+    <!-- Pause / Run menu -->
+    <section id="pauseScreen" class="hidden absolute inset-0 z-50 bg-slate-950/68 backdrop-blur-md flex items-center justify-center p-5">
+      <div class="glass rounded-3xl p-7 md:p-8 w-[min(540px,94vw)]">
+        <div class="text-center">
+          <div class="hud-label text-[10px] text-slate-500 font-black">RUN CONTROL</div>
+          <h2 class="text-4xl font-black mt-2">一時停止</h2>
+          <p class="text-sm text-slate-500 mt-2">ESCでもゲームへ戻れます</p>
+        </div>
+
+        <div class="mt-6 grid grid-cols-2 gap-3 text-xs">
+          <div class="rounded-xl bg-white/[.035] p-4 border border-white/[.06]">
+            <div class="text-slate-500">レベル</div>
+            <div id="pauseLevel" class="mt-1 text-xl font-black">1</div>
+          </div>
+          <div class="rounded-xl bg-white/[.035] p-4 border border-white/[.06]">
+            <div class="text-slate-500">スコア</div>
+            <div id="pauseScore" class="mt-1 text-xl font-black">0</div>
+          </div>
+        </div>
+
+        <div class="mt-3 rounded-xl border border-amber-300/10 bg-amber-300/[.035] px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <div class="hud-label text-[8px] text-amber-300/60 font-black">ここで集計した場合</div>
+            <div class="mt-1 text-xs text-slate-400">現在までの成果を正式確定</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-black text-amber-200">+<span id="pauseCredits">0</span> CR</div>
+            <div class="text-[9px] text-violet-300 mt-1"><span id="pauseLoot">0</span>個 解析</div>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-2.5">
+          <button id="pauseResumeBtn" class="pointer-events-auto rounded-xl px-5 py-3.5 bg-slate-100 text-slate-950 text-sm font-black hover:bg-cyan-200 transition">
+            ゲームに戻る
+          </button>
+          <button id="pauseSettleBtn" class="pointer-events-auto rounded-xl px-5 py-3 border border-amber-300/20 bg-amber-300/[.06] text-amber-100 text-sm font-black hover:bg-amber-300/[.11] transition">
+            ここで集計して終了
+            <span class="block text-[9px] text-amber-300/60 font-normal mt-1">CR・構文・カード・記録を受け取る</span>
+          </button>
+          <div class="grid grid-cols-2 gap-2.5">
+            <button id="pauseRestartBtn" class="pointer-events-auto rounded-xl px-4 py-3 border border-cyan-300/15 bg-cyan-300/[.04] text-cyan-100 text-xs font-black hover:bg-cyan-300/[.09] transition">
+              最初からやり直す
+            </button>
+            <button id="pauseHomeBtn" class="pointer-events-auto rounded-xl px-4 py-3 border border-rose-300/15 bg-rose-300/[.035] text-rose-100 text-xs font-black hover:bg-rose-300/[.08] transition">
+              集計せずホーム
+            </button>
+          </div>
+        </div>
+
+        <div id="pauseConfirm" class="hidden mt-4 rounded-2xl border border-rose-300/15 bg-rose-300/[.045] p-4">
+          <div id="pauseConfirmText" class="text-xs leading-5 text-slate-300"></div>
+          <div class="grid grid-cols-2 gap-2 mt-3">
+            <button id="pauseConfirmCancel" class="pointer-events-auto rounded-xl py-2.5 border border-white/10 text-xs font-black text-slate-300 hover:bg-white/[.05]">キャンセル</button>
+            <button id="pauseConfirmDo" class="pointer-events-auto rounded-xl py-2.5 bg-rose-200 text-rose-950 text-xs font-black hover:bg-rose-100">実行する</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Game over -->
+    <section id="gameOverScreen" class="hidden absolute inset-0 bg-slate-950/75 backdrop-blur-xl flex items-center justify-center p-5">
+      <div class="glass rounded-[2rem] w-full max-w-3xl p-8 md:p-10 text-center">
+        <div id="gameOverTag" class="hud-label text-[10px] text-rose-300 font-black">シグナル消失</div>
+        <h2 id="gameOverTitle" class="mt-3 text-5xl md:text-7xl font-black tracking-[-.06em]">撃破された</h2>
+        <p id="gameOverMessage" class="mt-4 text-sm text-slate-500">ネオン空間にシグナルを飲み込まれた。</p>
+
+        <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-2xl bg-white/[.035] border border-white/[.06] p-5">
+            <div class="hud-label text-[9px] text-slate-500 font-bold">スコア</div>
+            <div id="finalScore" class="text-2xl md:text-3xl font-black mt-1">0</div>
+          </div>
+          <div class="rounded-2xl bg-white/[.035] border border-white/[.06] p-5">
+            <div class="hud-label text-[9px] text-slate-500 font-bold">ウェーブ</div>
+            <div id="finalWave" class="text-2xl md:text-3xl font-black mt-1">0</div>
+          </div>
+          <div class="rounded-2xl bg-white/[.035] border border-white/[.06] p-5">
+            <div class="hud-label text-[9px] text-slate-500 font-bold">撃破数</div>
+            <div id="finalKills" class="text-2xl md:text-3xl font-black mt-1">0</div>
+          </div>
+          <div class="rounded-2xl bg-amber-300/[.045] border border-amber-300/10 p-5">
+            <div class="hud-label text-[9px] text-amber-300/70 font-bold">獲得CR</div>
+            <div class="text-2xl md:text-3xl font-black mt-1 text-amber-200">+<span id="earnedCredits">0</span></div>
+          </div>
+        </div>
+        <div class="mt-3 text-[10px] text-slate-600">CR換算: スコア÷30 + ウェーブボーナス + 撃破ボーナス + ボス撃破ボーナス × 換金効率</div>
+        <div id="runLootBox" class="mt-4 rounded-2xl border border-violet-300/10 bg-violet-300/[.035] p-4 text-left">
+          <div class="flex items-center justify-between gap-3"><div class="hud-label text-[9px] text-violet-300/70 font-black">RUN ANALYSIS</div><div id="runLootCount" class="text-[10px] text-slate-500">0個解析</div></div>
+          <div id="runLootText" class="mt-2 text-xs leading-6 text-slate-400">スコアに応じて構文・カードを獲得します。</div>
+        </div>
+
+        <div id="newRecord" class="hidden mt-5 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 py-3 text-sm font-black text-cyan-200">
+          ハイスコア更新！
+        </div>
+
+        <div class="mt-7 flex flex-wrap justify-center gap-3">
+          <button id="restartBtn" class="pointer-events-auto rounded-xl px-7 py-3.5 bg-slate-100 text-slate-950 text-sm font-black hover:bg-cyan-200 transition">
+            もう一度挑戦 ↻
+          </button>
+          <button id="metaGameOverBtn" class="pointer-events-auto rounded-xl px-6 py-3.5 border border-amber-300/20 bg-amber-300/[.06] text-amber-200 text-sm font-black hover:bg-amber-300/[.11] transition">
+            CRを使って強化
+          </button>
+          <button id="gameOverHomeBtn" class="pointer-events-auto rounded-xl px-6 py-3.5 border border-white/10 bg-white/[.035] text-slate-300 text-sm font-black hover:bg-white/[.07] transition">
+            ホームへ
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Persistent progression / gacha -->
+    <section id="metaScreen" class="hidden absolute inset-0 z-40 bg-slate-950/88 backdrop-blur-xl overflow-y-auto p-4 md:p-8">
+      <div class="w-full max-w-6xl mx-auto py-4 md:py-8">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <div class="hud-label text-[10px] text-amber-300/80 font-black">NEON LABORATORY</div>
+            <h2 class="mt-2 text-3xl md:text-5xl font-black tracking-tight">恒久強化 & カード構文研究</h2>
+            <p class="mt-2 text-xs md:text-sm text-slate-500">スコアをクレジットと構文資産へ変換。集めた言葉を組み合わせ、自分だけの戦闘ロジックを作る。</p>
+          </div>
+          <button id="metaClose" class="pointer-events-auto shrink-0 h-11 w-11 rounded-xl border border-white/10 hover:bg-white/10 text-slate-400">✕</button>
+        </div>
+
+        <div class="glass rounded-2xl p-5 mb-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div class="hud-label text-[9px] text-amber-300/70 font-black">所持クレジット</div>
+            <div class="text-3xl font-black mt-1"><span id="metaCredits">0</span> <span class="text-sm text-amber-300">CR</span></div>
+          </div>
+          <div class="text-right">
+            <div class="hud-label text-[9px] text-violet-300/70 font-black">装備モジュール</div>
+            <div id="equippedModuleText" class="mt-1 text-sm font-black text-slate-200">なし</div>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-[1.08fr_.92fr] gap-5">
+          <div class="space-y-5">
+            <div class="glass rounded-3xl p-5 md:p-7">
+              <div class="flex items-end justify-between gap-3 mb-5">
+                <div><div class="hud-label text-[9px] text-cyan-300/70 font-black">PERMANENT STATS</div><h3 class="text-2xl font-black mt-1">ステータス研究</h3></div>
+                <div class="text-[10px] text-slate-500">購入効果は全ランに適用</div>
+              </div>
+              <div id="metaStats" class="grid sm:grid-cols-2 gap-3"></div>
+            </div>
+
+            <div class="glass rounded-3xl p-5 md:p-7">
+              <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+                <div><div class="hud-label text-[9px] text-fuchsia-300/70 font-black">CARD FORGE</div><h3 class="text-2xl font-black mt-1">カード工房</h3></div>
+                <div class="text-[10px] text-slate-500">条件を厳しくすると必要コストが下がる</div>
+              </div>
+              <div id="forgeParts" class="grid sm:grid-cols-2 gap-3"></div>
+              <div class="mt-4 rounded-2xl border border-white/[.07] bg-slate-950/35 p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div><div class="hud-label text-[8px] text-slate-500 font-black">LIVE PREVIEW</div><div id="forgePreview" class="mt-2 text-sm font-black leading-6 text-slate-200">構文を選択してください。</div></div>
+                  <div class="text-right"><div id="forgeRarity" class="text-xs font-black text-slate-400">COMMON</div><div id="forgeCost" class="text-2xl font-black mt-1">0 / 15</div></div>
+                </div>
+                <button id="forgeCreate" class="mt-4 w-full rounded-xl py-3 border border-fuchsia-300/20 bg-fuchsia-300/[.07] text-fuchsia-100 text-xs font-black hover:bg-fuchsia-300/[.12] transition">この構文でカードを生成</button>
+              </div>
+            </div>
+
+            <div class="glass rounded-3xl p-5 md:p-7">
+              <div class="flex items-end justify-between gap-3 mb-5">
+                <div><div class="hud-label text-[9px] text-violet-300/70 font-black">CARD LIBRARY</div><h3 class="text-2xl font-black mt-1">カードコレクション</h3></div>
+                <div class="text-[10px] text-slate-500"><span id="equippedCardsCount">0</span> / 3 装備</div>
+              </div>
+              <div id="cardCollection" class="grid sm:grid-cols-2 gap-3"></div>
+            </div>
+
+            <div class="glass rounded-3xl p-5 md:p-7">
+              <div class="flex items-end justify-between gap-3 mb-5">
+                <div><div class="hud-label text-[9px] text-slate-400/70 font-black">LEGACY MODULES</div><h3 class="text-xl font-black mt-1">コアモジュール</h3></div>
+                <div class="text-[10px] text-slate-600">従来装備も併用可能</div>
+              </div>
+              <div id="moduleCollection" class="grid sm:grid-cols-2 gap-3"></div>
+            </div>
+          </div>
+
+          <div class="space-y-5 h-fit lg:sticky lg:top-8">
+            <div class="glass rounded-3xl p-5 md:p-7">
+              <div class="hud-label text-[9px] text-amber-300/70 font-black">SYNTAX GACHA</div>
+              <h3 class="text-2xl font-black mt-1">構文・カードガチャ</h3>
+              <p class="mt-2 text-xs leading-5 text-slate-500">定型文・単語・完成カード・旧式コアが出現。未所持の構文は優先され、重複はCRへ還元される。</p>
+
+              <div class="mt-5 grid grid-cols-2 gap-3">
+                <button id="gacha1" class="pointer-events-auto rounded-2xl p-4 bg-white/[.045] border border-white/[.08] hover:border-cyan-300/30 hover:bg-white/[.07] transition text-left">
+                  <div class="text-sm font-black">1回解析</div><div class="text-xs text-amber-200 mt-1">350 CR</div>
+                </button>
+                <button id="gacha10" class="pointer-events-auto rounded-2xl p-4 bg-gradient-to-br from-violet-500/[.12] to-cyan-400/[.07] border border-violet-300/20 hover:border-violet-300/40 transition text-left">
+                  <div class="text-sm font-black">10回解析</div><div class="text-xs text-amber-200 mt-1">3,150 CR</div>
+                </button>
+              </div>
+
+              <div class="mt-4 rounded-xl bg-slate-950/50 border border-white/[.06] px-4 py-3 flex justify-between text-[10px]">
+                <span class="text-slate-500">内訳</span><span class="text-slate-400">構文 65% / 完成カード 20% / コア 15%</span>
+              </div>
+              <div class="mt-2 rounded-xl bg-slate-950/50 border border-white/[.06] px-4 py-3 flex justify-between text-[10px]">
+                <span class="text-slate-500">高レア保証</span><span id="pityText" class="text-violet-300 font-black">0 / 25</span>
+              </div>
+
+              <div id="gachaMessage" class="mt-5 min-h-[44px] text-xs text-slate-500 leading-5">構文を集めるほど、作れるカードの文章とロジックが増える。</div>
+              <div id="gachaResults" class="mt-4 grid grid-cols-2 gap-2"></div>
+            </div>
+
+            <div class="glass rounded-3xl p-5 md:p-7">
+              <div class="hud-label text-[9px] text-cyan-300/70 font-black">SYNTAX LIBRARY</div>
+              <h3 class="text-xl font-black mt-1">解析済み構文</h3>
+              <div id="syntaxSummary" class="mt-4 space-y-3 text-xs"></div>
+            </div>
+
+            <div class="glass rounded-3xl p-5 md:p-7">
+              <div class="flex items-end justify-between gap-3">
+                <div>
+                  <div class="hud-label text-[9px] text-emerald-300/70 font-black">SAVE DATA</div>
+                  <h3 class="text-xl font-black mt-1">セーブの移行・バックアップ</h3>
+                </div>
+                <div class="text-[9px] text-slate-600">JSON / v1</div>
+              </div>
+              <p class="mt-2 text-xs leading-5 text-slate-500">
+                ハイスコア、最高ウェーブ、CR、恒久強化、モジュール、解析済み構文、自作カード、装備状態を1ファイルに保存できます。
+              </p>
+
+              <div class="mt-4 grid grid-cols-2 gap-2.5">
+                <button id="saveExportBtn" class="pointer-events-auto rounded-xl py-3 px-3 border border-emerald-300/20 bg-emerald-300/[.06] text-emerald-100 text-xs font-black hover:bg-emerald-300/[.11] transition">
+                  セーブをExport
+                </button>
+                <button id="saveImportBtn" class="pointer-events-auto rounded-xl py-3 px-3 border border-cyan-300/20 bg-cyan-300/[.06] text-cyan-100 text-xs font-black hover:bg-cyan-300/[.11] transition">
+                  セーブをImport
+                </button>
+              </div>
+              <input id="saveImportFile" type="file" accept=".json,application/json" class="hidden">
+
+              <div id="saveTransferMessage" class="mt-3 rounded-xl border border-white/[.06] bg-slate-950/35 px-4 py-3 text-[10px] leading-5 text-slate-500">
+                ExportしたJSONは別PC・EXE版への移行にも使える形式です。
+              </div>
+
+              <div id="saveImportPreview" class="hidden mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-300/[.035] p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <div class="hud-label text-[8px] text-cyan-300/70 font-black">IMPORT PREVIEW</div>
+                    <div id="saveImportName" class="text-xs font-black mt-1 text-slate-200">セーブデータ</div>
+                  </div>
+                  <button id="saveImportCancel" class="pointer-events-auto text-[10px] text-slate-500 hover:text-slate-300">取消</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-3 text-[10px]">
+                  <div class="rounded-xl bg-slate-950/35 p-3"><span class="text-slate-500">ハイスコア</span><div id="savePreviewHigh" class="text-sm font-black mt-1">0</div></div>
+                  <div class="rounded-xl bg-slate-950/35 p-3"><span class="text-slate-500">最高Wave</span><div id="savePreviewWave" class="text-sm font-black mt-1">0</div></div>
+                  <div class="rounded-xl bg-slate-950/35 p-3"><span class="text-slate-500">クレジット</span><div id="savePreviewCredits" class="text-sm font-black mt-1 text-amber-200">0 CR</div></div>
+                  <div class="rounded-xl bg-slate-950/35 p-3"><span class="text-slate-500">資産</span><div id="savePreviewAssets" class="text-sm font-black mt-1 text-violet-200">0</div></div>
+                </div>
+
+                <div class="mt-3 rounded-xl border border-rose-300/10 bg-rose-300/[.035] px-3 py-2 text-[9px] leading-4 text-rose-200/80">
+                  Importすると現在のセーブを置き換えます。必要なら先にExportしてください。
+                </div>
+                <button id="saveImportApply" class="mt-3 pointer-events-auto w-full rounded-xl py-3 bg-cyan-100 text-cyan-950 text-xs font-black hover:bg-white transition">
+                  このセーブに置き換える
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile twin-stick controls -->
+    <div id="mobileControls" class="hidden">
+      <div id="moveStick" class="mobile-stick" aria-label="移動スティック">
+        <div id="moveStickKnob" class="mobile-stick-knob"></div>
+      </div>
+      <div id="aimStick" class="mobile-stick" aria-label="照準・射撃スティック">
+        <div id="aimStickKnob" class="mobile-stick-knob"></div>
+      </div>
+      <button id="mobileDashBtn" type="button">DASH</button>
+      <button id="mobilePauseBtn" type="button">Ⅱ</button>
+      <div id="mobileFireHint">右スティック：照準＋射撃</div>
+    </div>
+
+    <div id="rotateHint">
+      <div class="glass rounded-3xl p-7 max-w-sm">
+        <div class="text-5xl">↻</div>
+        <div class="hud-label text-[10px] text-cyan-300/70 font-black mt-4">LANDSCAPE MODE</div>
+        <h2 class="text-2xl font-black mt-2">横向きでプレイしてください</h2>
+        <p class="text-xs leading-6 text-slate-500 mt-3">
+          PC版と同じ視野・盤面サイズを維持するため、ゲーム中は横画面を基準にしています。
+        </p>
+      </div>
+    </div>
+
+    <!-- Center crosshair hint -->
+    <div id="dashHud" class="hidden absolute right-5 bottom-5 glass rounded-2xl px-4 py-3 pointer-events-none">
+      <div class="flex items-center justify-between gap-3">
+        <div class="hud-label text-[9px] text-slate-500 font-black">ダッシュ</div>
+        <div id="defenseHudText" class="text-[9px] font-black text-cyan-200"></div>
+      </div>
+      <div class="flex items-center gap-3 mt-1">
+        <div class="w-24 h-1.5 bg-slate-950 rounded-full overflow-hidden">
+          <div id="dashBar" class="h-full w-full bg-cyan-300"></div>
+        </div>
+        <span class="key !h-6 !min-w-0">SPACE</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const $ = (id) => document.getElementById(id);
+
+  const UI = {
+    hud: $("hud"), xpHud: $("xpHud"), start: $("startScreen"), how: $("howScreen"),
+    upgrade: $("upgradeScreen"), upgradeCards: $("upgradeCards"), pause: $("pauseScreen"),
+    gameOver: $("gameOverScreen"), bossWarning: $("bossWarning"), dashHud: $("dashHud"),
+    hpText: $("hpText"), hpBar: $("hpBar"), levelText: $("levelText"), scoreText: $("scoreText"),
+    comboText: $("comboText"), comboKills: $("comboKills"), comboBar: $("comboBar"),
+    waveText: $("waveText"), objectiveText: $("objectiveText"), xpText: $("xpText"),
+    xpBar: $("xpBar"), rarityBoostText: $("rarityBoostText"), dashBar: $("dashBar"), highScoreStart: $("highScoreStart"),
+    bestWaveStart: $("bestWaveStart"), finalScore: $("finalScore"), finalWave: $("finalWave"),
+    finalKills: $("finalKills"), newRecord: $("newRecord"), gameOverMessage: $("gameOverMessage"),
+    pauseLevel: $("pauseLevel"), pauseScore: $("pauseScore"), earnedCredits: $("earnedCredits"),
+    creditStart: $("creditStart"), meta: $("metaScreen"), metaCredits: $("metaCredits"), metaStats: $("metaStats"),
+    moduleCollection: $("moduleCollection"), equippedModuleText: $("equippedModuleText"), pityText: $("pityText"),
+    gachaMessage: $("gachaMessage"), gachaResults: $("gachaResults"), forgeParts: $("forgeParts"),
+    forgePreview: $("forgePreview"), forgeRarity: $("forgeRarity"), forgeCost: $("forgeCost"), forgeCreate: $("forgeCreate"),
+    cardCollection: $("cardCollection"), equippedCardsCount: $("equippedCardsCount"), syntaxSummary: $("syntaxSummary"),
+    runLootText: $("runLootText"), runLootCount: $("runLootCount"),
+    gameOverTitle: $("gameOverTitle"), pauseCredits: $("pauseCredits"), pauseLoot: $("pauseLoot"),
+    pauseConfirm: $("pauseConfirm"), pauseConfirmText: $("pauseConfirmText"), defenseHudText: $("defenseHudText"),
+    saveTransferMessage: $("saveTransferMessage"), saveImportPreview: $("saveImportPreview"),
+    saveImportName: $("saveImportName"), savePreviewHigh: $("savePreviewHigh"), savePreviewWave: $("savePreviewWave"),
+    savePreviewCredits: $("savePreviewCredits"), savePreviewAssets: $("savePreviewAssets"),
+    mobileControls: $("mobileControls"), moveStick: $("moveStick"), moveStickKnob: $("moveStickKnob"),
+    aimStick: $("aimStick"), aimStickKnob: $("aimStickKnob"), mobileDashBtn: $("mobileDashBtn"),
+    mobilePauseBtn: $("mobilePauseBtn")
+  };
+
+  const TAU = Math.PI * 2;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rand = (a, b) => Math.random() * (b - a) + a;
+  const pick = (arr) => arr[(Math.random() * arr.length) | 0];
+  const dist2 = (a,b) => {
+    const dx = a.x-b.x, dy = a.y-b.y;
+    return dx*dx + dy*dy;
+  };
+
+  // 有限ワールド + 固定仮想カメラ。
+  // ゲーム世界は画面より広いが、見える範囲は常に1600x900。
+  // 実ウィンドウはカメラ映像を等倍比率で拡大縮小するだけなので、
+  // 4:3 / 16:9 / 21:9でもFOV・照準感覚・敵出現距離は変わらない。
+  const WORLD_W = 4800, WORLD_H = 2700;
+  const CAMERA_W = 1600, CAMERA_H = 900;
+  let W = WORLD_W, H = WORLD_H;
+  let VIEW_W = innerWidth, VIEW_H = innerHeight;
+  let DPR = Math.min(devicePixelRatio || 1, 1.35);
+  let gameScale = 1, gameOffsetX = 0, gameOffsetY = 0;
+  let lastCanvasPW=0,lastCanvasPH=0;
+  const camera = {x:(WORLD_W-CAMERA_W)/2, y:(WORLD_H-CAMERA_H)/2};
+
+  function clampCamera() {
+    camera.x = clamp(camera.x, 0, WORLD_W - CAMERA_W);
+    camera.y = clamp(camera.y, 0, WORLD_H - CAMERA_H);
+  }
+  function snapCameraToPlayer() {
+    camera.x = player ? player.x - CAMERA_W/2 : (WORLD_W-CAMERA_W)/2;
+    camera.y = player ? player.y - CAMERA_H/2 : (WORLD_H-CAMERA_H)/2;
+    clampCamera();
+  }
+  function applyWorldTransform() {
+    ctx.setTransform(
+      DPR * gameScale, 0, 0, DPR * gameScale,
+      DPR * (gameOffsetX - camera.x * gameScale),
+      DPR * (gameOffsetY - camera.y * gameScale)
+    );
+  }
+  function applyCameraScreenTransform() {
+    ctx.setTransform(
+      DPR * gameScale, 0, 0, DPR * gameScale,
+      DPR * gameOffsetX, DPR * gameOffsetY
+    );
+  }
+
+  function getViewportSize() {
+    const appRect = document.getElementById("app")?.getBoundingClientRect();
+    const vv = window.visualViewport;
+    const vw = Math.max(1, Math.round(vv?.width || appRect?.width || document.documentElement.clientWidth || innerWidth));
+    const vh = Math.max(1, Math.round(vv?.height || appRect?.height || document.documentElement.clientHeight || innerHeight));
+    return {vw,vh};
+  }
+
+  function resize() {
+    const vp=getViewportSize();
+    VIEW_W=vp.vw; VIEW_H=vp.vh;
+    DPR = Math.min(devicePixelRatio || 1, (matchMedia("(pointer: coarse)").matches ? 1.15 : 1.35));
+    gameScale = Math.min(VIEW_W / CAMERA_W, VIEW_H / CAMERA_H);
+    gameOffsetX = (VIEW_W - CAMERA_W * gameScale) * .5;
+    gameOffsetY = (VIEW_H - CAMERA_H * gameScale) * .5;
+
+    const pw=Math.max(1,Math.floor(VIEW_W*DPR));
+    const ph=Math.max(1,Math.floor(VIEW_H*DPR));
+    if(pw!==lastCanvasPW || ph!==lastCanvasPH){
+      canvas.width=pw;
+      canvas.height=ph;
+      lastCanvasPW=pw;lastCanvasPH=ph;
+    }
+    canvas.style.width=VIEW_W+"px";
+    canvas.style.height=VIEW_H+"px";
+    clampCamera();
+    applyWorldTransform();
+
+    // HUDは固定カメラの縁へ寄せる。ウルトラワイドの余白はゲーム領域にしない。
+    if (UI.hud) {
+      UI.hud.style.left = gameOffsetX + "px";
+      UI.hud.style.right = gameOffsetX + "px";
+      UI.hud.style.top = gameOffsetY + "px";
+    }
+    if (UI.xpHud) {
+      const bottomBar = VIEW_H - (gameOffsetY + CAMERA_H * gameScale);
+      UI.xpHud.style.bottom = (bottomBar + 20) + "px";
+    }
+    if (UI.dashHud) {
+      const rightBar = VIEW_W - (gameOffsetX + CAMERA_W * gameScale);
+      const bottomBar = VIEW_H - (gameOffsetY + CAMERA_H * gameScale);
+      UI.dashHud.style.right = (rightBar + 20) + "px";
+      UI.dashHud.style.bottom = (bottomBar + 20) + "px";
+    }
+  }
+  addEventListener("resize", resize);
+  if(window.visualViewport){
+    visualViewport.addEventListener("resize", resize);
+  }
+  let resizeQueued=false;
+  const appResizeObserver = new ResizeObserver(()=>{
+    if(resizeQueued)return;
+    resizeQueued=true;
+    requestAnimationFrame(()=>{resizeQueued=false;resize();});
+  });
+  appResizeObserver.observe(document.getElementById("app"));
+  resize();
+
+  // ---------- Audio ----------
+  let audio = null;
+  function beep(freq=440, duration=.05, type="sine", gain=.03, slide=0) {
+    try {
+      audio ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === "suspended") audio.resume();
+      const o = audio.createOscillator();
+      const g = audio.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, audio.currentTime);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), audio.currentTime + duration);
+      g.gain.setValueAtTime(gain, audio.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + duration);
+      o.connect(g).connect(audio.destination);
+      o.start();
+      o.stop(audio.currentTime + duration);
+    } catch {}
+  }
+
+  // ---------- Input ----------
+  const keys = new Set();
+  const mouse = { x: W/2, y: H/2, down: false };
+
+  const touchCapable = ("ontouchstart" in window) || (navigator.maxTouchPoints||0) > 0 || matchMedia("(pointer: coarse)").matches;
+  const mobileMove = {x:0,y:0,mag:0,active:false,pointerId:null};
+  const mobileAim = {x:1,y:0,mag:0,active:false,pointerId:null};
+
+  if(touchCapable) document.body.classList.add("mobile-input");
+
+  function setMobileControls(visible){
+    if(!touchCapable || !UI.mobileControls) return;
+    UI.mobileControls.classList.toggle("hidden", !visible);
+    document.body.classList.toggle("mobile-game-active", !!visible);
+    if(!visible){
+      mobileMove.x=0; mobileMove.y=0; mobileMove.mag=0; mobileMove.active=false; mobileMove.pointerId=null;
+      mobileAim.mag=0; mobileAim.active=false; mobileAim.pointerId=null;
+      mouse.down=false;
+      UI.moveStickKnob.style.transform="translate(0px,0px)";
+      UI.aimStickKnob.style.transform="translate(0px,0px)";
+    }
+  }
+
+  function bindVirtualStick(el, knob, stateObj, onVector){
+    if(!el || !knob) return;
+
+    const update=(ev)=>{
+      const r=el.getBoundingClientRect();
+      const cx=r.left+r.width/2, cy=r.top+r.height/2;
+      let dx=ev.clientX-cx, dy=ev.clientY-cy;
+      const max=r.width*.34;
+      const len=Math.hypot(dx,dy);
+      const clamped=Math.min(max,len);
+      if(len>0){
+        dx=dx/len*clamped;
+        dy=dy/len*clamped;
+      }
+      knob.style.transform=`translate(${dx}px,${dy}px)`;
+      stateObj.x=max?dx/max:0;
+      stateObj.y=max?dy/max:0;
+      stateObj.mag=Math.min(1,max?len/max:0);
+      onVector(stateObj.x,stateObj.y,stateObj.mag);
+    };
+
+    el.addEventListener("pointerdown",ev=>{
+      if(!touchCapable) return;
+      ev.preventDefault();
+      stateObj.active=true;
+      stateObj.pointerId=ev.pointerId;
+      try{ el.setPointerCapture(ev.pointerId); }catch{}
+      update(ev);
+    });
+
+    el.addEventListener("pointermove",ev=>{
+      if(!stateObj.active || stateObj.pointerId!==ev.pointerId) return;
+      ev.preventDefault();
+      update(ev);
+    });
+
+    const end=(ev)=>{
+      if(stateObj.pointerId!==ev.pointerId) return;
+      stateObj.active=false;
+      stateObj.pointerId=null;
+      stateObj.x=0; stateObj.y=0; stateObj.mag=0;
+      knob.style.transform="translate(0px,0px)";
+      onVector(0,0,0);
+    };
+    el.addEventListener("pointerup",end);
+    el.addEventListener("pointercancel",end);
+  }
+
+  addEventListener("keydown", e => {
+    if (["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
+    keys.add(e.code);
+    if (e.code === "Space" && state === "playing") dash();
+    if (e.code === "Escape") { if(state==="meta") closeMeta(); else togglePause(); }
+  });
+  addEventListener("keyup", e => keys.delete(e.code));
+  function updateMousePosition(clientX, clientY) {
+    // DOM座標 -> 固定カメラ座標 -> ワールド座標。
+    // 画面サイズが変わっても照準の見える範囲は1600x900で固定。
+    mouse.x = camera.x + clamp((clientX - gameOffsetX) / gameScale, 0, CAMERA_W);
+    mouse.y = camera.y + clamp((clientY - gameOffsetY) / gameScale, 0, CAMERA_H);
+  }
+  addEventListener("mousemove", e => updateMousePosition(e.clientX, e.clientY));
+  addEventListener("mousedown", e => { if (e.button === 0) mouse.down = true; });
+  addEventListener("mouseup", e => { if (e.button === 0) mouse.down = false; });
+  addEventListener("blur", () => {
+    keys.clear();
+    mouse.down = false;
+    if (state === "playing") setPause(true);
+  });
+
+  // ---------- World ----------
+  let state = "menu";
+  let last = performance.now();
+  let time = 0;
+  let screenShake = 0;
+  let flash = 0;
+  let score = 0;
+  let kills = 0;
+  let wave = 1;
+  let spawnTimer = 0;
+  let waveTimer = 0;
+  let bossAlive = false;
+  let bossWarningTimer = 0;
+  let pendingLevelUps = 0;
+  let combo = 1;
+  let comboKills = 0;
+  let comboTimer = 0;
+  let bossesDefeated = 0;
+  let stars = [];
+  let bullets = [];
+  let enemies = [];
+  let particles = [];
+  let gems = [];
+  let texts = [];
+  let drones = [];
+  let rings = [];
+  let fieldZones = [];
+  let uiTimer = 0;
+
+  // 視界外の敵を永遠に保持しない。大きなワールドでも負荷はカメラ周辺に限定する。
+  const ACTIVE_DESPAWN_DISTANCE = 1850;
+
+  // 長時間プレイでも負荷が増え続けないための安全上限。
+  // 見た目を保ちながら、描画・当たり判定の最悪計算量を抑える。
+  const PERF = {
+    maxBullets: 200,
+    maxEnemyBullets: 78,
+    maxParticles: 170,
+    maxGems: 85,
+    maxTexts: 38,
+    maxRings: 36,
+    hudFps: 12
+  };
+
+  const save = {
+    high: +(localStorage.getItem("nf_high") || 0),
+    wave: +(localStorage.getItem("nf_wave") || 0)
+  };
+
+  const META_STATS = {
+    power:    {name:"出力増幅", icon:"✦", max:20, base:120, growth:1.32, desc:lv=>`開始時の弾ダメージ +${lv*3}%`},
+    hull:     {name:"船体強化", icon:"⬡", max:20, base:110, growth:1.31, desc:lv=>`開始時の最大HP +${lv*6}`},
+    mobility: {name:"機動補正", icon:"➤", max:20, base:125, growth:1.33, desc:lv=>`移動速度 +${(lv*1.5).toFixed(1)}%`},
+    critical: {name:"照準演算", icon:"◇", max:15, base:170, growth:1.36, desc:lv=>`初期クリティカル率 +${lv}%`},
+    recovery: {name:"吸収回路", icon:"♥", max:15, base:220, growth:1.38, desc:lv=>`初期HP吸収 +${(lv*.2).toFixed(1)}%`},
+    magnet:   {name:"回収磁場", icon:"◉", max:15, base:100, growth:1.30, desc:lv=>`経験値回収範囲 +${lv*9}`},
+    economy:  {name:"換金効率", icon:"CR", max:15, base:240, growth:1.40, desc:lv=>`ラン終了時のCR獲得 +${lv*4}%`}
+  };
+
+  const MODULES = [
+    {id:"pulse",rarity:"COMMON",icon:"✦",name:"パルス増幅器",desc:lv=>`弾ダメージ +${lv*4}%`,apply:(p,lv)=>p.damage*=1+lv*.04},
+    {id:"shell",rarity:"COMMON",icon:"⬡",name:"補助装甲",desc:lv=>`最大HP +${lv*7}`,apply:(p,lv)=>{p.maxHp+=lv*7;p.hp+=lv*7}},
+    {id:"vector",rarity:"COMMON",icon:"➤",name:"ベクターノズル",desc:lv=>`移動速度 +${lv*2.5}%`,apply:(p,lv)=>p.speed*=1+lv*.025},
+    {id:"collector",rarity:"COMMON",icon:"◉",name:"コレクター",desc:lv=>`回収範囲 +${lv*15}`,apply:(p,lv)=>p.magnet+=lv*15},
+    {id:"rail",rarity:"RARE",icon:"⇢",name:"レールコア",desc:lv=>`貫通 +1 / ダメージ +${lv*3}%`,apply:(p,lv)=>{p.pierce+=1;p.damage*=1+lv*.03}},
+    {id:"crimson",rarity:"RARE",icon:"♥",name:"クリムゾンセル",desc:lv=>`HP吸収 +${(lv*.8).toFixed(1)}%`,apply:(p,lv)=>p.lifesteal+=lv*.008},
+    {id:"reactor",rarity:"RARE",icon:"⌁",name:"マイクロリアクター",desc:lv=>`連射速度 +${lv*4}%`,apply:(p,lv)=>p.fireRate*=1+lv*.04},
+    {id:"fortune",rarity:"RARE",icon:"◆",name:"フォーチュン回路",desc:lv=>`開始時に希少共鳴 +${Math.min(2,Math.ceil(lv/2))}`,apply:(p,lv)=>p.rarityCharge+=Math.min(2,Math.ceil(lv/2))},
+    {id:"nova",rarity:"EPIC",icon:"✹",name:"ノヴァ・シード",desc:lv=>`撃破爆発率 ${10+lv*5}%で開始`,apply:(p,lv)=>{p.explosiveChance=Math.max(p.explosiveChance,.10+lv*.05);p.explosiveDamage=Math.max(p.explosiveDamage,.9)}},
+    {id:"oracle",rarity:"EPIC",icon:"◈",name:"オラクル・コア",desc:lv=>`クリ率 +${lv*4}% / クリ倍率 +${(lv*.1).toFixed(1)}`,apply:(p,lv)=>{p.crit=Math.min(1,p.crit+lv*.04);p.critMult+=lv*.1}},
+    {id:"dronecore",rarity:"EPIC",icon:"◎",name:"ドローン母核",desc:lv=>`ドローン1機 / 威力 +${lv*18}%`,apply:(p,lv)=>{p.droneCount+=1;p.droneDamage*=1+lv*.18}},
+    {id:"chronos",rarity:"LEGENDARY",icon:"◫",name:"クロノス・ドライブ",desc:lv=>`ダッシュCD -${Math.min(40,lv*8)}%`,apply:(p,lv)=>p.dashCooldown*=1-Math.min(.40,lv*.08)},
+    {id:"sovereign",rarity:"LEGENDARY",icon:"♛",name:"ソヴリン・コア",desc:lv=>`ダメージ +${lv*7}% / クリ率 +${lv*5}%`,apply:(p,lv)=>{p.damage*=1+lv*.07;p.crit=Math.min(1,p.crit+lv*.05)}}
+  ];
+  const MODULE_BY_ID = Object.fromEntries(MODULES.map(m=>[m.id,m]));
+  const MODULE_RARITY = {COMMON:{label:"コモン",cls:"text-slate-300",border:"border-slate-400/15"},RARE:{label:"レア",cls:"text-cyan-300",border:"border-cyan-300/20"},EPIC:{label:"エピック",cls:"text-violet-300",border:"border-violet-300/25"},LEGENDARY:{label:"レジェンダリー",cls:"text-amber-300",border:"border-amber-300/30"}};
+
+  // ---------- Card syntax system ----------
+  // 各日本語パーツは内部IDに結び付いている。文章解析はせず、実行時はIDで直接分岐する。
+  const CARD_PARTS = {
+    trigger: [
+      {id:"on_kill", text:"敵を倒した時", cost:1, rarity:"COMMON"},
+      {id:"on_hit", text:"弾が命中した時", cost:2, rarity:"COMMON"},
+      {id:"on_crit", text:"クリティカル時", cost:2, rarity:"RARE"},
+      {id:"on_dash", text:"ダッシュした時", cost:1, rarity:"COMMON"},
+      {id:"on_damage", text:"ダメージを受けた時", cost:0, rarity:"COMMON"},
+      {id:"on_wave", text:"ウェーブ開始時", cost:0, rarity:"RARE"},
+      {id:"on_shield_break", text:"シールドが破壊された時", cost:1, rarity:"RARE"},
+      {id:"on_low_hp", text:"HPが35%を下回った時", cost:1, rarity:"RARE"}
+    ],
+    condition: [
+      {id:"always", text:"", cost:0, rarity:"COMMON"},
+      {id:"hp35", text:"HPが35%以下なら", cost:-1, rarity:"COMMON"},
+      {id:"hp70", text:"HPが70%以上なら", cost:0, rarity:"COMMON"},
+      {id:"elite", text:"対象がエリートなら", cost:-1, rarity:"RARE"},
+      {id:"boss", text:"対象がボスなら", cost:-2, rarity:"RARE"},
+      {id:"combo8", text:"連続撃破が8以上なら", cost:-1, rarity:"RARE"},
+      {id:"shieldless", text:"シールドが無いなら", cost:-1, rarity:"RARE"},
+      {id:"nearby5", text:"周囲に敵が5体以上なら", cost:-2, rarity:"EPIC"}
+    ],
+    chance: [
+      {id:"c25", text:"25%の確率で", value:.25, cost:0, rarity:"COMMON"},
+      {id:"c50", text:"50%の確率で", value:.50, cost:1, rarity:"COMMON"},
+      {id:"c75", text:"75%の確率で", value:.75, cost:2, rarity:"RARE"},
+      {id:"c100", text:"確定で", value:1, cost:4, rarity:"EPIC"}
+    ],
+    effect: [
+      {id:"heal", text:"最大HPを基準に回復する", cost:2, rarity:"COMMON", icon:"♥"},
+      {id:"shield", text:"攻撃を複数回無効化するシールドを得る", cost:3, rarity:"COMMON", icon:"⬡"},
+      {id:"guard", text:"一定時間、受けるダメージを大きく軽減する", cost:3, rarity:"RARE", icon:"▣"},
+      {id:"reflect", text:"受けた攻撃を周囲の敵へ反射する", cost:4, rarity:"RARE", icon:"↺"},
+      {id:"explode", text:"周囲に爆発を起こす", cost:3, rarity:"COMMON", icon:"✹"},
+      {id:"lightning", text:"近くの敵へ雷撃を連鎖する", cost:4, rarity:"RARE", icon:"ϟ"},
+      {id:"frostnova", text:"周囲へ凍結波を放ち敵を強く減速する", cost:4, rarity:"RARE", icon:"❄"},
+      {id:"knockpulse", text:"衝撃波で周囲の敵を吹き飛ばす", cost:3, rarity:"COMMON", icon:"◎"},
+      {id:"radial", text:"全方向へ特殊弾を一斉射撃する", cost:5, rarity:"EPIC", icon:"✦"},
+      {id:"barrage", text:"最も近い敵へ追撃弾幕を放つ", cost:5, rarity:"EPIC", icon:"⋰"},
+      {id:"barrier", text:"短時間の完全無敵障壁を展開する", cost:5, rarity:"EPIC", icon:"◇"},
+      {id:"dashreset", text:"ダッシュを即時再使用可能にする", cost:5, rarity:"EPIC", icon:"◫"},
+      {id:"resonance", text:"共鳴経験値を直接獲得する", cost:3, rarity:"RARE", icon:"◆"}
+    ],
+    power: [
+      {id:"p80", text:"出力80%", value:.8, cost:0, rarity:"COMMON"},
+      {id:"p120", text:"出力120%", value:1.2, cost:1, rarity:"COMMON"},
+      {id:"p180", text:"出力180%", value:1.8, cost:3, rarity:"RARE"},
+      {id:"p260", text:"出力260%", value:2.6, cost:5, rarity:"EPIC"}
+    ]
+  };
+  const PART_BY_ID = Object.fromEntries(Object.entries(CARD_PARTS).flatMap(([type,list])=>list.map(p=>[p.id,{...p,type}])));
+  const STARTER_PARTS = ["on_kill","on_hit","on_dash","on_damage","always","hp35","c25","c50","heal","shield","explode","knockpulse","p80","p120"];
+  const CARD_RARITY = {
+    COMMON:{label:"コモン",cls:"text-slate-300",border:"border-slate-400/20",min:0},
+    RARE:{label:"レア",cls:"text-cyan-300",border:"border-cyan-300/25",min:5},
+    EPIC:{label:"エピック",cls:"text-violet-300",border:"border-violet-300/30",min:8},
+    LEGENDARY:{label:"レジェンダリー",cls:"text-amber-300",border:"border-amber-300/35",min:12}
+  };
+  function cardRarity(cost){ return cost>=12?"LEGENDARY":cost>=8?"EPIC":cost>=5?"RARE":"COMMON"; }
+  function cardCost(parts){ return Math.max(0,[parts.trigger,parts.condition,parts.chance,parts.effect,parts.power].reduce((s,id)=>s+(PART_BY_ID[id]?.cost||0),0)); }
+  function describeCard(card){
+    const t=PART_BY_ID[card.trigger]?.text||""; const c=PART_BY_ID[card.condition]?.text||""; const ch=PART_BY_ID[card.chance]?.text||"";
+    let e=PART_BY_ID[card.effect]?.text||""; const power=PART_BY_ID[card.power]?.value??1; let p=PART_BY_ID[card.power]?.text||"";
+    if(card.effect==="shield"){
+      const hits=Math.max(1,Math.ceil(power*1.7));
+      e=`${hits}回の攻撃を完全無効化するシールドを得る`; p=`最大${hits}スタック`;
+    } else if(card.effect==="guard"){
+      e=`${(1.4*power).toFixed(1)}秒間、被ダメージを${Math.round(Math.min(.72,.30+.16*power)*100)}%軽減する`; p="";
+    } else if(card.effect==="radial"){
+      e=`全方向へ${Math.max(6,Math.round(6+power*3))}発の特殊弾を放つ`;
+    } else if(card.effect==="barrage"){
+      e=`近い敵へ${Math.max(3,Math.round(2+power*2))}発の追撃弾幕を放つ`;
+    }
+    return `${t}、${c?c+"、":""}${ch}${e}${p?`（${p}）`:""}。`.replace("、、","、");
+  }
+  function generatedCardName(card){
+    const eff={heal:"紅の回路",shield:"多層装甲",guard:"防壁",reflect:"反照",explode:"虚無爆裂",lightning:"雷鎖",frostnova:"氷界",knockpulse:"衝撃環",radial:"星散",barrage:"追撃雨",barrier:"絶対障壁",dashreset:"時空跳躍",resonance:"共鳴炉"}[card.effect]||"未知構文";
+    const trig={on_kill:"処刑",on_hit:"刻印",on_crit:"断罪",on_dash:"位相",on_damage:"反逆",on_wave:"開幕",on_shield_break:"破砕",on_low_hp:"背水"}[card.trigger]||"変異";
+    const prefix={COMMON:"",RARE:"強化型 ",EPIC:"超越型 ",LEGENDARY:"《終極》"}[card.rarity]||"";
+    return `${prefix}${trig}${eff}`;
+  }
+  function normalizeCard(raw){
+    const c={...raw}; c.cost=cardCost(c); c.rarity=cardRarity(c.cost); c.id=c.id||`card_${Date.now()}_${Math.random().toString(36).slice(2,7)}`; c.name=c.name||generatedCardName(c); return c;
+  }
+  function conditionPass(card,ctx={}){
+    switch(card.condition){
+      case "hp35": return player.hp/player.maxHp<=.35;
+      case "hp70": return player.hp/player.maxHp>=.70;
+      case "elite": return !!ctx.enemy?.elite;
+      case "boss": return !!ctx.enemy?.boss;
+      case "combo8": return comboKills>=8;
+      case "shieldless": return (player.shieldHits||0)<=0;
+      case "nearby5": return enemies.reduce((n,e)=>n+(!e._dead&&Math.hypot(e.x-player.x,e.y-player.y)<260?1:0),0)>=5;
+      default: return true;
+    }
+  }
+  let cardProcDepth=0;
+  function emitCardTrigger(trigger,ctx={}){
+    if(cardProcDepth>1 || !meta?.cards?.length) return;
+    cardProcDepth++;
+    try{
+      for(const id of (meta.equippedCards||[])){
+        const card=meta.cards.find(c=>c.id===id); if(!card||card.trigger!==trigger||!conditionPass(card,ctx))continue;
+        const chance=PART_BY_ID[card.chance]?.value??1; if(Math.random()>chance)continue;
+        const power=PART_BY_ID[card.power]?.value??1; const anchor=ctx.enemy||null; const e=anchor&&!anchor._dead?anchor:null;
+        if(card.effect==="heal") player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.035*power);
+        else if(card.effect==="shield") {
+          const hits=Math.max(1,Math.ceil(power*1.7));
+          player.shieldHits=Math.min(9,(player.shieldHits||0)+hits);
+        }
+        else if(card.effect==="guard") {
+          player.guardTimer=Math.max(player.guardTimer||0,1.4*power);
+          player.guardReduction=Math.max(player.guardReduction||0,Math.min(.72,.30+.16*power));
+        }
+        else if(card.effect==="reflect") {
+          const dmg=Math.max(player.damage*.7*power,(ctx.damage||0)*1.5*power);
+          explode(player.x,player.y,dmg,95+18*power,190,true);
+        }
+        else if(card.effect==="explode") { const x=anchor?.x??player.x,y=anchor?.y??player.y; explode(x,y,player.damage*.85*power,72+18*power,300,true); }
+        else if(card.effect==="lightning") { const origin=e||nearestEnemy(player.x,player.y); if(origin)chainLightning(origin,player.damage*.65*power,Math.max(1,Math.floor(power+1))); }
+        else if(card.effect==="frostnova") {
+          const radius=145+25*power;
+          for(const foe of enemies){if(foe._dead)continue;if(Math.hypot(foe.x-player.x,foe.y-player.y)<=radius){foe.slow=Math.max(foe.slow,1.2*power);foe.slowPower=Math.max(foe.slowPower||0,Math.min(.78,.42+.12*power));}}
+          if(rings.length<PERF.maxRings)rings.push({x:player.x,y:player.y,r:18,life:.32,max:.32,hue:195});
+        }
+        else if(card.effect==="knockpulse") {
+          const radius=130+28*power;
+          for(const foe of enemies){if(foe._dead)continue;const dx=foe.x-player.x,dy=foe.y-player.y,d=Math.hypot(dx,dy)||1;if(d<=radius){foe.vx+=dx/d*180*power;foe.vy+=dy/d*180*power;foe.hp-=player.damage*.28*power;if(foe.hp<=0)killEnemy(foe,true);}}
+          if(rings.length<PERF.maxRings)rings.push({x:player.x,y:player.y,r:15,life:.28,max:.28,hue:185});
+        }
+        else if(card.effect==="radial") {
+          const count=Math.max(6,Math.round(6+power*3));
+          for(let i=0;i<count;i++)shoot(player.x,player.y,i/count*TAU,player.damage*.55*power,{silent:true,pierce:0});
+        }
+        else if(card.effect==="barrage") {
+          const target=e||nearestEnemy(player.x,player.y);
+          if(target){const count=Math.max(3,Math.round(2+power*2));const base=Math.atan2(target.y-player.y,target.x-player.x);for(let i=0;i<count;i++)shoot(player.x,player.y,base+rand(-.13,.13),player.damage*.42*power,{silent:true,pierce:0,speed:player.bulletSpeed*.9});}
+        }
+        else if(card.effect==="barrier") player.invuln=Math.max(player.invuln,.45*power);
+        else if(card.effect==="dashreset") player.dashReady=1;
+        else if(card.effect==="resonance") addXP(Math.max(1,Math.floor(2*power)));
+        if(texts.length<PERF.maxTexts)texts.push({x:player.x,y:player.y-42,text:card.name,life:.55,max:.55,hue:card.rarity==="LEGENDARY"?42:card.rarity==="EPIC"?280:190,size:10});
+      }
+    } finally { cardProcDepth--; }
+  }
+  function nearestEnemy(x,y){let target=null,best=260*260;for(const e of enemies){if(e._dead)continue;const d=(e.x-x)**2+(e.y-y)**2;if(d<best){best=d;target=e;}}return target;}
+
+  let forgeSelection={trigger:"on_kill",condition:"always",chance:"c25",effect:"heal",power:"p80"};
+
+  const defaultMeta = () => ({credits:0,stats:{power:0,hull:0,mobility:0,critical:0,recovery:0,magnet:0,economy:0},modules:{},equipped:null,pity:0,totalRuns:0,
+    syntax:Object.fromEntries(STARTER_PARTS.map(id=>[id,1])),cards:[],equippedCards:[]});
+  function loadMeta(){
+    try {
+      const raw=JSON.parse(localStorage.getItem("nf_meta_v1")||"null") || defaultMeta();
+      const d=defaultMeta();
+      return {...d,...raw,stats:{...d.stats,...(raw.stats||{})},modules:{...(raw.modules||{})},syntax:{...d.syntax,...(raw.syntax||{})},cards:Array.isArray(raw.cards)?raw.cards.map(normalizeCard):[],equippedCards:Array.isArray(raw.equippedCards)?raw.equippedCards.slice(0,3):[]};
+    } catch { return defaultMeta(); }
+  }
+  let meta = loadMeta();
+  function saveMeta(){ localStorage.setItem("nf_meta_v1",JSON.stringify(meta)); refreshMetaUI(); }
+
+  // ---------- Save Export / Import ----------
+  const SAVE_EXPORT_VERSION = 1;
+  const SAVE_EXPORT_APP = "NEON_FRACTURE";
+
+  function exportPayload(){
+    return {
+      app: SAVE_EXPORT_APP,
+      formatVersion: SAVE_EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      gameVersion: "v11",
+      data: {
+        high: Number(save.high)||0,
+        wave: Number(save.wave)||0,
+        meta: JSON.parse(JSON.stringify(meta))
+      }
+    };
+  }
+
+  function downloadSave(){
+    try{
+      const payload=exportPayload();
+      const json=JSON.stringify(payload,null,2);
+      const blob=new Blob([json],{type:"application/json"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      const stamp=new Date().toISOString().replace(/[:.]/g,"-").slice(0,19);
+      a.href=url;
+      a.download=`neon-fracture-save-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),500);
+      UI.saveTransferMessage.innerHTML='<span class="text-emerald-200 font-black">Export完了。</span> JSONファイルを安全な場所へ保存してください。';
+      beep(520,.07,"triangle",.025,260);
+    }catch(err){
+      UI.saveTransferMessage.textContent="Exportに失敗しました: "+(err?.message||err);
+      beep(90,.10,"square",.02,-20);
+    }
+  }
+
+  function sanitizeImportedMeta(raw){
+    if(!raw || typeof raw!=="object" || Array.isArray(raw)) throw new Error("metaデータが不正です。");
+    const d=defaultMeta();
+    const stats={...d.stats};
+    for(const key of Object.keys(stats)){
+      const def=META_STATS[key];
+      const v=Number(raw.stats?.[key]);
+      stats[key]=Number.isFinite(v)?clamp(Math.floor(v),0,def?.max??99):0;
+    }
+
+    const modules={};
+    if(raw.modules && typeof raw.modules==="object"){
+      for(const m of MODULES){
+        const lv=Number(raw.modules[m.id]);
+        if(Number.isFinite(lv)&&lv>0) modules[m.id]=clamp(Math.floor(lv),1,5);
+      }
+    }
+
+    const syntax={...d.syntax};
+    if(raw.syntax && typeof raw.syntax==="object"){
+      const known=new Set(Object.values(CARD_PARTS).flat().map(p=>p.id));
+      for(const [id,v] of Object.entries(raw.syntax)){
+        if(known.has(id)&&v) syntax[id]=1;
+      }
+    }
+
+    const cards=Array.isArray(raw.cards)
+      ? raw.cards.slice(0,300).map(normalizeCard).filter(c=>
+          PART_BY_ID[c.trigger]&&PART_BY_ID[c.condition]&&PART_BY_ID[c.chance]&&PART_BY_ID[c.effect]&&PART_BY_ID[c.power]
+        )
+      : [];
+
+    const cardIds=new Set(cards.map(c=>c.uid));
+    const equippedCards=Array.isArray(raw.equippedCards)
+      ? raw.equippedCards.filter(id=>cardIds.has(id)).slice(0,3)
+      : [];
+
+    const equipped = MODULE_BY_ID[raw.equipped] && modules[raw.equipped] ? raw.equipped : null;
+
+    return {
+      ...d,
+      credits: clamp(Math.floor(Number(raw.credits)||0),0,999999999),
+      stats,
+      modules,
+      equipped,
+      pity: clamp(Math.floor(Number(raw.pity)||0),0,1000),
+      totalRuns: clamp(Math.floor(Number(raw.totalRuns)||0),0,99999999),
+      syntax,
+      cards,
+      equippedCards
+    };
+  }
+
+  function validateImportPayload(payload){
+    if(!payload || typeof payload!=="object" || Array.isArray(payload)) throw new Error("JSON形式が不正です。");
+    if(payload.app!==SAVE_EXPORT_APP) throw new Error("NEON FRACTUREのセーブデータではありません。");
+    if(Number(payload.formatVersion)!==SAVE_EXPORT_VERSION) throw new Error(`未対応のセーブ形式です (v${payload.formatVersion ?? "?"})。`);
+    if(!payload.data || typeof payload.data!=="object") throw new Error("セーブ本体がありません。");
+
+    const high=clamp(Math.floor(Number(payload.data.high)||0),0,999999999999);
+    const wave=clamp(Math.floor(Number(payload.data.wave)||0),0,999999);
+    const importedMeta=sanitizeImportedMeta(payload.data.meta);
+
+    return {
+      high,
+      wave,
+      meta: importedMeta,
+      exportedAt: typeof payload.exportedAt==="string" ? payload.exportedAt : null,
+      gameVersion: typeof payload.gameVersion==="string" ? payload.gameVersion : "不明"
+    };
+  }
+
+  let pendingImportedSave=null;
+
+  function showImportPreview(parsed,fileName="save.json"){
+    pendingImportedSave=parsed;
+    UI.saveImportPreview.classList.remove("hidden");
+    UI.saveImportName.textContent=`${fileName} / ${parsed.gameVersion}`;
+    UI.savePreviewHigh.textContent=parsed.high.toLocaleString();
+    UI.savePreviewWave.textContent=parsed.wave.toLocaleString();
+    UI.savePreviewCredits.textContent=`${parsed.meta.credits.toLocaleString()} CR`;
+    const syntaxCount=Object.values(parsed.meta.syntax||{}).filter(Boolean).length;
+    const cardCount=parsed.meta.cards?.length||0;
+    UI.savePreviewAssets.textContent=`構文 ${syntaxCount} / カード ${cardCount}`;
+    UI.saveTransferMessage.innerHTML='<span class="text-cyan-200 font-black">Import候補を読み込みました。</span> 内容を確認してから適用してください。';
+  }
+
+  function readImportFile(file){
+    if(!file)return;
+    if(file.size>2_000_000){
+      UI.saveTransferMessage.textContent="セーブファイルが大きすぎます。2MB以下のJSONを選択してください。";
+      beep(90,.10,"square",.02,-20);
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const payload=JSON.parse(String(reader.result||""));
+        showImportPreview(validateImportPayload(payload),file.name);
+        beep(440,.06,"triangle",.02,180);
+      }catch(err){
+        pendingImportedSave=null;
+        UI.saveImportPreview.classList.add("hidden");
+        UI.saveTransferMessage.innerHTML=`<span class="text-rose-200 font-black">Importできません。</span> ${String(err?.message||err)}`;
+        beep(90,.12,"square",.025,-20);
+      }
+    };
+    reader.onerror=()=>{
+      UI.saveTransferMessage.textContent="ファイルを読み込めませんでした。";
+    };
+    reader.readAsText(file,"utf-8");
+  }
+
+  function applyImportedSave(){
+    if(!pendingImportedSave)return;
+    const imported=pendingImportedSave;
+    save.high=imported.high;
+    save.wave=imported.wave;
+    meta=imported.meta;
+
+    localStorage.setItem("nf_high",String(save.high));
+    localStorage.setItem("nf_wave",String(save.wave));
+    localStorage.setItem("nf_meta_v1",JSON.stringify(meta));
+
+    pendingImportedSave=null;
+    UI.saveImportPreview.classList.add("hidden");
+    UI.highScoreStart.textContent=save.high.toLocaleString();
+    UI.bestWaveStart.textContent=save.wave.toLocaleString();
+    refreshMetaUI();
+    UI.saveTransferMessage.innerHTML='<span class="text-emerald-200 font-black">Import完了。</span> セーブデータを置き換えました。';
+    beep(380,.12,"triangle",.035,520);
+  }
+
+  UI.highScoreStart.textContent = save.high.toLocaleString();
+  UI.bestWaveStart.textContent = save.wave;
+
+  function makeStars() {
+    stars = Array.from({length: 180}, () => ({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      s: rand(.4, 1.8),
+      a: rand(.08,.48),
+      d: rand(.02,.14)
+    }));
+  }
+  makeStars();
+  addEventListener("resize", makeStars);
+
+  function statCost(key){ const d=META_STATS[key],lv=meta.stats[key]||0; return Math.floor(d.base*Math.pow(d.growth,lv)/10)*10; }
+  function applyMetaBonuses(p){
+    const st=meta.stats;
+    p.damage*=1+(st.power||0)*.03;
+    p.maxHp+=(st.hull||0)*6; p.hp=p.maxHp;
+    p.speed*=1+(st.mobility||0)*.015;
+    p.crit=Math.min(1,p.crit+(st.critical||0)*.01);
+    p.lifesteal+=(st.recovery||0)*.002;
+    p.magnet+=(st.magnet||0)*9;
+    const mod=MODULE_BY_ID[meta.equipped], lv=meta.modules[meta.equipped]||0;
+    if(mod&&lv>0) mod.apply(p,lv);
+  }
+  function earnedCreditAmount(){
+    const raw=Math.floor(score/30)+wave*10+Math.floor(kills/5)*2+bossesDefeated*75;
+    return Math.max(0,Math.floor(raw*(1+(meta.stats.economy||0)*.04)));
+  }
+  function unlockedParts(type){ return CARD_PARTS[type].filter(p=>meta.syntax?.[p.id]); }
+  function renderForge(){
+    if(!UI.forgeParts)return;
+    const labels={trigger:"トリガー",condition:"条件",chance:"確率",effect:"効果",power:"強度"};
+    UI.forgeParts.innerHTML="";
+    for(const type of ["trigger","condition","chance","effect","power"]){
+      const box=document.createElement("label");box.className="rounded-xl border border-white/[.07] bg-white/[.025] p-3";
+      const opts=unlockedParts(type).map(p=>`<option value="${p.id}" ${forgeSelection[type]===p.id?'selected':''}>${p.text||'条件なし'} [${p.cost>=0?'+':''}${p.cost}]</option>`).join('');
+      box.innerHTML=`<div class="hud-label text-[8px] text-slate-500 font-black mb-2">${labels[type]}</div><select class="w-full bg-slate-950/80 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none">${opts}</select>`;
+      const select=box.querySelector('select'); if(!unlockedParts(type).some(p=>p.id===forgeSelection[type]))forgeSelection[type]=unlockedParts(type)[0]?.id;
+      select.value=forgeSelection[type]||""; select.onchange=()=>{forgeSelection[type]=select.value;updateForgePreview();}; UI.forgeParts.appendChild(box);
+    }
+    updateForgePreview();
+  }
+  function updateForgePreview(){
+    const card=normalizeCard({...forgeSelection,id:"preview"});const r=CARD_RARITY[card.rarity];
+    UI.forgePreview.textContent=describeCard(card);UI.forgeCost.textContent=`${card.cost} / 15`;UI.forgeRarity.textContent=r.label;UI.forgeRarity.className=`text-xs font-black ${r.cls}`;
+    UI.forgeCreate.disabled=card.cost>15;UI.forgeCreate.textContent=card.cost>15?'コスト超過':'この構文でカードを生成';
+  }
+  function createForgedCard(){
+    const card=normalizeCard({...forgeSelection});if(card.cost>15)return;
+    if(meta.cards.length>=30){UI.gachaMessage.textContent="カード保管上限30枚です。不要なカードを削除してください。";return;}
+    meta.cards.push(card);saveMeta();beep(card.rarity==="LEGENDARY"?760:520,.10,"triangle",.04,340);
+  }
+  function renderCards(){
+    if(!UI.cardCollection)return;UI.cardCollection.innerHTML="";UI.equippedCardsCount.textContent=(meta.equippedCards||[]).length;
+    if(!meta.cards.length){UI.cardCollection.innerHTML='<div class="sm:col-span-2 rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs text-slate-600">カード工房またはガチャでカードを入手できます。</div>';return;}
+    for(const card of meta.cards){
+      const r=CARD_RARITY[card.rarity],equipped=meta.equippedCards.includes(card.id);const el=document.createElement('div');
+      el.className=`rounded-2xl border ${r.border} bg-white/[.025] p-4 ${equipped?'ring-1 ring-amber-300/40':''}`;
+      el.innerHTML=`<div class="flex justify-between gap-2"><div class="font-black text-sm">${card.name}</div><div class="hud-label text-[8px] ${r.cls} font-black">${r.label}</div></div><div class="text-[10px] leading-5 text-slate-500 mt-2">${describeCard(card)}</div><div class="flex items-center justify-between mt-3"><span class="text-[9px] text-slate-600">COST ${card.cost}</span><div class="flex gap-2"><button class="equip rounded-lg border border-white/10 px-2.5 py-1.5 text-[9px] font-black ${equipped?'text-amber-300':'text-cyan-200'}">${equipped?'解除':'装備'}</button><button class="del rounded-lg border border-rose-300/10 px-2.5 py-1.5 text-[9px] text-rose-300/70">削除</button></div></div>`;
+      el.querySelector('.equip').onclick=()=>{if(equipped)meta.equippedCards=meta.equippedCards.filter(id=>id!==card.id);else if(meta.equippedCards.length<3)meta.equippedCards.push(card.id);else{UI.gachaMessage.textContent='カードは最大3枚まで装備できます。';return;}saveMeta();};
+      el.querySelector('.del').onclick=()=>{meta.cards=meta.cards.filter(c=>c.id!==card.id);meta.equippedCards=meta.equippedCards.filter(id=>id!==card.id);saveMeta();};UI.cardCollection.appendChild(el);
+    }
+  }
+  function renderSyntaxSummary(){
+    if(!UI.syntaxSummary)return;UI.syntaxSummary.innerHTML="";const labels={trigger:"トリガー",condition:"条件",chance:"確率",effect:"効果",power:"強度"};
+    for(const [type,list] of Object.entries(CARD_PARTS)){const owned=list.filter(p=>meta.syntax?.[p.id]).length;const d=document.createElement('div');d.className='flex items-center justify-between rounded-xl border border-white/[.06] bg-white/[.025] px-3 py-2';d.innerHTML=`<span class="text-slate-400">${labels[type]}</span><span class="font-black text-cyan-200">${owned} / ${list.length}</span>`;UI.syntaxSummary.appendChild(d);}
+  }
+  function refreshMetaUI(){
+    if(!UI.metaCredits) return;
+    UI.metaCredits.textContent=meta.credits.toLocaleString();
+    UI.creditStart.textContent=meta.credits.toLocaleString();
+    UI.pityText.textContent=`${meta.pity} / 25`;
+    const eq=MODULE_BY_ID[meta.equipped], eqlv=meta.modules[meta.equipped]||0;
+    UI.equippedModuleText.textContent=`カード ${(meta.equippedCards||[]).length}/3` + (eq?` / ${eq.name} Lv.${eqlv}`:"");
+
+    UI.metaStats.innerHTML="";
+    for(const [key,d] of Object.entries(META_STATS)){
+      const lv=meta.stats[key]||0, maxed=lv>=d.max, cost=statCost(key);
+      const card=document.createElement("div");
+      card.className="rounded-2xl border border-white/[.07] bg-white/[.025] p-4";
+      card.innerHTML=`<div class="flex items-start justify-between gap-3"><div><div class="font-black text-sm">${d.icon} ${d.name}</div><div class="text-[11px] text-slate-500 mt-1">${d.desc(lv)}</div></div><div class="text-xs font-black text-cyan-200">Lv.${lv}/${d.max}</div></div><button class="mt-3 w-full rounded-xl py-2.5 text-xs font-black border ${maxed?'border-white/5 text-slate-600':'border-cyan-300/15 bg-cyan-300/[.05] text-cyan-100 hover:bg-cyan-300/[.09]'}" ${maxed?'disabled':''}>${maxed?'MAX':`${cost.toLocaleString()} CR で研究`}</button>`;
+      const b=card.querySelector("button");
+      b.onclick=()=>buyStat(key);
+      UI.metaStats.appendChild(card);
+    }
+
+    UI.moduleCollection.innerHTML="";
+    for(const m of MODULES){
+      const lv=meta.modules[m.id]||0, owned=lv>0, equipped=meta.equipped===m.id, r=MODULE_RARITY[m.rarity];
+      const card=document.createElement("button");
+      card.disabled=!owned;
+      card.className=`pointer-events-auto rounded-2xl border ${r.border} p-4 text-left transition ${owned?'bg-white/[.03] hover:bg-white/[.06]':'bg-slate-950/25 opacity-40'} ${equipped?'ring-1 ring-amber-300/50':''}`;
+      card.innerHTML=`<div class="flex justify-between gap-3"><span class="text-xl">${owned?m.icon:'?'}</span><span class="hud-label text-[8px] font-black ${r.cls}">${r.label}</span></div><div class="font-black text-sm mt-3">${owned?m.name:'未解析モジュール'}</div><div class="text-[10px] text-slate-500 mt-1 min-h-[28px]">${owned?m.desc(lv):'ガチャから入手'}</div><div class="mt-3 flex justify-between text-[10px]"><span class="${owned?'text-slate-300':'text-slate-600'}">${owned?`Lv.${lv}/5`:'LOCKED'}</span><span class="${equipped?'text-amber-300 font-black':'text-slate-600'}">${equipped?'装備中':owned?'タップで装備':''}</span></div>`;
+      if(owned) card.onclick=()=>{meta.equipped=equipped?null:m.id;saveMeta();beep(420,.06,"triangle",.025,180)};
+      UI.moduleCollection.appendChild(card);
+    }
+    renderForge();renderCards();renderSyntaxSummary();
+  }
+  function buyStat(key){
+    const d=META_STATS[key],lv=meta.stats[key]||0;
+    if(lv>=d.max) return;
+    const cost=statCost(key);
+    if(meta.credits<cost){UI.gachaMessage.textContent="クレジットが不足しています。もう一度ランに挑戦しよう。";beep(100,.12,"square",.025,-20);return;}
+    meta.credits-=cost;meta.stats[key]=lv+1;saveMeta();beep(390,.07,"triangle",.03,260);
+  }
+  function rarityRoll(forceRare=false, forceEpic=false){
+    const r=Math.random();
+    if(forceEpic) return r<.18?"LEGENDARY":"EPIC";
+    if(forceRare){if(r<.05)return"LEGENDARY";if(r<.27)return"EPIC";return"RARE";}
+    if(r<.025)return"LEGENDARY";if(r<.12)return"EPIC";if(r<.40)return"RARE";return"COMMON";
+  }
+  function rarityValue(r){return {COMMON:1,RARE:2,EPIC:3,LEGENDARY:4}[r]||1;}
+  function grantSyntaxPart(targetRarity=null){
+    let pool=Object.values(CARD_PARTS).flat();if(targetRarity)pool=pool.filter(p=>rarityValue(p.rarity)<=rarityValue(targetRarity));
+    const unowned=pool.filter(p=>!meta.syntax[p.id]);const p=pick(unowned.length?unowned:pool);const duplicate=!!meta.syntax[p.id];meta.syntax[p.id]=(meta.syntax[p.id]||0)+1;
+    let refund=0;if(duplicate){refund={COMMON:35,RARE:65,EPIC:120,LEGENDARY:180}[p.rarity]||35;meta.credits+=refund;}
+    return {kind:"syntax",part:p,rarity:p.rarity,refund};
+  }
+  function randomCardForRarity(rarity){
+    const max={COMMON:4,RARE:7,EPIC:11,LEGENDARY:15}[rarity],min={COMMON:0,RARE:5,EPIC:8,LEGENDARY:12}[rarity];let best=null;
+    for(let tries=0;tries<100;tries++){
+      const c=normalizeCard({trigger:pick(CARD_PARTS.trigger).id,condition:pick(CARD_PARTS.condition).id,chance:pick(CARD_PARTS.chance).id,effect:pick(CARD_PARTS.effect).id,power:pick(CARD_PARTS.power).id});
+      if(c.cost>=min&&c.cost<=max){best=c;break;}best=best||c;
+    }
+    const card=best||normalizeCard({trigger:"on_kill",condition:"always",chance:"c50",effect:"explode",power:"p120"});card.rarity=cardRarity(card.cost);card.name=generatedCardName(card);return card;
+  }
+  function grantCompletedCard(rarity){
+    const card=randomCardForRarity(rarity);if(meta.cards.length<30)meta.cards.push(card);else meta.credits+=150*rarityValue(rarity);
+    // 完成カードを引いた時、その文章を構成する語彙も解析済みにする。
+    [card.trigger,card.condition,card.chance,card.effect,card.power].forEach(id=>meta.syntax[id]=(meta.syntax[id]||0)+1);
+    return {kind:"card",card,rarity:card.rarity,refund:meta.cards.length>=30?150*rarityValue(rarity):0};
+  }
+  function pullModule(rarity){
+    const pool=MODULES.filter(m=>m.rarity===rarity),m=pick(pool.length?pool:MODULES.filter(m=>m.rarity==="RARE"));const old=meta.modules[m.id]||0;let refund=0;
+    if(old>=5){refund={COMMON:80,RARE:160,EPIC:300,LEGENDARY:650}[m.rarity];meta.credits+=refund;}else meta.modules[m.id]=old+1;
+    return {kind:"module",m,rarity:m.rarity,lv:meta.modules[m.id]||5,refund};
+  }
+  function mixedPull(rarity){const r=Math.random();if(r<.65)return grantSyntaxPart(rarity);if(r<.85)return grantCompletedCard(rarity);return pullModule(rarity);}
+  function doGacha(count){
+    const cost=count===10?3150:350;if(meta.credits<cost){UI.gachaMessage.textContent=`${cost.toLocaleString()} CR必要です。`;beep(100,.12,"square",.025,-20);return;}meta.credits-=cost;
+    const results=[];let gotRarePlus=false;
+    for(let i=0;i<count;i++){const forceEpic=meta.pity>=24;const forceRare=count===10&&i===9&&!gotRarePlus;const rarity=rarityRoll(forceRare,forceEpic);if(rarityValue(rarity)>=2)gotRarePlus=true;results.push(mixedPull(rarity));if(rarityValue(rarity)>=3)meta.pity=0;else meta.pity++;}
+    saveMeta();renderGachaResults(results);const best=results.reduce((b,x)=>Math.max(b,rarityValue(x.rarity)),1);beep(best>=4?760:best>=3?610:440,.16,"triangle",.045,420);
+  }
+  function renderGachaResults(results){
+    UI.gachaResults.innerHTML="";let refunds=0;
+    for(const x of results){refunds+=x.refund||0;const r=CARD_RARITY[x.rarity]||CARD_RARITY.COMMON;const el=document.createElement('div');el.className=`rounded-xl border ${r.border} bg-white/[.035] p-3`;
+      if(x.kind==="syntax")el.innerHTML=`<div class="text-[8px] ${r.cls} font-black">構文 / ${r.label}</div><div class="font-black text-xs mt-1">${x.part.text||'条件なし'}</div><div class="text-[9px] text-slate-500 mt-1">COST ${x.part.cost>=0?'+':''}${x.part.cost}${x.refund?` / 重複 +${x.refund}CR`:''}</div>`;
+      else if(x.kind==="card")el.innerHTML=`<div class="text-[8px] ${r.cls} font-black">完成カード / ${r.label}</div><div class="font-black text-xs mt-1">${x.card.name}</div><div class="text-[9px] text-slate-500 mt-1 leading-4">${describeCard(x.card)}</div>`;
+      else el.innerHTML=`<div class="text-[8px] ${r.cls} font-black">コア / ${r.label}</div><div class="font-black text-xs mt-1">${x.m.name}</div><div class="text-[9px] text-slate-500 mt-1">Lv.${x.lv}${x.refund?` / +${x.refund}CR`:''}</div>`;UI.gachaResults.appendChild(el);
+    }
+    UI.gachaMessage.innerHTML=`解析完了。${refunds?`重複分 <b class="text-amber-300">${refunds} CR</b> を還元。`:''}`;renderForge();renderCards();renderSyntaxSummary();
+  }
+  function runRewardCount(){return Math.min(20,2+Math.floor(Math.sqrt(Math.max(0,score))/70)+bossesDefeated);}
+  function grantRunLoot(){
+    const count=runRewardCount(),results=[];let cards=0,newSyntax=0;
+    for(let i=0;i<count;i++){
+      const quality=Math.random()+Math.min(.28,score/600000);const rarity=quality>.96?"EPIC":quality>.74?"RARE":"COMMON";
+      if(Math.random()<Math.min(.28,.08+score/900000)){results.push(grantCompletedCard(rarity));cards++;}
+      else {const before=Object.keys(meta.syntax).filter(k=>meta.syntax[k]).length;results.push(grantSyntaxPart(rarity));const after=Object.keys(meta.syntax).filter(k=>meta.syntax[k]).length;if(after>before)newSyntax++;}
+    }
+    return {count,cards,newSyntax,results};
+  }
+  let metaReturnState="menu";
+  function openMeta(from="menu"){
+    metaReturnState=from;state="meta";mouse.down=false;refreshMetaUI();UI.meta.classList.remove("hidden");
+  }
+  function closeMeta(){
+    UI.meta.classList.add("hidden");state=metaReturnState;last=performance.now();
+  }
+  refreshMetaUI();
+
+
+  function generateWorld() {
+    // 物理障害物は置かない。代わりに通過可能な「フローフィールド」を配置する。
+    // これにより操作を邪魔せず、敵AIも引っ掛からず、壁を使った一方的な集中攻撃も発生しない。
+    fieldZones = [];
+    const safeX=W/2, safeY=H/2;
+    const types = ["flow","charge","resonance"];
+    const wanted = 14;
+    for (let i=0; i<wanted; i++) {
+      for (let attempt=0; attempt<50; attempt++) {
+        const r = rand(82, 128);
+        const x = rand(r+130, W-r-130);
+        const y = rand(r+130, H-r-130);
+        if (Math.hypot(x-safeX,y-safeY) < 320) continue;
+        if (fieldZones.some(o => Math.hypot(x-o.x,y-o.y) < r+o.r+190)) continue;
+        const type = types[i % types.length];
+        const hue = type==="flow" ? 185 : type==="charge" ? 275 : 42;
+        fieldZones.push({
+          x,y,r,type,hue,
+          phase:rand(0,TAU),
+          cooldown:0,
+          inside:false
+        });
+        break;
+      }
+    }
+  }
+
+  function updateFieldZones(dt) {
+    player.phaseSpeedTimer = Math.max(0,(player.phaseSpeedTimer||0)-dt);
+    for (const z of fieldZones) {
+      z.cooldown = Math.max(0,(z.cooldown||0)-dt);
+      const inside = Math.hypot(player.x-z.x, player.y-z.y) <= z.r;
+      if (inside && !z.inside && z.cooldown<=0) {
+        z.cooldown = 8.0;
+        if (z.type==="flow") {
+          // 短時間の移動加速。居座っても継続しないのでキャンプ有利にならない。
+          player.phaseSpeedTimer = Math.max(player.phaseSpeedTimer||0, 1.65);
+          if(texts.length<PERF.maxTexts) texts.push({x:player.x,y:player.y-30,text:"FLOW +25% SPEED",life:.75,max:.75,hue:185,size:12});
+          beep(430,.045,"triangle",.018,220);
+        } else if (z.type==="charge") {
+          // ダッシュを少しだけ回復。8秒再使用なので往復連打はできない。
+          player.dashReady = Math.min(1, player.dashReady + .38);
+          if(texts.length<PERF.maxTexts) texts.push({x:player.x,y:player.y-30,text:"PHASE CHARGE",life:.75,max:.75,hue:275,size:12});
+          beep(360,.045,"triangle",.018,300);
+        } else {
+          // コンボ猶予を延長。撃破数自体は増えないのでスコアの直接稼ぎ場にはならない。
+          comboTimer = Math.max(comboTimer, comboWindow()+1.25);
+          if(texts.length<PERF.maxTexts) texts.push({x:player.x,y:player.y-30,text:"RESONANCE LINK",life:.75,max:.75,hue:42,size:12});
+          beep(520,.045,"triangle",.018,260);
+        }
+      }
+      z.inside = inside;
+    }
+  }
+
+  function pointInCamera(x,y,pad=0) {
+    return x >= camera.x-pad && x <= camera.x+CAMERA_W+pad &&
+           y >= camera.y-pad && y <= camera.y+CAMERA_H+pad;
+  }
+
+  function updateCamera(dt, instant=false) {
+    const tx=clamp(player.x-CAMERA_W/2,0,W-CAMERA_W);
+    const ty=clamp(player.y-CAMERA_H/2,0,H-CAMERA_H);
+    if (instant) { camera.x=tx; camera.y=ty; }
+    else {
+      const follow=1-Math.exp(-dt*8.5);
+      camera.x += (tx-camera.x)*follow;
+      camera.y += (ty-camera.y)*follow;
+      clampCamera();
+    }
+  }
+
+  const playerBase = () => ({
+    x: W/2, y: H/2,
+    vx: 0, vy: 0,
+    r: 13,
+    speed: 275,
+    phaseSpeedTimer: 0,
+    hp: 100, maxHp: 100,
+    level: 1, xp: 0, nextXp: 10,
+    damage: 18,
+    fireRate: 6.5,
+    bulletSpeed: 760,
+    bulletSize: 4,
+    spread: 0,
+    multishot: 1,
+    pierce: 0,
+    crit: .08,
+    critMult: 2,
+    lifesteal: 0,
+    killHeal: 0,
+    armor: 0,
+    shieldHits: 0,
+    guardTimer: 0,
+    guardReduction: 0,
+    magnet: 115,
+    dashCooldown: 2.1,
+    dashReady: 1,
+    dashTime: 0,
+    invuln: 0,
+    shootTimer: 0,
+    regen: 0,
+    knockback: 1,
+    droneCount: 0,
+    droneDamage: 10,
+    droneRate: 1.25,
+    explosiveChance: 0,
+    explosiveDamage: .7,
+    explosiveRadius: 72,
+    chainChance: 0,
+    chainTargets: 1,
+    chainDamage: .4,
+    frostChance: 0,
+    frostStrength: .45,
+    frostDuration: .55,
+    echoChance: 0,
+    echoDamage: .5,
+    executeThreshold: 0,
+    executeBonus: 0,
+    executeInstant: false,
+    dashNova: 0,
+    dashNovaRadius: 90,
+    lowHpPower: 0,
+    singularityEvery: 0,
+    phoenix: 0,
+    skillRanks: {},
+    rarityCharge: 0,
+    epicGuarantee: false
+  });
+  let player = playerBase();
+
+  function resetGame() {
+    state = "playing";
+    time = 0; screenShake = 0; flash = 0;
+    score = 0; kills = 0; wave = 1; spawnTimer = .5; waveTimer = 0;
+    bossAlive = false; bossWarningTimer = 0; pendingLevelUps = 0;
+    combo = 1; comboKills = 0; comboTimer = 0; uiTimer = 0; bossesDefeated = 0;
+    bullets = []; enemies = []; particles = []; gems = []; texts = []; drones = []; rings = [];
+    player = playerBase();
+    applyMetaBonuses(player);
+    generateWorld();
+    updateCamera(0,true);
+    syncDrones();
+    UI.start.classList.add("hidden");
+    UI.gameOver.classList.add("hidden");
+    UI.upgrade.classList.add("hidden");
+    UI.pause.classList.add("hidden");
+    UI.bossWarning.classList.add("hidden");
+    UI.hud.classList.remove("opacity-0");
+    UI.xpHud.classList.remove("opacity-0");
+    if(touchCapable) UI.dashHud.classList.add("hidden");
+    else UI.dashHud.classList.remove("hidden");
+    setMobileControls(true);
+    updateUI();
+    beep(220,.08,"sawtooth",.04,300);
+  }
+
+  function gameOver(reason="death") {
+    if (state === "gameover") return;
+    state = "gameover";
+    mouse.down=false;
+
+    const wasHigh = score > save.high;
+    if (wasHigh) {
+      save.high = Math.floor(score);
+      localStorage.setItem("nf_high", save.high);
+    }
+    if (wave > save.wave) {
+      save.wave = wave;
+      localStorage.setItem("nf_wave", save.wave);
+    }
+
+    const earnedCredits = earnedCreditAmount();
+    meta.credits += earnedCredits;
+    meta.totalRuns = (meta.totalRuns||0) + 1;
+    const runLoot = grantRunLoot();
+    localStorage.setItem("nf_meta_v1",JSON.stringify(meta));
+
+    UI.finalScore.textContent = Math.floor(score).toLocaleString();
+    UI.finalWave.textContent = wave;
+    UI.finalKills.textContent = kills;
+    UI.earnedCredits.textContent = earnedCredits.toLocaleString();
+    UI.runLootCount.textContent = `${runLoot.count}個解析`;
+    UI.runLootText.innerHTML = `スコアから <b class="text-cyan-200">${runLoot.count}個</b> の報酬を解析。新規構文 <b class="text-violet-200">${runLoot.newSyntax}</b> / 完成カード <b class="text-amber-200">${runLoot.cards}</b>。高スコアほど解析数と高レア率が増える。`;
+    UI.newRecord.classList.toggle("hidden", !wasHigh);
+
+    if(reason==="settle"){
+      $("gameOverTag").textContent="自主帰還・集計完了";
+      $("gameOverTag").className="hud-label text-[10px] text-amber-300 font-black";
+      UI.gameOverTitle.textContent="ランを確定";
+      UI.gameOverMessage.textContent="現在までのスコア・CR・構文資産を正式に持ち帰った。";
+    } else {
+      $("gameOverTag").textContent="シグナル消失";
+      $("gameOverTag").className="hud-label text-[10px] text-rose-300 font-black";
+      UI.gameOverTitle.textContent="撃破された";
+      UI.gameOverMessage.textContent = wave >= 10
+        ? "ここまで来れば十分な強者だ。次はさらに先へ。"
+        : wave >= 5
+        ? "かなり良い記録。ネオン空間はあなたの動きを学習している。"
+        : "シグナルが途絶えた。能力の組み合わせを変えて再挑戦しよう。";
+    }
+
+    UI.pause.classList.add("hidden");
+    UI.gameOver.classList.remove("hidden");
+    UI.hud.classList.add("opacity-0");
+    UI.xpHud.classList.add("opacity-0");
+    UI.dashHud.classList.add("hidden");
+    setMobileControls(false);
+    UI.highScoreStart.textContent = save.high.toLocaleString();
+    UI.bestWaveStart.textContent = save.wave;
+    refreshMetaUI();
+    beep(reason==="settle"?300:120,reason==="settle"?.24:.5,reason==="settle"?"triangle":"sawtooth",.05,reason==="settle"?320:-70);
+  }
+
+  function returnHome(){
+    state="menu";
+    mouse.down=false;
+    keys.clear();
+    UI.pause.classList.add("hidden");
+    UI.gameOver.classList.add("hidden");
+    UI.upgrade.classList.add("hidden");
+    UI.hud.classList.add("opacity-0");
+    UI.xpHud.classList.add("opacity-0");
+    UI.dashHud.classList.add("hidden");
+    setMobileControls(false);
+    UI.start.classList.remove("hidden");
+    UI.pauseConfirm.classList.add("hidden");
+    refreshMetaUI();
+    last=performance.now();
+  }
+
+  let pausePendingAction=null;
+  function showPauseConfirm(action){
+    pausePendingAction=action;
+    UI.pauseConfirm.classList.remove("hidden");
+    UI.pauseConfirmText.innerHTML = action==="restart"
+      ? "<b class='text-cyan-200'>最初からやり直します。</b><br>現在のスコア・CR・構文報酬はすべて破棄されます。"
+      : "<b class='text-rose-200'>集計せずホームへ戻ります。</b><br>このランで得た成果は保存されません。";
+  }
+
+  function setPause(on) {
+    if (state === "upgrade" || state === "gameover" || state === "menu") return;
+    if (on && state === "playing") {
+      state = "paused";
+      UI.pauseLevel.textContent = player.level;
+      UI.pauseScore.textContent = Math.floor(score).toLocaleString();
+      UI.pauseCredits.textContent = earnedCreditAmount().toLocaleString();
+      UI.pauseLoot.textContent = runRewardCount();
+      UI.pauseConfirm.classList.add("hidden");
+      pausePendingAction=null;
+      setMobileControls(false);
+      UI.pause.classList.remove("hidden");
+    } else if (!on && state === "paused") {
+      state = "playing";
+      UI.pause.classList.add("hidden");
+      setMobileControls(true);
+      last = performance.now();
+    }
+  }
+  function togglePause() {
+    if (state === "playing") setPause(true);
+    else if (state === "paused") setPause(false);
+  }
+
+  // ---------- Upgrades ----------
+  const rarityRank = { COMMON: 1, RARE: 2, EPIC: 3 };
+  const rankRarity = { 1: "COMMON", 2: "RARE", 3: "EPIC" };
+  const rareLabel = { COMMON: "コモン", RARE: "レア", EPIC: "エピック" };
+  const rareClass = { COMMON: "text-slate-400", RARE: "text-cyan-300", EPIC: "text-violet-300" };
+
+  const skills = [
+    { id:"damage", icon:"✦", name:"オーバーチャージ", tiers:{
+      COMMON:{desc:"弾ダメージ +18%", apply:()=>player.damage*=1.18},
+      RARE:{desc:"弾ダメージ +38%、弾速 +8%", apply:()=>{player.damage*=1.38;player.bulletSpeed*=1.08}},
+      EPIC:{desc:"弾ダメージ +80%、弾サイズ +1。火力特化の最終形。", apply:()=>{player.damage*=1.8;player.bulletSize=Math.min(8,player.bulletSize+1)}}
+    }},
+    { id:"firerate", icon:"⌁", name:"ハイパーフィード", tiers:{
+      COMMON:{desc:"連射速度 +15%", apply:()=>player.fireRate=Math.min(22,player.fireRate*1.15)},
+      RARE:{desc:"連射速度 +32%", apply:()=>player.fireRate=Math.min(22,player.fireRate*1.32)},
+      EPIC:{desc:"連射速度 +60%、弾速 +20%。最大22発/秒。", apply:()=>{player.fireRate=Math.min(22,player.fireRate*1.6);player.bulletSpeed*=1.2}}
+    }},
+    { id:"crit", icon:"◇", name:"弱点解析", tiers:{
+      COMMON:{desc:"クリティカル率 +12%", apply:()=>player.crit=Math.min(1,player.crit+.12)},
+      RARE:{desc:"クリティカル率 +28%、倍率 +0.35倍", apply:()=>{player.crit=Math.min(1,player.crit+.28);player.critMult+=.35}},
+      EPIC:{desc:"クリティカル率を100%にする。常時クリティカル。", apply:()=>{player.crit=1;player.critMult+=.5}}
+    }},
+    { id:"lifesteal", icon:"♥", name:"吸収コード", tiers:{
+      COMMON:{desc:"与えたダメージの3%をHP吸収", apply:()=>player.lifesteal=Math.max(player.lifesteal,.03)},
+      RARE:{desc:"HP吸収を7%へ強化。撃破時に最大HPの0.5%回復。", apply:()=>{player.lifesteal=Math.max(player.lifesteal,.07);player.killHeal=Math.max(player.killHeal,.005)}},
+      EPIC:{desc:"HP吸収を12%へ強化。撃破時に最大HPの1%回復。", apply:()=>{player.lifesteal=Math.max(player.lifesteal,.12);player.killHeal=Math.max(player.killHeal,.01)}}
+    }},
+    { id:"explosive", icon:"✹", name:"ヴォイド爆発", tiers:{
+      COMMON:{desc:"撃破時25%で爆発。周囲へ70%ダメージ。", apply:()=>{player.explosiveChance=Math.max(player.explosiveChance,.25);player.explosiveDamage=Math.max(player.explosiveDamage,.7)}},
+      RARE:{desc:"撃破時60%で大型爆発。周囲へ100%ダメージ。", apply:()=>{player.explosiveChance=Math.max(player.explosiveChance,.60);player.explosiveDamage=Math.max(player.explosiveDamage,1);player.explosiveRadius=Math.max(player.explosiveRadius,90)}},
+      EPIC:{desc:"撃破時100%で爆発。範囲110、140%ダメージ。", apply:()=>{player.explosiveChance=1;player.explosiveDamage=Math.max(player.explosiveDamage,1.4);player.explosiveRadius=Math.max(player.explosiveRadius,110)}}
+    }},
+    { id:"chain", icon:"ϟ", name:"連鎖雷撃", tiers:{
+      COMMON:{desc:"クリティカル時25%で1体へ雷撃が連鎖。", apply:()=>{player.chainChance=Math.max(player.chainChance,.25);player.chainTargets=Math.max(player.chainTargets,1)}},
+      RARE:{desc:"発動率60%。最大2体へ連鎖し、威力も上昇。", apply:()=>{player.chainChance=Math.max(player.chainChance,.60);player.chainTargets=Math.max(player.chainTargets,2);player.chainDamage=Math.max(player.chainDamage,.55)}},
+      EPIC:{desc:"クリティカル時100%発動。最大4体へ強烈に連鎖。", apply:()=>{player.chainChance=1;player.chainTargets=Math.max(player.chainTargets,4);player.chainDamage=Math.max(player.chainDamage,.72)}}
+    }},
+    { id:"frost", icon:"❄", name:"冷却弾", tiers:{
+      COMMON:{desc:"命中時30%で敵を45%減速。", apply:()=>{player.frostChance=Math.max(player.frostChance,.30);player.frostStrength=Math.max(player.frostStrength,.45)}},
+      RARE:{desc:"命中時65%で敵を60%減速。効果時間も延長。", apply:()=>{player.frostChance=Math.max(player.frostChance,.65);player.frostStrength=Math.max(player.frostStrength,.60);player.frostDuration=Math.max(player.frostDuration,.9)}},
+      EPIC:{desc:"命中時100%で敵を72%減速。ボスにも有効。", apply:()=>{player.frostChance=1;player.frostStrength=Math.max(player.frostStrength,.72);player.frostDuration=Math.max(player.frostDuration,1.15)}}
+    }},
+    { id:"multishot", icon:"⋰", name:"分裂射撃", tiers:{
+      COMMON:{desc:"発射弾数 +1", apply:()=>{player.multishot=Math.min(11,player.multishot+1);player.spread+=.045}},
+      RARE:{desc:"発射弾数 +2。拡散を少し抑える。", apply:()=>{player.multishot=Math.min(11,player.multishot+2);player.spread+=.055}},
+      EPIC:{desc:"発射弾数 +4。最大11発の弾幕を形成。", apply:()=>{player.multishot=Math.min(11,player.multishot+4);player.spread+=.065}}
+    }},
+    { id:"pierce", icon:"⇢", name:"ゴースト弾", tiers:{
+      COMMON:{desc:"貫通数 +1", apply:()=>player.pierce+=1},
+      RARE:{desc:"貫通数 +2。貫通後の威力減衰を緩和。", apply:()=>player.pierce+=2},
+      EPIC:{desc:"貫通数 +5。群れを一直線に切り裂く。", apply:()=>player.pierce+=5}
+    }},
+    { id:"drone", icon:"◎", name:"戦闘ドローン", tiers:{
+      COMMON:{desc:"自動攻撃ドローン +1", apply:()=>{player.droneCount=Math.min(6,player.droneCount+1);syncDrones()}},
+      RARE:{desc:"ドローン +2、ドローンダメージ +50%", apply:()=>{player.droneCount=Math.min(6,player.droneCount+2);player.droneDamage*=1.5;syncDrones()}},
+      EPIC:{desc:"ドローン +3、威力 +100%、連射 +35%", apply:()=>{player.droneCount=Math.min(6,player.droneCount+3);player.droneDamage*=2;player.droneRate*=1.35;syncDrones()}}
+    }},
+    { id:"dash", icon:"◫", name:"位相ダッシュ", tiers:{
+      COMMON:{desc:"ダッシュ再使用時間 -15%", apply:()=>player.dashCooldown*=.85},
+      RARE:{desc:"再使用時間 -30%。ダッシュ時に小型衝撃波。", apply:()=>{player.dashCooldown*=.70;player.dashNova=Math.max(player.dashNova,.6)}},
+      EPIC:{desc:"再使用時間 -45%。ダッシュ時に160%ダメージの衝撃波。", apply:()=>{player.dashCooldown*=.55;player.dashNova=Math.max(player.dashNova,1.6);player.dashNovaRadius=125}}
+    }},
+    { id:"vitality", icon:"⬡", name:"ハードライト装甲", tiers:{
+      COMMON:{desc:"最大HP +20、HPを20回復", apply:()=>{player.maxHp+=20;player.hp=Math.min(player.maxHp,player.hp+20)}},
+      RARE:{desc:"最大HP +45、HPを45回復", apply:()=>{player.maxHp+=45;player.hp=Math.min(player.maxHp,player.hp+45)}},
+      EPIC:{desc:"最大HP +80、HPを全回復。", apply:()=>{player.maxHp+=80;player.hp=player.maxHp}}
+    }},
+    { id:"speed", icon:"➤", name:"フェイズレッグ", tiers:{
+      COMMON:{desc:"移動速度 +10%", apply:()=>player.speed*=1.10},
+      RARE:{desc:"移動速度 +22%、ダッシュ再使用時間 -10%", apply:()=>{player.speed*=1.22;player.dashCooldown*=.90}},
+      EPIC:{desc:"移動速度 +38%、ダッシュ再使用時間 -20%。", apply:()=>{player.speed*=1.38;player.dashCooldown*=.80}}
+    }},
+    { id:"armor", icon:"▣", name:"耐衝撃メッシュ", tiers:{
+      COMMON:{desc:"被ダメージ 8%軽減", apply:()=>player.armor=1-(1-player.armor)*.92},
+      RARE:{desc:"さらに16%軽減。", apply:()=>player.armor=1-(1-player.armor)*.84},
+      EPIC:{desc:"さらに28%軽減。高耐久ビルドの中核。", apply:()=>player.armor=1-(1-player.armor)*.72}
+    }},
+    { id:"regen", icon:"+", name:"自己修復", tiers:{
+      COMMON:{desc:"毎秒HP +0.9回復", apply:()=>player.regen+=.9},
+      RARE:{desc:"毎秒HP +2.0回復", apply:()=>player.regen+=2},
+      EPIC:{desc:"毎秒HP +4.0回復、最大HP +30", apply:()=>{player.regen+=4;player.maxHp+=30;player.hp+=30}}
+    }},
+    { id:"magnet", icon:"◉", name:"重力井戸", tiers:{
+      COMMON:{desc:"経験値吸引範囲 +90", apply:()=>player.magnet+=90},
+      RARE:{desc:"経験値吸引範囲 +190", apply:()=>player.magnet+=190},
+      EPIC:{desc:"経験値吸引範囲 +360。ほぼ画面全体を回収。", apply:()=>player.magnet+=360}
+    }},
+    { id:"echo", icon:"≋", name:"残響弾", tiers:{
+      COMMON:{desc:"射撃時15%で追加射撃が発生。威力50%。", apply:()=>{player.echoChance=Math.max(player.echoChance,.15);player.echoDamage=Math.max(player.echoDamage,.5)}},
+      RARE:{desc:"発動率45%、追加射撃の威力75%。", apply:()=>{player.echoChance=Math.max(player.echoChance,.45);player.echoDamage=Math.max(player.echoDamage,.75)}},
+      EPIC:{desc:"射撃時100%で残響射撃。追加射撃も100%威力。", apply:()=>{player.echoChance=1;player.echoDamage=1}}
+    }},
+    { id:"execute", icon:"☠", name:"処刑プロトコル", tiers:{
+      COMMON:{desc:"HP20%以下の敵へのダメージ +40%", apply:()=>{player.executeThreshold=Math.max(player.executeThreshold,.20);player.executeBonus=Math.max(player.executeBonus,.40)}},
+      RARE:{desc:"HP28%以下の敵へのダメージ +90%", apply:()=>{player.executeThreshold=Math.max(player.executeThreshold,.28);player.executeBonus=Math.max(player.executeBonus,.90)}},
+      EPIC:{desc:"通常敵はHP22%以下で即死。ボスには+150%ダメージ。", apply:()=>{player.executeThreshold=Math.max(player.executeThreshold,.22);player.executeBonus=Math.max(player.executeBonus,1.5);player.executeInstant=true}}
+    }},
+    { id:"berserk", icon:"▲", name:"レッドゾーン", tiers:{
+      COMMON:{desc:"HP35%以下で攻撃力 +20%", apply:()=>player.lowHpPower=Math.max(player.lowHpPower,.20)},
+      RARE:{desc:"HP35%以下で攻撃力 +45%", apply:()=>player.lowHpPower=Math.max(player.lowHpPower,.45)},
+      EPIC:{desc:"HP35%以下で攻撃力 +85%。瀕死ほど危険で強い。", apply:()=>player.lowHpPower=Math.max(player.lowHpPower,.85)}
+    }}
+  ];
+
+  const uniqueEpics = [
+    { id:"singularity", icon:"◌", name:"特異点崩壊", maxRank:1, desc:"8体撃破するたび、撃破地点に大規模な重力爆発を発生。", apply:()=>player.singularityEvery=8 },
+    { id:"phoenix", icon:"♨", name:"フェニックス・コア", maxRank:1, desc:"致死ダメージを1度だけ無効化し、HP45%で復活。周囲も吹き飛ばす。", apply:()=>player.phoenix=1 },
+    { id:"bloodmoon", icon:"☾", name:"ブラッドムーン", maxRank:1, desc:"HP吸収を最低15%まで引き上げ、撃破回復を最大HPの1.5%へ強化。", apply:()=>{player.lifesteal=Math.max(player.lifesteal,.15);player.killHeal=Math.max(player.killHeal,.015)} }
+  ];
+
+  function rollRarity() {
+    const epic = Math.min(.18, .07 + player.level * .0035);
+    const rare = Math.min(.38, .27 + player.level * .002);
+    const r = Math.random();
+    if (r < epic) return "EPIC";
+    if (r < epic + rare) return "RARE";
+    return "COMMON";
+  }
+
+  function buildSkillChoice(skill, forcedRarity=null) {
+    const current = player.skillRanks[skill.id] || 0;
+    let rolled = forcedRarity || rollRarity();
+    let rank = Math.max(rarityRank[rolled], Math.min(3, current + 1));
+    rank = Math.min(3, rank);
+    const rarity = rankRarity[rank];
+    const tier = skill.tiers[rarity];
+    return { id:skill.id, icon:skill.icon, name:skill.name, rarity, rank, desc:tier.desc,
+      apply:()=>{ tier.apply(); player.skillRanks[skill.id]=Math.max(player.skillRanks[skill.id]||0, rank); } };
+  }
+
+  function chooseUpgradeSet() {
+    const available = skills.filter(s => (player.skillRanks[s.id] || 0) < 3);
+    const chosen = [];
+    const used = new Set();
+    let guaranteeEpic = player.epicGuarantee;
+    let guaranteeRare = !guaranteeEpic && player.rarityCharge >= 3;
+
+    while (chosen.length < 3 && available.length) {
+      let pool = available.filter(s => !used.has(s.id));
+      if (!pool.length) break;
+      let skill = pick(pool);
+      let forced = null;
+      if (chosen.length === 0 && guaranteeEpic) forced = "EPIC";
+      else if (chosen.length === 0 && guaranteeRare) forced = Math.random() < .28 ? "EPIC" : "RARE";
+      let choice = buildSkillChoice(skill, forced);
+
+      // エピック枠では、ときどき完全ユニークスキルへ差し替える。
+      if (choice.rarity === "EPIC" && Math.random() < .32) {
+        const uniquePool = uniqueEpics.filter(u => !(player.skillRanks[u.id] || 0) && !used.has(u.id));
+        if (uniquePool.length) {
+          const u = pick(uniquePool);
+          choice = {id:u.id,icon:u.icon,name:u.name,rarity:"EPIC",rank:3,desc:u.desc,
+            apply:()=>{u.apply();player.skillRanks[u.id]=3;}};
+        }
+      }
+      chosen.push(choice);
+      used.add(choice.id);
+    }
+
+    // すべての通常スキルを取り切った長時間プレイでも選択不能にならないようにする。
+    const remainingUnique = uniqueEpics.filter(u => !(player.skillRanks[u.id] || 0) && !used.has(u.id));
+    while (chosen.length < 3 && remainingUnique.length) {
+      const u = remainingUnique.splice((Math.random()*remainingUnique.length)|0,1)[0];
+      chosen.push({id:u.id,icon:u.icon,name:u.name,rarity:"EPIC",rank:3,desc:u.desc,
+        apply:()=>{u.apply();player.skillRanks[u.id]=3;}});
+      used.add(u.id);
+    }
+    const endless = [
+      ()=>({id:"end_damage_"+Math.random(),icon:"✦",name:"無限オーバークロック",rarity:"RARE",desc:"弾ダメージ +15%",apply:()=>player.damage*=1.15}),
+      ()=>({id:"end_hp_"+Math.random(),icon:"⬡",name:"追加装甲生成",rarity:"RARE",desc:"最大HP +18、HPを18回復",apply:()=>{player.maxHp+=18;player.hp=Math.min(player.maxHp,player.hp+18)}}),
+      ()=>({id:"end_speed_"+Math.random(),icon:"➤",name:"位相最適化",rarity:"RARE",desc:"移動速度 +8%、連射速度 +6%",apply:()=>{player.speed*=1.08;player.fireRate=Math.min(24,player.fireRate*1.06)}})
+    ];
+    while (chosen.length < 3) chosen.push(pick(endless)());
+
+    if (guaranteeEpic) player.epicGuarantee = false;
+    if (guaranteeRare) player.rarityCharge = Math.max(0, player.rarityCharge - 3);
+    return chosen;
+  }
+
+  function showUpgrade() {
+    state = "upgrade";
+    mouse.down = false;
+    setMobileControls(false);
+    const choices = chooseUpgradeSet();
+    UI.upgradeCards.innerHTML = "";
+    choices.forEach((u, i) => {
+      const btn = document.createElement("button");
+      const epicGlow = u.rarity === "EPIC" ? " shadow-violet border-violet-400/20" : "";
+      btn.className = "upgrade-card pointer-events-auto glass rounded-[1.6rem] p-6 md:p-7 text-left min-h-[260px] flex flex-col justify-between border border-white/[.08]" + epicGlow;
+      btn.innerHTML = `
+        <div>
+          <div class="flex items-start justify-between gap-4">
+            <div class="w-12 h-12 rounded-xl bg-white/[.05] border border-white/[.07] flex items-center justify-center text-2xl">${u.icon}</div>
+            <div class="hud-label text-[9px] font-black ${rareClass[u.rarity]}">${rareLabel[u.rarity]}</div>
+          </div>
+          <h3 class="mt-7 text-2xl font-black tracking-tight">${u.name}</h3>
+          <p class="mt-3 text-sm leading-6 text-slate-400">${u.desc}</p>
+        </div>
+        <div class="mt-7 pt-4 border-t border-white/[.06] flex items-center justify-between">
+          <span class="text-[10px] text-slate-600 font-bold">${u.rarity === "EPIC" ? "強力な変異" : "選択"}</span>
+          <span class="key">${i+1}</span>
+        </div>`;
+      btn.addEventListener("click", () => selectUpgrade(u));
+      UI.upgradeCards.appendChild(btn);
+    });
+    UI.upgrade.classList.remove("hidden");
+    beep(660,.12,"triangle",.035,180);
+  }
+
+  function selectUpgrade(u) {
+    if (state !== "upgrade") return;
+    u.apply();
+    pendingLevelUps = Math.max(0, pendingLevelUps - 1);
+    UI.upgrade.classList.add("hidden");
+    if (pendingLevelUps > 0) setTimeout(showUpgrade, 120);
+    else { state = "playing"; setMobileControls(true); last = performance.now(); }
+    updateUI();
+    beep(u.rarity === "EPIC" ? 520 : 420,.09,"triangle",u.rarity === "EPIC" ? .055 : .04,620);
+  }
+
+  addEventListener("keydown", e => {
+    if (state === "upgrade" && ["Digit1","Digit2","Digit3"].includes(e.code)) {
+      const idx = +e.code.slice(-1)-1;
+      UI.upgradeCards.children[idx]?.click();
+    }
+  });
+
+  function addXP(amount) {
+    player.xp += amount;
+    while (player.xp >= player.nextXp) {
+      player.xp -= player.nextXp;
+      player.level++;
+      player.nextXp = Math.floor(player.nextXp * 1.23 + 5);
+      pendingLevelUps++;
+    }
+    if (pendingLevelUps > 0 && state === "playing") showUpgrade();
+  }
+
+  // ---------- Entities ----------
+  function shoot(x, y, angle, damage, opts={}) {
+    if (bullets.length >= PERF.maxBullets) return;
+    const crit = Math.random() < (opts.noCrit ? 0 : player.crit);
+    const dmg = damage * (crit ? player.critMult : 1);
+    bullets.push({
+      x, y,
+      vx: Math.cos(angle)*(opts.speed || player.bulletSpeed),
+      vy: Math.sin(angle)*(opts.speed || player.bulletSpeed),
+      r: opts.r || player.bulletSize,
+      life: opts.life || 1.3,
+      damage: dmg,
+      crit,
+      pierce: opts.pierce ?? player.pierce,
+      fromDrone: !!opts.drone
+    });
+    if (!opts.silent) beep(200+Math.random()*60,.025,"square",.012,70);
+  }
+
+  function firePlayer() {
+    const angle = Math.atan2(mouse.y-player.y, mouse.x-player.x);
+    const count = player.multishot;
+    const lowHpMul = player.hp / player.maxHp <= .35 ? 1 + player.lowHpPower : 1;
+    for (let i=0;i<count;i++) {
+      const offset = (i-(count-1)/2) * (player.spread || .055);
+      shoot(player.x + Math.cos(angle)*18, player.y + Math.sin(angle)*18, angle+offset, player.damage*lowHpMul);
+    }
+    if (player.echoChance && Math.random() < player.echoChance && bullets.length < PERF.maxBullets - count) {
+      const echoCount = Math.min(count, 5);
+      for (let i=0;i<echoCount;i++) {
+        const offset = (i-(echoCount-1)/2) * (player.spread || .055) + .025;
+        shoot(player.x, player.y, angle+offset, player.damage*player.echoDamage*lowHpMul, {silent:true});
+      }
+      if (rings.length < PERF.maxRings) rings.push({x:player.x,y:player.y,r:12,life:.16,max:.16,hue:280});
+    }
+    player.shootTimer = 1/player.fireRate;
+    const fxCount = bullets.length > 140 ? 1 : 2;
+    for (let i=0;i<fxCount;i++) {
+      particles.push({
+        x: player.x + Math.cos(angle)*18, y: player.y + Math.sin(angle)*18,
+        vx: Math.cos(angle)*rand(30,110)+rand(-30,30),
+        vy: Math.sin(angle)*rand(30,110)+rand(-30,30),
+        life: rand(.08,.18), max: .18, size: rand(1,3), hue: 185
+      });
+    }
+  }
+
+  function enemyTypeForWave() {
+    const r = Math.random();
+    if (wave < 3) return r < .72 ? "chaser" : "swift";
+    if (wave < 5) return r < .48 ? "chaser" : r < .67 ? "swift" : r < .82 ? "tank" : "shooter";
+    if (wave < 8) return r < .32 ? "chaser" : r < .47 ? "swift" : r < .62 ? "tank" : r < .76 ? "shooter" : r < .89 ? "charger" : "splitter";
+    return r < .24 ? "chaser" : r < .37 ? "swift" : r < .50 ? "tank" : r < .63 ? "shooter" : r < .76 ? "charger" : r < .88 ? "orbiter" : "splitter";
+  }
+
+  const SPAWN_SAFE_DISTANCE = 850;
+  const SPAWN_TELEGRAPH = .58;
+
+  function chooseSpawnPoint(boss=false) {
+    // プレイヤーを中心に「視界の少し外側」へ出す。
+    // マップ端では候補をワールド内へ補正し、現在のカメラ内に入る候補は却下する。
+    let fallback={x:clamp(player.x+900,70,W-70),y:player.y};
+    for(let attempt=0;attempt<28;attempt++){
+      const a=rand(0,TAU);
+      const d=rand(boss?690:900,boss?840:1220);
+      const x=clamp(player.x+Math.cos(a)*d,70,W-70);
+      const y=clamp(player.y+Math.sin(a)*d,70,H-70);
+      fallback={x,y};
+      if(Math.hypot(x-player.x,y-player.y)<(boss?620:SPAWN_SAFE_DISTANCE)) continue;
+      if(pointInCamera(x,y,75)) continue;
+      return {x,y};
+    }
+    return fallback;
+  }
+
+  function spawnEnemy(type=enemyTypeForWave(), boss=false) {
+    const point = chooseSpawnPoint(boss);
+    let x = point.x, y = point.y;
+
+    const scale = 1 + wave*.078 + Math.max(0, wave-6)*.022;
+    const defs = {
+      chaser:   {r:13,hp:30,speed:82,damage:14,value:8,hue:350},
+      swift:    {r:9,hp:18,speed:145,damage:10,value:10,hue:185},
+      tank:     {r:20,hp:95,speed:48,damage:22,value:18,hue:280},
+      shooter:  {r:14,hp:48,speed:62,damage:12,value:16,hue:42,shoot:true},
+      splitter: {r:16,hp:62,speed:72,damage:15,value:20,hue:135,split:true},
+      charger:  {r:12,hp:44,speed:70,damage:20,value:18,hue:12,charge:true},
+      orbiter:  {r:12,hp:42,speed:88,damage:12,value:18,hue:215,shoot:true,orbit:true}
+    };
+    let d = defs[type] || defs.chaser;
+    let bossKind = null;
+    if (boss) {
+      bossKind = ["warden","spinner","hunter"][(Math.floor(wave/5)-1)%3];
+      const bossDefs = {
+        warden:{r:43,hp:680+wave*118,speed:43,damage:29,value:280,hue:330,shoot:true},
+        spinner:{r:40,hp:630+wave*108,speed:53,damage:27,value:280,hue:275,shoot:true},
+        hunter:{r:37,hp:570+wave*100,speed:72,damage:26,value:280,hue:18,shoot:true}
+      };
+      d = bossDefs[bossKind];
+    }
+
+    const elite = !boss && wave >= 3 && Math.random() < Math.min(.22, .025 + wave*.012);
+    const eliteHp = elite ? 1.85 : 1;
+    const eliteDmg = elite ? 1.38 : 1;
+    const eliteSpeed = elite ? 1.10 : 1;
+    enemies.push({
+      x,y,vx:0,vy:0,type,r:d.r+(elite?2:0),
+      hp:d.hp*scale*eliteHp,maxHp:d.hp*scale*eliteHp,
+      speed:d.speed*(1+wave*.014)*eliteSpeed,
+      damage:d.damage*(1+wave*(boss?.035:.05))*eliteDmg,
+      value:Math.floor(d.value*(elite?2.1:1)),hue:(d.hue+(elite?22:0))%360,elite,
+      shoot:!!d.shoot,split:!!d.split,charge:!!d.charge,orbit:!!d.orbit,
+      boss:!!boss,bossKind,
+      spawnDelay: boss ? .75 : SPAWN_TELEGRAPH, spawnTotal: boss ? .75 : SPAWN_TELEGRAPH,
+      shootTimer:rand(.4,1.35),chargeTimer:rand(1.2,2.5),chargeTime:0,
+      slow:0,slowPower:0,hitFlash:0,phase:rand(0,TAU)
+    });
+  }
+
+  function spawnBoss() {
+    bossAlive = true;
+    bossWarningTimer = 1.35;
+    // ボス開始時に不要な敵弾を消し、突入時の描画負荷と事故を軽減。
+    bullets = bullets.filter(b => !b.enemy);
+    UI.bossWarning.classList.remove("hidden");
+    setTimeout(() => UI.bossWarning.classList.add("hidden"), 1300);
+    spawnEnemy("boss", true);
+    beep(70,.65,"sawtooth",.05,30);
+  }
+
+  function enemyShoot(e) {
+    const a = Math.atan2(player.y-e.y, player.x-e.x);
+    const enemyBulletCount = bullets.reduce((n,b)=>n+(b.enemy?1:0),0);
+    if (enemyBulletCount >= PERF.maxEnemyBullets) { e.shootTimer=.5; return; }
+
+    let shots = [];
+    if (!e.boss) {
+      if (e.orbit) {
+        shots = [{a:a-.08,s:230,r:4,d:8},{a:a+.08,s:230,r:4,d:8}];
+        e.shootTimer = 2.4;
+      } else {
+        shots = [{a,s:210,r:4,d:8}];
+        e.shootTimer = 2.15;
+      }
+    } else if (e.bossKind === "spinner") {
+      for (let i=0;i<5;i++) shots.push({a:e.phase+i*TAU/5,s:205,r:5,d:10});
+      e.shootTimer = 1.65;
+    } else if (e.bossKind === "hunter") {
+      shots = [{a:a-.10,s:315,r:5,d:11},{a,s:335,r:6,d:13},{a:a+.10,s:315,r:5,d:11}];
+      e.shootTimer = 1.5;
+    } else {
+      for (let i=0;i<5;i++) shots.push({a:a+(i-2)*.16,s:235,r:5,d:10});
+      e.shootTimer = 1.55;
+    }
+
+    for (const sh of shots) {
+      if (bullets.length >= PERF.maxBullets) break;
+      const currentEnemy = bullets.reduce((n,b)=>n+(b.enemy?1:0),0);
+      if (currentEnemy >= PERF.maxEnemyBullets) break;
+      const projectileScale = (1 + wave*.04) * (e.elite ? 1.28 : 1);
+      bullets.push({x:e.x,y:e.y,vx:Math.cos(sh.a)*sh.s,vy:Math.sin(sh.a)*sh.s,
+        r:sh.r,life:e.boss?3.2:3.5,damage:sh.d*projectileScale,enemy:true,hue:e.hue});
+    }
+  }
+
+  function syncDrones() {
+    while (drones.length < player.droneCount) {
+      drones.push({angle:rand(0,TAU), shootTimer:rand(0,1)});
+    }
+    drones.length = player.droneCount;
+  }
+
+  function dash() {
+    if (player.dashReady < 1 || player.dashTime > 0) return;
+    let dx = 0, dy = 0;
+    if (keys.has("KeyW")||keys.has("ArrowUp")) dy -= 1;
+    if (keys.has("KeyS")||keys.has("ArrowDown")) dy += 1;
+    if (keys.has("KeyA")||keys.has("ArrowLeft")) dx -= 1;
+    if (keys.has("KeyD")||keys.has("ArrowRight")) dx += 1;
+    if(touchCapable && mobileMove.active && mobileMove.mag>.08){
+      dx=mobileMove.x;
+      dy=mobileMove.y;
+    }
+    if (!dx && !dy) {
+      const a = Math.atan2(mouse.y-player.y, mouse.x-player.x);
+      dx = Math.cos(a); dy = Math.sin(a);
+    } else {
+      const l = Math.hypot(dx,dy); dx/=l; dy/=l;
+    }
+    player.vx = dx*820; player.vy = dy*820;
+    player.dashTime = .16;
+    player.dashReady = 0;
+    player.invuln = .24;
+    screenShake = Math.max(screenShake,5);
+    if (player.dashNova) explode(player.x,player.y,player.damage*player.dashNova,player.dashNovaRadius,185,true);
+    emitCardTrigger("on_dash",{});
+    if (rings.length < PERF.maxRings) rings.push({x:player.x,y:player.y,r:18,life:.28,max:.28,hue:185});
+    beep(130,.10,"sawtooth",.035,550);
+  }
+
+  function damagePlayer(amount) {
+    if (player.invuln > 0) return;
+
+    if ((player.shieldHits||0) > 0) {
+      player.shieldHits--;
+      if(texts.length<PERF.maxTexts)texts.push({x:player.x,y:player.y-28,text:`SHIELD ${player.shieldHits}`,life:.55,max:.55,hue:190,size:11});
+      if(rings.length<PERF.maxRings)rings.push({x:player.x,y:player.y,r:14,life:.20,max:.20,hue:190});
+      if(player.shieldHits<=0) emitCardTrigger("on_shield_break",{damage:amount});
+      beep(520,.035,"triangle",.018,180);
+      return;
+    }
+
+    amount *= (1-player.armor);
+    if((player.guardTimer||0)>0) amount *= 1-(player.guardReduction||0);
+    const beforeRatio=player.hp/player.maxHp;
+    player.hp -= amount;
+    emitCardTrigger("on_damage",{damage:amount});
+    const afterRatio=player.hp/player.maxHp;
+    if(beforeRatio>.35 && afterRatio<=.35) emitCardTrigger("on_low_hp",{damage:amount});
+    player.invuln = .45;
+    flash = .14;
+    screenShake = Math.max(screenShake,9);
+    texts.push({x:player.x,y:player.y-25,text:"-"+Math.ceil(amount),life:.8,max:.8,hue:355,size:15});
+    for(let i=0;i<8;i++) particles.push({x:player.x,y:player.y,vx:rand(-180,180),vy:rand(-180,180),life:rand(.2,.5),max:.5,size:rand(1,4),hue:350});
+    beep(90,.16,"sawtooth",.05,-30);
+    if (player.hp <= 0) {
+      if (player.phoenix > 0) {
+        player.phoenix--;
+        player.hp = player.maxHp * .45;
+        player.invuln = 2;
+        explode(player.x,player.y,player.damage*3,180,35,true);
+        texts.push({x:player.x,y:player.y-45,text:"フェニックス再起動",life:1.4,max:1.4,hue:38,size:19});
+        beep(180,.45,"triangle",.07,700);
+      } else {
+        player.hp = 0;
+        gameOver();
+      }
+    }
+  }
+
+  function hitEnemy(e, b) {
+    let dealt = b.damage;
+    const ratio = e.hp / e.maxHp;
+    if (player.executeThreshold && ratio <= player.executeThreshold) {
+      if (player.executeInstant && !e.boss) dealt = e.hp + 1;
+      else dealt *= 1 + player.executeBonus;
+    }
+    e.hp -= dealt;
+    e.hitFlash = .07;
+    const a = Math.atan2(e.y-b.y,e.x-b.x);
+    e.vx += Math.cos(a)*32*player.knockback;
+    e.vy += Math.sin(a)*32*player.knockback;
+
+    if (player.lifesteal > 0) {
+      const factor = b.fromDrone ? .35 : 1;
+      const heal = Math.min(player.maxHp*.045, dealt*player.lifesteal*factor);
+      player.hp = Math.min(player.maxHp, player.hp + heal);
+    }
+    if (player.frostChance && Math.random() < player.frostChance) {
+      e.slow = Math.max(e.slow, player.frostDuration);
+      e.slowPower = Math.max(e.slowPower || 0, player.frostStrength);
+    }
+    emitCardTrigger("on_hit",{enemy:e,dealt,bullet:b});
+    if (b.crit) {
+      emitCardTrigger("on_crit",{enemy:e,dealt,bullet:b});
+      if (texts.length < PERF.maxTexts) texts.push({x:e.x,y:e.y-18,text:"CRIT "+Math.round(dealt),life:.55,max:.55,hue:45,size:12});
+      if (player.chainChance && Math.random() < player.chainChance) chainLightning(e, dealt*player.chainDamage, player.chainTargets);
+    }
+    const fx = particles.length > 135 ? 1 : 3;
+    for(let i=0;i<fx;i++) particles.push({x:b.x,y:b.y,vx:rand(-80,80),vy:rand(-80,80),life:rand(.10,.28),max:.28,size:rand(1,3),hue:e.hue});
+    if (e.hp <= 0) killEnemy(e);
+  }
+
+  function chainLightning(origin, damage, hops=1) {
+    let current = origin;
+    const used = new Set([origin]);
+    for (let hop=0; hop<hops; hop++) {
+      let target=null,best=180*180;
+      for(const e of enemies){
+        if(e._dead || e.spawnDelay>0 || used.has(e)) continue;
+        const d=dist2(e,current);
+        if(d<best){best=d;target=e;}
+      }
+      if(!target) break;
+      target.hp -= damage * Math.pow(.86, hop);
+      if (rings.length < PERF.maxRings) rings.push({x:current.x,y:current.y,x2:target.x,y2:target.y,line:true,life:.09,max:.09,hue:190});
+      used.add(target);current=target;
+      if(target.hp<=0) killEnemy(target,true);
+    }
+    beep(620,.035,"square",.01,240);
+  }
+
+  function explode(x,y,damage,radius,hue=290,noProc=false) {
+    if (rings.length < PERF.maxRings) rings.push({x,y,r:12,life:.30,max:.30,hue});
+    screenShake = Math.max(screenShake,4);
+    for (const e of enemies) {
+      if(e._dead || e.spawnDelay>0) continue;
+      const dx=e.x-x,dy=e.y-y;
+      const d2=dx*dx+dy*dy;
+      if (d2 < radius*radius) {
+        const d=Math.sqrt(d2);
+        e.hp -= damage*(1-d/radius*.5);
+        if(e.hp<=0) killEnemy(e,true);
+      }
+    }
+    const n = bossAlive ? 8 : 12;
+    for(let i=0;i<n;i++) particles.push({x,y,vx:rand(-220,220),vy:rand(-220,220),life:rand(.16,.46),max:.46,size:rand(1,4),hue});
+  }
+
+  const GEM_TYPES = {
+    fragment:{hue:185,r:4,xp:1,label:"断片"},
+    dense:{hue:220,r:5,xp:3,label:"高密度"},
+    vital:{hue:145,r:5,xp:2,label:"生命",heal:.035},
+    rare:{hue:280,r:6,xp:5,label:"希少",rarity:1},
+    boss:{hue:42,r:8,xp:20,label:"ボスコア",heal:.15,epic:true}
+  };
+
+  function dropGem(x, y, kind="fragment") {
+    const type = GEM_TYPES[kind] || GEM_TYPES.fragment;
+    if (gems.length >= PERF.maxGems) {
+      if (kind === "rare" || kind === "vital" || kind === "boss") {
+        const replaceIndex = gems.findIndex(v => v.kind === "fragment" || v.kind === "dense");
+        if (replaceIndex >= 0) gems.splice(replaceIndex,1);
+        else gems.shift();
+      } else {
+        const g = gems.find(v => v.kind === kind) || gems.find(v => v.kind === "fragment");
+        if (g) g.value += type.xp;
+        return;
+      }
+    }
+    gems.push({x:x+rand(-12,12),y:y+rand(-12,12),vx:rand(-65,65),vy:rand(-65,65),r:type.r,value:type.xp,kind,hue:type.hue,life:20});
+  }
+
+  function collectGem(g) {
+    const type = GEM_TYPES[g.kind] || GEM_TYPES.fragment;
+    if (type.heal) player.hp = Math.min(player.maxHp, player.hp + player.maxHp*type.heal);
+    if (type.rarity) player.rarityCharge = Math.min(3, player.rarityCharge + type.rarity);
+    if (type.epic) player.epicGuarantee = true;
+    addXP(g.value);
+    score += (3 + g.value) * combo;
+    if (type.epic && texts.length < PERF.maxTexts) texts.push({x:player.x,y:player.y-34,text:"次回エピック確定",life:1.1,max:1.1,hue:42,size:14});
+  }
+
+  function comboWindow() {
+    // 初期火力でも次の撃破へ繋げやすく、ボス戦では長い攻撃間隔を許容する。
+    return bossAlive ? 6.0 : 4.2;
+  }
+
+  function killEnemy(e, chained=false) {
+    if (e._dead) return;
+    e._dead = true;
+    kills++;
+    comboKills++;
+    comboTimer = comboWindow();
+    combo = clamp(1 + Math.floor(comboKills/4)*.25, 1, 5);
+    score += e.value * 10 * combo;
+    emitCardTrigger("on_kill",{enemy:e});
+
+    if (player.killHeal) player.hp = Math.min(player.maxHp, player.hp + player.maxHp*player.killHeal);
+    if (player.singularityEvery && kills % player.singularityEvery === 0) explode(e.x,e.y,player.damage*2.2,155,285,true);
+
+    if (e.boss) {
+      bossAlive = false;
+      bossesDefeated++;
+      score += 1500*combo;
+      texts.push({x:e.x,y:e.y-60,text:"巨大異常体を撃破",life:1.4,max:1.4,hue:185,size:20});
+      explode(e.x,e.y,player.damage*2.2,150,330,true);
+      // 14個の小ジェムではなく、少数の高価値コアへ集約して軽量化。
+      dropGem(e.x,e.y,"boss");
+      dropGem(e.x-20,e.y+10,"dense");
+      dropGem(e.x+20,e.y+10,"dense");
+    } else {
+      if (player.explosiveChance && Math.random() < player.explosiveChance && !chained) {
+        explode(e.x,e.y,player.damage*player.explosiveDamage,player.explosiveRadius,e.hue,true);
+      }
+      if (e.type === "tank" || e.type === "splitter") dropGem(e.x,e.y,"dense");
+      else if (e.type === "charger" && Math.random()<.55) dropGem(e.x,e.y,"vital");
+      else if ((e.type === "shooter" || e.type === "orbiter") && Math.random()<.20) dropGem(e.x,e.y,"rare");
+      else if (Math.random()<.035) dropGem(e.x,e.y,"rare");
+      else dropGem(e.x,e.y,"fragment");
+    }
+
+    const fxCount = e.boss ? 18 : (particles.length > 135 ? 5 : 9);
+    for(let i=0;i<fxCount;i++) particles.push({x:e.x,y:e.y,vx:rand(-190,190),vy:rand(-190,190),life:rand(.18,.58),max:.58,size:rand(1,4),hue:e.hue});
+    screenShake = Math.max(screenShake,e.boss?8:2.5);
+    beep(e.boss?80:260+Math.random()*90,e.boss?.25:.035,e.boss?"sawtooth":"triangle",e.boss?.05:.012,e.boss?100:80);
+
+    if (e.split && !e.boss) {
+      for(let i=0;i<2 && enemies.length<34;i++) {
+        enemies.push({x:e.x+rand(-10,10),y:e.y+rand(-10,10),vx:rand(-45,45),vy:rand(-45,45),type:"swift",r:7,
+          hp:12+wave*2,maxHp:12+wave*2,speed:155,damage:8,value:6,hue:135,shoot:false,split:false,charge:false,orbit:false,
+          boss:false,bossKind:null,spawnDelay:0,spawnTotal:0,shootTimer:1,chargeTimer:2,chargeTime:0,slow:0,slowPower:0,hitFlash:0,phase:rand(0,TAU)});
+      }
+    }
+  }
+
+  // ---------- Update ----------
+  function update(dt) {
+    if (state !== "playing") return;
+    time += dt;
+    waveTimer += dt;
+    flash = Math.max(0, flash-dt);
+    screenShake = Math.max(0, screenShake-dt*22);
+    player.invuln = Math.max(0, player.invuln-dt);
+    player.guardTimer = Math.max(0,(player.guardTimer||0)-dt);
+    player.shootTimer -= dt;
+    player.dashTime = Math.max(0,player.dashTime-dt);
+    player.dashReady = Math.min(1, player.dashReady + dt/player.dashCooldown);
+    if (player.regen) player.hp = Math.min(player.maxHp, player.hp+player.regen*dt);
+
+    // 18秒ごとに危険度上昇。敵数ではなく個体性能・エリート率で圧を上げる。
+    const newWave = Math.floor(time/18)+1;
+    if (newWave !== wave) {
+      wave = newWave;
+      waveTimer = 0;
+      texts.push({x:W/2,y:H*.26,text:"ウェーブ "+String(wave).padStart(2,"0"),life:1.2,max:1.2,hue:190,size:28});
+      if (wave % 5 === 0) spawnBoss();
+      emitCardTrigger("on_wave",{wave});
+      beep(300,.12,"triangle",.03,220);
+    }
+
+    // Movement
+    let dx=0,dy=0;
+    if (keys.has("KeyW")||keys.has("ArrowUp")) dy--;
+    if (keys.has("KeyS")||keys.has("ArrowDown")) dy++;
+    if (keys.has("KeyA")||keys.has("ArrowLeft")) dx--;
+    if (keys.has("KeyD")||keys.has("ArrowRight")) dx++;
+    if(touchCapable && mobileMove.active){
+      dx=mobileMove.x;
+      dy=mobileMove.y;
+    }
+    if (player.dashTime<=0) {
+      if(dx||dy){const l=Math.hypot(dx,dy); dx/=l;dy/=l;}
+      const zoneSpeed = player.phaseSpeedTimer>0 ? 1.25 : 1;
+      const targetVx=dx*player.speed*zoneSpeed, targetVy=dy*player.speed*zoneSpeed;
+      player.vx += (targetVx-player.vx)*Math.min(1,dt*12);
+      player.vy += (targetVy-player.vy)*Math.min(1,dt*12);
+    }
+    player.x += player.vx*dt; player.y += player.vy*dt;
+    player.x=clamp(player.x,20,W-20); player.y=clamp(player.y,20,H-20);
+    updateFieldZones(dt);
+    updateCamera(dt);
+
+    if (mouse.down && player.shootTimer<=0) firePlayer();
+
+    // Spawn
+    spawnTimer -= dt;
+    if (spawnTimer<=0 && !bossWarningTimer) {
+      // 敵数は無限に増やさず、後半は耐久・種類で難易度を上げる。
+      const regularCount = enemies.reduce((n, e) => n + (!e._dead && !e.boss ? 1 : 0), 0);
+      const normalCap = Math.min(30, 14 + Math.floor(wave * 1.0));
+      // ボス中は雑魚の物量を大きく落とす。難しさはボス本体のパターンに寄せる。
+      const activeCap = bossAlive ? Math.min(4, 2 + Math.floor(wave / 10)) : normalCap;
+      if (regularCount < activeCap) spawnEnemy();
+
+      const baseInterval = Math.max(.40, .90 - Math.min(wave, 18) * .022);
+      spawnTimer = baseInterval * (bossAlive ? 2.65 : 1) * rand(.88, 1.14);
+    }
+    bossWarningTimer = Math.max(0,bossWarningTimer-dt);
+
+    // Drones
+    drones.forEach((d,i)=>{
+      d.angle += dt*(1.0+i*.025);
+      d.x = player.x + Math.cos(d.angle + i*TAU/Math.max(1,drones.length))*48;
+      d.y = player.y + Math.sin(d.angle + i*TAU/Math.max(1,drones.length))*48;
+      d.shootTimer -= dt;
+      if(d.shootTimer<=0){
+        let target=null,best=420*420;
+        for(const e of enemies){
+          if(e._dead || e.spawnDelay>0) continue;
+          const dd=(e.x-d.x)**2+(e.y-d.y)**2;
+          if(dd<best){best=dd;target=e;}
+        }
+        if(target){
+          shoot(d.x,d.y,Math.atan2(target.y-d.y,target.x-d.x),player.droneDamage,{speed:620,r:3,drone:true,noCrit:true,silent:true,pierce:0});
+          d.shootTimer=1/player.droneRate;
+        }
+      }
+    });
+
+    // Bullets
+    for (let i=bullets.length-1;i>=0;i--) {
+      const b=bullets[i];
+      b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
+      if (b.life<=0 || b.x<-80 || b.x>W+80 || b.y<-80 || b.y>H+80) {
+        bullets.splice(i,1); continue;
+      }
+      if (b.enemy) {
+        if (player.invuln<=0 && (b.x-player.x)**2+(b.y-player.y)**2 < (b.r+player.r)**2) {
+          damagePlayer(b.damage);
+          bullets.splice(i,1);
+        }
+        continue;
+      }
+      let removed=false;
+      for (const e of enemies) {
+        if(e._dead || e.spawnDelay>0) continue;
+        if((b.x-e.x)**2+(b.y-e.y)**2 < (b.r+e.r)**2) {
+          hitEnemy(e,b);
+          if(b.pierce>0){ b.pierce--; b.damage*=.88; }
+          else { bullets.splice(i,1); removed=true; }
+          break;
+        }
+      }
+      if(removed) continue;
+    }
+
+    // Enemies
+    for(let i=enemies.length-1;i>=0;i--){
+      const e=enemies[i];
+      if(e._dead){enemies.splice(i,1);continue;}
+      e.hitFlash=Math.max(0,e.hitFlash-dt);
+      if (e.spawnDelay > 0) {
+        e.spawnDelay = Math.max(0, e.spawnDelay - dt);
+        e.vx = 0; e.vy = 0;
+        // 予告中は移動・射撃・接触判定を完全停止。
+        continue;
+      }
+      e.slow=Math.max(0,e.slow-dt);
+      e.shootTimer-=dt;
+      e.chargeTimer=(e.chargeTimer||0)-dt;
+      e.chargeTime=Math.max(0,(e.chargeTime||0)-dt);
+      const a=Math.atan2(player.y-e.y,player.x-e.x);
+      let speed=e.speed*(e.slow>0 ? Math.max(.22,1-(e.slowPower||.48)) : 1);
+      const preferred=e.shoot && !e.boss ? (e.orbit?205:240) : e.boss ? 180 : 0;
+      const d=Math.hypot(player.x-e.x,player.y-e.y);
+
+      if(e.charge && e.chargeTime<=0 && e.chargeTimer<=0 && d<520){
+        e.chargeTime=.42;e.chargeTimer=2.7+Math.random()*.7;
+        e.vx=Math.cos(a)*330;e.vy=Math.sin(a)*330;
+        if(rings.length<PERF.maxRings)rings.push({x:e.x,y:e.y,r:8,life:.20,max:.20,hue:e.hue});
+      } else if(e.chargeTime<=0){
+        let drive=1;
+        if(preferred){if(d<preferred*.82)drive=-.55;else if(d<preferred*1.15)drive=.06;}
+        let tx=Math.cos(a)*speed*drive,ty=Math.sin(a)*speed*drive;
+        if(e.orbit){tx+=Math.cos(a+Math.PI/2)*speed*.78;ty+=Math.sin(a+Math.PI/2)*speed*.78;}
+        e.vx+=(tx-e.vx)*Math.min(1,dt*(e.boss?2.0:4.2));
+        e.vy+=(ty-e.vy)*Math.min(1,dt*(e.boss?2.0:4.2));
+      }
+      if(e.boss){
+        e.phase+=dt*(e.bossKind==="spinner"?1.3:.7);
+        if(e.bossKind==="hunter"){e.vx+=Math.cos(e.phase*2.1)*18;e.vy+=Math.sin(e.phase*1.5)*10;}
+        else e.vx+=Math.cos(e.phase*1.5)*15;
+      }
+      e.x+=e.vx*dt;e.y+=e.vy*dt;
+      e.x=clamp(e.x,e.r,W-e.r);e.y=clamp(e.y,e.r,H-e.r);
+      if(!e.boss && d>ACTIVE_DESPAWN_DISTANCE){
+        enemies.splice(i,1);
+        continue;
+      }
+      if(e.shoot && e.shootTimer<=0 && d<580) enemyShoot(e);
+      if(d < e.r+player.r+1) {
+        damagePlayer(e.damage);
+        const push=Math.atan2(e.y-player.y,e.x-player.x);
+        e.vx+=Math.cos(push)*180;e.vy+=Math.sin(push)*180;
+      }
+    }
+
+    // Gems
+    for(let i=gems.length-1;i>=0;i--){
+      const g=gems[i];
+      g.life-=dt;
+      g.vx*=Math.pow(.15,dt);g.vy*=Math.pow(.15,dt);
+      const d=Math.hypot(player.x-g.x,player.y-g.y);
+      if(d<player.magnet){
+        const force=clamp((player.magnet-d)/player.magnet,0,1);
+        const a=Math.atan2(player.y-g.y,player.x-g.x);
+        g.vx+=Math.cos(a)*(450+force*700)*dt;
+        g.vy+=Math.sin(a)*(450+force*700)*dt;
+      }
+      g.x+=g.vx*dt;g.y+=g.vy*dt;
+      if(d<player.r+10){
+        collectGem(g);
+        gems.splice(i,1);
+        beep(g.kind==="boss"?820:680,.018,"sine",g.kind==="boss"?.018:.006,110);
+      } else if(g.life<=0) gems.splice(i,1);
+    }
+
+    // Particles
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];p.life-=dt;
+      p.x+=p.vx*dt;p.y+=p.vy*dt;
+      p.vx*=Math.pow(.18,dt);p.vy*=Math.pow(.18,dt);
+      if(p.life<=0)particles.splice(i,1);
+    }
+    for(let i=rings.length-1;i>=0;i--){
+      rings[i].life-=dt;
+      if(rings[i].life<=0)rings.splice(i,1);
+    }
+    for(let i=texts.length-1;i>=0;i--){
+      const t=texts[i];t.life-=dt;t.y-=24*dt;
+      if(t.life<=0)texts.splice(i,1);
+    }
+
+    // エフェクト類は古いものから間引き、長時間プレイ時のメモリ・描画負荷を固定する。
+    if (particles.length > PERF.maxParticles) particles.splice(0, particles.length - PERF.maxParticles);
+    if (texts.length > PERF.maxTexts) texts.splice(0, texts.length - PERF.maxTexts);
+    if (rings.length > PERF.maxRings) rings.splice(0, rings.length - PERF.maxRings);
+
+    // Combo
+    if(comboTimer>0) comboTimer-=dt;
+    else if(comboKills>0){
+      comboKills=0; combo=1;
+    }
+
+    uiTimer -= dt;
+    if (uiTimer <= 0) {
+      updateUI();
+      uiTimer = 1 / PERF.hudFps;
+    }
+  }
+
+  function updateUI() {
+    const hpPct=clamp(player.hp/player.maxHp*100,0,100);
+    UI.hpText.textContent=`${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}`;
+    UI.hpBar.style.width=hpPct+"%";
+    UI.levelText.textContent=String(player.level).padStart(2,"0");
+    UI.scoreText.textContent=String(Math.floor(score)).padStart(6,"0");
+    UI.comboText.textContent="x"+combo.toFixed(2);
+    UI.comboKills.textContent=`${comboKills} 連鎖`;
+    UI.comboBar.style.width=(comboTimer/comboWindow()*100)+"%";
+    UI.waveText.textContent="ウェーブ "+String(wave).padStart(2,"0");
+    const boss = enemies.find(e=>e.boss&&!e._dead);
+    const bossName = boss?.bossKind === "spinner" ? "回転異常体" : boss?.bossKind === "hunter" ? "追跡異常体" : "防衛異常体";
+    UI.objectiveText.textContent=bossAlive ? `${bossName}を撃破せよ` : wave%5===4 ? "ボス反応が接近中…" : "ネオン空間を生き残れ。";
+    UI.xpText.textContent=`${Math.floor(player.xp)} / ${player.nextXp}`;
+    UI.xpBar.style.width=(player.xp/player.nextXp*100)+"%";
+    UI.rarityBoostText.textContent = player.epicGuarantee ? "次回エピック確定" : `希少共鳴 ${player.rarityCharge} / 3`;
+    UI.rarityBoostText.className = player.epicGuarantee ? "text-[9px] text-amber-300 font-black" : "text-[9px] text-violet-300 font-bold";
+    UI.dashBar.style.width=(player.dashReady*100)+"%";
+    if(UI.defenseHudText){
+      const ds=[];
+      if((player.shieldHits||0)>0) ds.push(`SHIELD ×${player.shieldHits}`);
+      if((player.guardTimer||0)>0) ds.push(`GUARD ${player.guardTimer.toFixed(1)}s`);
+      UI.defenseHudText.textContent=ds.join(" / ");
+    }
+  }
+
+  // ---------- Render ----------
+  function hexToHSLA(h, a=.7, l=60) { return `hsla(${h},95%,${l}%,${a})`; }
+
+  function drawBackground() {
+    // 実ウィンドウ全体は黒。固定カメラ領域だけゲーム世界を描く。
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.fillStyle="#020409";
+    ctx.fillRect(0,0,VIEW_W,VIEW_H);
+
+    applyWorldTransform();
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(camera.x,camera.y,CAMERA_W,CAMERA_H);
+    ctx.clip();
+
+    const g=ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,1050);
+    g.addColorStop(0,"rgba(14,22,38,.70)");
+    g.addColorStop(.58,"rgba(5,9,18,.92)");
+    g.addColorStop(1,"rgba(2,4,9,1)");
+    ctx.fillStyle=g;
+    ctx.fillRect(camera.x,camera.y,CAMERA_W,CAMERA_H);
+
+    // ワールド固定の星。カメラ移動で自然な視差に見える。
+    for(const st of stars){
+      if(!pointInCamera(st.x,st.y,8)) continue;
+      ctx.globalAlpha=st.a;
+      ctx.fillStyle="#dff9ff";
+      ctx.fillRect(st.x,st.y,st.s,st.s);
+    }
+    ctx.globalAlpha=1;
+
+    // ワールド座標に固定されたグリッド。
+    ctx.strokeStyle="rgba(68,127,160,.055)";
+    ctx.lineWidth=1;
+    const spacing=bossAlive?96:72;
+    const sx=Math.floor(camera.x/spacing)*spacing;
+    const sy=Math.floor(camera.y/spacing)*spacing;
+    for(let x=sx;x<=camera.x+CAMERA_W+spacing;x+=spacing){
+      ctx.beginPath();ctx.moveTo(x,camera.y);ctx.lineTo(x,camera.y+CAMERA_H);ctx.stroke();
+    }
+    for(let y=sy;y<=camera.y+CAMERA_H+spacing;y+=spacing){
+      ctx.beginPath();ctx.moveTo(camera.x,y);ctx.lineTo(camera.x+CAMERA_W,y);ctx.stroke();
+    }
+
+    // 有限マップ境界。端へ来た時だけ強く見える。
+    ctx.strokeStyle="rgba(34,211,238,.28)";
+    ctx.lineWidth=5;
+    ctx.strokeRect(8,8,W-16,H-16);
+
+    // 通過可能なフローフィールド。壁ではなく、移動ルートに意味を付けるランドマーク。
+    for(const z of fieldZones){
+      if(!pointInCamera(z.x,z.y,z.r+45)) continue;
+      const ready = z.cooldown<=0;
+      const pulse = .5 + Math.sin(time*2.2 + z.phase)*.5;
+      ctx.save();
+      ctx.translate(z.x,z.y);
+      ctx.rotate(time*.12 + z.phase);
+      ctx.globalAlpha = ready ? .88 : .28;
+      ctx.fillStyle=hexToHSLA(z.hue, ready ? .055 : .025, 48);
+      ctx.strokeStyle=hexToHSLA(z.hue, ready ? .38+.18*pulse : .12, 64);
+      ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(0,0,z.r,0,TAU);ctx.fill();ctx.stroke();
+      ctx.setLineDash([9,13]);
+      ctx.rotate(-time*.30);
+      ctx.beginPath();ctx.arc(0,0,z.r*.72,0,TAU);ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = ready ? .55 : .16;
+      const icon = z.type==="flow" ? "»" : z.type==="charge" ? "◫" : "∞";
+      const name = z.type==="flow" ? "FLOW" : z.type==="charge" ? "CHARGE" : "LINK";
+      ctx.fillStyle=hexToHSLA(z.hue,.9,72);
+      ctx.font="900 22px ui-sans-serif,system-ui";
+      ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(icon,0,-6);
+      ctx.font="800 9px ui-sans-serif,system-ui";
+      ctx.globalAlpha = ready ? .72 : .22;
+      ctx.fillText(name,0,16);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  function render() {
+    const heavyScene = bossAlive || bullets.length > 120 || enemies.length > 25 || particles.length > 140;
+    drawBackground();
+    const shakeX=screenShake?rand(-screenShake,screenShake):0;
+    const shakeY=screenShake?rand(-screenShake,screenShake):0;
+    ctx.save();
+    // 固定カメラの外へ描かない。ウルトラワイド余白は完全に非ゲーム領域。
+    ctx.beginPath();
+    ctx.rect(camera.x,camera.y,CAMERA_W,CAMERA_H);
+    ctx.clip();
+    ctx.translate(shakeX,shakeY);
+
+    // Gems
+    for(const g of gems){
+      ctx.save();ctx.translate(g.x,g.y);ctx.rotate(time*(g.kind==="boss"?1.5:3)+g.x*.01);
+      ctx.shadowBlur=heavyScene?0:(g.kind==="boss"?16:9);ctx.shadowColor=hexToHSLA(g.hue||185,.85,62);
+      ctx.fillStyle=hexToHSLA(g.hue||185,.95,68);
+      if(g.kind==="boss"){
+        ctx.beginPath();
+        for(let i=0;i<6;i++){const a=i/6*TAU;const rr=i%2?g.r*.65:g.r*1.3;const x=Math.cos(a)*rr,y=Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.fill();
+      } else {
+        ctx.beginPath();ctx.moveTo(0,-g.r*1.3);ctx.lineTo(g.r,0);ctx.lineTo(0,g.r*1.3);ctx.lineTo(-g.r,0);ctx.closePath();ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Rings / lightning
+    for(const r of rings){
+      const q=1-r.life/r.max;
+      ctx.save();
+      ctx.globalAlpha=1-q;
+      ctx.strokeStyle=hexToHSLA(r.hue,1-q,68);
+      ctx.shadowBlur=heavyScene?0:12;ctx.shadowColor=hexToHSLA(r.hue,.8,60);
+      if(r.line){
+        ctx.lineWidth=2.5;
+        ctx.beginPath();
+        ctx.moveTo(r.x,r.y);
+        const mx=(r.x+r.x2)/2+rand(-18,18),my=(r.y+r.y2)/2+rand(-18,18);
+        ctx.lineTo(mx,my);ctx.lineTo(r.x2,r.y2);ctx.stroke();
+      } else {
+        ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(r.x,r.y,r.r+q*90,0,TAU);ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Bullets
+    for(const b of bullets){
+      ctx.save();
+      const hue=b.enemy?(b.hue||350):(b.fromDrone?285:(b.crit?45:188));
+      ctx.strokeStyle=hexToHSLA(hue,.95,68);
+      ctx.fillStyle=hexToHSLA(hue,1,72);
+      ctx.shadowBlur=heavyScene?0:(b.enemy?10:13);ctx.shadowColor=hexToHSLA(hue,.8,60);
+      ctx.lineWidth=Math.max(1,b.r*.75);
+      ctx.beginPath();ctx.moveTo(b.x-b.vx*.018,b.y-b.vy*.018);ctx.lineTo(b.x,b.y);ctx.stroke();
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);ctx.fill();
+      ctx.restore();
+    }
+
+    // Enemies
+    for(const e of enemies){
+      if(e._dead) continue;
+      if (e.spawnDelay > 0) {
+        const p = 1 - e.spawnDelay / Math.max(.001, e.spawnTotal || SPAWN_TELEGRAPH);
+        const tx = clamp(e.x, 12, W-12), ty = clamp(e.y, 12, H-12);
+        ctx.save();
+        ctx.globalAlpha = .35 + p*.55;
+        ctx.strokeStyle = e.boss ? "rgba(251,113,133,.95)" : hexToHSLA(e.hue,.9,66);
+        ctx.lineWidth = e.boss ? 3 : 2;
+        ctx.setLineDash([5,6]);
+        ctx.beginPath(); ctx.arc(tx,ty,12 + p*18,0,TAU); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(tx-7,ty);ctx.lineTo(tx+7,ty);ctx.moveTo(tx,ty-7);ctx.lineTo(tx,ty+7);ctx.stroke();
+        ctx.restore();
+        continue;
+      }
+      ctx.save();ctx.translate(e.x,e.y);
+      const hit=e.hitFlash>0;
+      ctx.shadowBlur=heavyScene?0:(e.boss?20:12);
+      ctx.shadowColor=hexToHSLA(e.hue,.65,55);
+      ctx.fillStyle=hit?"rgba(255,255,255,.95)":hexToHSLA(e.hue,.24,52);
+      ctx.strokeStyle=hit?"white":hexToHSLA(e.hue,.92,66);
+      ctx.lineWidth=e.boss?3:1.8;
+
+      ctx.rotate(time*(e.boss?.25:.55)+e.phase*.15);
+      if(e.boss){
+        ctx.beginPath();
+        for(let i=0;i<8;i++){
+          const a=i/8*TAU;
+          const rr=e.r*(i%2?1:.74);
+          const x=Math.cos(a)*rr,y=Math.sin(a)*rr;
+          if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+        }
+        ctx.closePath();ctx.fill();ctx.stroke();
+        ctx.rotate(-time*.6);
+        ctx.beginPath();ctx.arc(0,0,e.r*.48,0,TAU);ctx.stroke();
+        ctx.beginPath();ctx.arc(0,0,e.r*.18,0,TAU);ctx.fill();
+      } else if(e.type==="tank"){
+        ctx.beginPath();
+        for(let i=0;i<6;i++){const a=i/6*TAU;const x=Math.cos(a)*e.r,y=Math.sin(a)*e.r;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+        ctx.closePath();ctx.fill();ctx.stroke();
+      } else if(e.type==="shooter"){
+        ctx.rotate(Math.PI/4);ctx.fillRect(-e.r*.72,-e.r*.72,e.r*1.44,e.r*1.44);ctx.strokeRect(-e.r*.72,-e.r*.72,e.r*1.44,e.r*1.44);
+      } else if(e.type==="splitter"){
+        ctx.beginPath();ctx.moveTo(0,-e.r);ctx.lineTo(e.r,0);ctx.lineTo(0,e.r);ctx.lineTo(-e.r,0);ctx.closePath();ctx.fill();ctx.stroke();
+      } else if(e.type==="charger"){
+        ctx.beginPath();ctx.moveTo(e.r,0);ctx.lineTo(-e.r*.8,-e.r*.7);ctx.lineTo(-e.r*.45,0);ctx.lineTo(-e.r*.8,e.r*.7);ctx.closePath();ctx.fill();ctx.stroke();
+      } else if(e.type==="orbiter"){
+        ctx.beginPath();ctx.arc(0,0,e.r,0,TAU);ctx.stroke();ctx.beginPath();ctx.arc(0,0,e.r*.42,0,TAU);ctx.fill();ctx.beginPath();ctx.moveTo(-e.r-4,0);ctx.lineTo(e.r+4,0);ctx.stroke();
+      } else {
+        ctx.beginPath();ctx.arc(0,0,e.r,0,TAU);ctx.fill();ctx.stroke();
+        if(e.type==="swift"){ctx.beginPath();ctx.moveTo(-e.r*.6,0);ctx.lineTo(e.r*.65,0);ctx.stroke();}
+      }
+      if(e.elite){
+        ctx.rotate(-time*.9);ctx.strokeStyle="rgba(251,191,36,.8)";ctx.lineWidth=1.2;ctx.setLineDash([3,5]);
+        ctx.beginPath();ctx.arc(0,0,e.r+5,0,TAU);ctx.stroke();ctx.setLineDash([]);
+      }
+
+      ctx.restore();
+
+      // HP bars for tough enemies
+      if(e.boss || e.type==="tank"){
+        const w=e.boss?110:36;
+        const pct=clamp(e.hp/e.maxHp,0,1);
+        ctx.fillStyle="rgba(2,6,23,.65)";ctx.fillRect(e.x-w/2,e.y-e.r-15,w,4);
+        ctx.fillStyle=hexToHSLA(e.hue,.95,62);ctx.fillRect(e.x-w/2,e.y-e.r-15,w*pct,4);
+      }
+    }
+
+    // Drones
+    drones.forEach((d,i)=>{
+      ctx.save();ctx.translate(d.x,d.y);ctx.rotate(time*2+i);
+      ctx.shadowBlur=heavyScene?0:12;ctx.shadowColor="rgba(168,85,247,.8)";
+      ctx.fillStyle="rgba(168,85,247,.18)";ctx.strokeStyle="rgba(216,180,254,.9)";ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(7,5);ctx.lineTo(-7,5);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle="rgba(168,85,247,.08)";ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.lineTo(d.x,d.y);ctx.stroke();
+    });
+
+    // Player
+    if(state!=="menu" && state!=="gameover" || player.hp>0){
+      const a=Math.atan2(mouse.y-player.y,mouse.x-player.x);
+      ctx.save();ctx.translate(player.x,player.y);ctx.rotate(a);
+
+      if(player.invuln>0 && Math.sin(time*40)>0) ctx.globalAlpha=.45;
+      ctx.shadowBlur=heavyScene?8:22;ctx.shadowColor="rgba(34,211,238,.85)";
+      ctx.fillStyle="rgba(34,211,238,.16)";ctx.strokeStyle="rgba(165,243,252,.98)";ctx.lineWidth=2;
+
+      ctx.beginPath();
+      ctx.moveTo(19,0);ctx.lineTo(-9,-10);ctx.lineTo(-5,0);ctx.lineTo(-9,10);ctx.closePath();
+      ctx.fill();ctx.stroke();
+
+      ctx.fillStyle="rgba(255,255,255,.92)";
+      ctx.beginPath();ctx.arc(2,0,3.1,0,TAU);ctx.fill();
+
+      if(dxMove() || dyMove()){
+        ctx.strokeStyle="rgba(34,211,238,.38)";
+        ctx.lineWidth=3;
+        ctx.beginPath();ctx.moveTo(-9,-4);ctx.lineTo(-17-rand(0,10),-2);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(-9,4);ctx.lineTo(-17-rand(0,10),2);ctx.stroke();
+      }
+      ctx.restore();
+
+      // aim line / reticle
+      const aimD=Math.hypot(mouse.x-player.x,mouse.y-player.y);
+      if(aimD>30){
+        ctx.save();
+        ctx.globalAlpha=.22;ctx.strokeStyle="rgba(165,243,252,.75)";ctx.setLineDash([3,8]);ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*24,player.y+Math.sin(a)*24);ctx.lineTo(mouse.x,mouse.y);ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.translate(mouse.x,mouse.y);ctx.rotate(time*.7);
+        ctx.strokeStyle="rgba(165,243,252,.8)";ctx.globalAlpha=.78;
+        ctx.beginPath();ctx.arc(0,0,10,0,TAU);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(-15,0);ctx.lineTo(-6,0);ctx.moveTo(15,0);ctx.lineTo(6,0);ctx.moveTo(0,-15);ctx.lineTo(0,-6);ctx.moveTo(0,15);ctx.lineTo(0,6);ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Particles
+    for(const p of particles){
+      const a=clamp(p.life/p.max,0,1);
+      ctx.globalAlpha=a;
+      ctx.fillStyle=hexToHSLA(p.hue,a,68);
+      ctx.fillRect(p.x,p.y,p.size,p.size);
+    }
+    ctx.globalAlpha=1;
+
+    // Floating texts
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    for(const t of texts){
+      const a=clamp(t.life/t.max,0,1);
+      ctx.globalAlpha=Math.min(1,a*1.8);
+      ctx.font=`900 ${t.size||14}px ui-sans-serif,system-ui`;
+      ctx.fillStyle=hexToHSLA(t.hue,a,72);
+      ctx.shadowBlur=12;ctx.shadowColor=hexToHSLA(t.hue,.7,55);
+      ctx.fillText(t.text,t.x,t.y);
+    }
+    ctx.shadowBlur=0;ctx.globalAlpha=1;
+
+    ctx.restore();
+
+    // カメラ外周の接近警告。視界外スポーンが突然の被弾にならないよう方向だけ知らせる。
+    applyCameraScreenTransform();
+    ctx.save();
+    for(const e of enemies){
+      if(e._dead || pointInCamera(e.x,e.y,0)) continue;
+      const dx=e.x-player.x, dy=e.y-player.y;
+      const d=Math.hypot(dx,dy);
+      if(d>1250) continue;
+      const a=Math.atan2(dy,dx);
+      const cx=CAMERA_W/2, cy=CAMERA_H/2;
+      const rx=CAMERA_W/2-34, ry=CAMERA_H/2-34;
+      const t=1/Math.max(Math.abs(Math.cos(a))/rx,Math.abs(Math.sin(a))/ry);
+      const ix=cx+Math.cos(a)*t, iy=cy+Math.sin(a)*t;
+      ctx.save();ctx.translate(ix,iy);ctx.rotate(a);
+      ctx.globalAlpha=e.spawnDelay>0?.85:.32;
+      ctx.fillStyle=e.boss?"rgba(251,113,133,.95)":"rgba(103,232,249,.9)";
+      ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(-7,-6);ctx.lineTo(-7,6);ctx.closePath();ctx.fill();
+      ctx.restore();
+    }
+
+    // ミニマップ。ワールド全体と現在地だけを軽量表示。
+    const mw=174,mh=98,mx=22,my=CAMERA_H-mh-22;
+    ctx.fillStyle="rgba(2,6,23,.72)";ctx.fillRect(mx,my,mw,mh);
+    ctx.strokeStyle="rgba(148,163,184,.25)";ctx.lineWidth=1;ctx.strokeRect(mx,my,mw,mh);
+    const sx=mw/W,sy=mh/H;
+    ctx.strokeStyle="rgba(34,211,238,.22)";
+    ctx.strokeRect(mx+camera.x*sx,my+camera.y*sy,CAMERA_W*sx,CAMERA_H*sy);
+    for(const e of enemies){
+      if(e._dead || !e.boss) continue;
+      ctx.fillStyle="rgba(251,113,133,.95)";
+      ctx.beginPath();ctx.arc(mx+e.x*sx,my+e.y*sy,3.2,0,TAU);ctx.fill();
+    }
+    ctx.fillStyle="rgba(165,243,252,1)";
+    ctx.beginPath();ctx.arc(mx+player.x*sx,my+player.y*sy,2.8,0,TAU);ctx.fill();
+
+    ctx.textAlign="left";ctx.textBaseline="alphabetic";
+    ctx.font="700 8px ui-sans-serif,system-ui";
+    ctx.fillStyle="rgba(103,232,249,.72)";ctx.fillText("» FLOW: 移動加速",mx,my-17);
+    ctx.fillStyle="rgba(216,180,254,.72)";ctx.fillText("◫ CHARGE: ダッシュ回復",mx+72,my-17);
+    ctx.fillStyle="rgba(253,230,138,.72)";ctx.fillText("∞ LINK: コンボ延長",mx,my-7);
+    ctx.restore();
+    applyWorldTransform();
+
+    if(flash>0){
+      ctx.fillStyle=`rgba(244,63,94,${flash*.7})`;ctx.fillRect(0,0,W,H);
+    }
+
+    // カメラ固定のビネット
+    applyCameraScreenTransform();
+    const vg=ctx.createRadialGradient(CAMERA_W/2,CAMERA_H/2,220,CAMERA_W/2,CAMERA_H/2,900);
+    vg.addColorStop(0,"rgba(0,0,0,0)");
+    vg.addColorStop(1,"rgba(0,0,0,.42)");
+    ctx.fillStyle=vg;ctx.fillRect(0,0,CAMERA_W,CAMERA_H);
+    applyWorldTransform();
+  }
+
+  function dxMove(){return touchCapable&&mobileMove.active?mobileMove.x:(keys.has("KeyD")||keys.has("ArrowRight")?1:0)-(keys.has("KeyA")||keys.has("ArrowLeft")?1:0)}
+  function dyMove(){return touchCapable&&mobileMove.active?mobileMove.y:(keys.has("KeyS")||keys.has("ArrowDown")?1:0)-(keys.has("KeyW")||keys.has("ArrowUp")?1:0)}
+
+  const FIXED_STEP = 1/60;
+  const MAX_FRAME_DT = .20;
+  const MAX_SIM_STEPS = 8;
+  let simAccumulator = 0;
+
+  function loop(now){
+    const frameDt=Math.min(MAX_FRAME_DT,Math.max(0,(now-last)/1000||0));
+    last=now;
+
+    if(state==="playing"){
+      simAccumulator += frameDt;
+      let steps=0;
+      while(simAccumulator>=FIXED_STEP && steps<MAX_SIM_STEPS && state==="playing"){
+        update(FIXED_STEP);
+        simAccumulator -= FIXED_STEP;
+        steps++;
+      }
+      // Extremely slow embedded views should recover instead of creating a permanent backlog.
+      if(steps>=MAX_SIM_STEPS && simAccumulator>FIXED_STEP*2){
+        simAccumulator=FIXED_STEP;
+      }
+    } else {
+      simAccumulator=0;
+      // UI/menu animation follows real elapsed time, not simulation time.
+      time += frameDt * .22;
+      if(state==="menu"){
+        for(let i=rings.length-1;i>=0;i--){
+          rings[i].life -= frameDt;
+          if(rings[i].life<=0) rings.splice(i,1);
+        }
+      }
+    }
+
+    render();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ---------- Mobile controls ----------
+  bindVirtualStick(UI.moveStick,UI.moveStickKnob,mobileMove,()=>{});
+
+  bindVirtualStick(UI.aimStick,UI.aimStickKnob,mobileAim,(x,y,mag)=>{
+    if(state!=="playing"){
+      mouse.down=false;
+      return;
+    }
+    if(mag>.12){
+      const len=Math.hypot(x,y)||1;
+      const nx=x/len, ny=y/len;
+      mouse.x=player.x+nx*720;
+      mouse.y=player.y+ny*720;
+      mouse.down=mag>.22;
+    }else{
+      mouse.down=false;
+    }
+  });
+
+  UI.mobileDashBtn?.addEventListener("pointerdown",e=>{
+    if(!touchCapable || state!=="playing") return;
+    e.preventDefault();
+    dash();
+  });
+
+  UI.mobilePauseBtn?.addEventListener("pointerdown",e=>{
+    if(!touchCapable) return;
+    e.preventDefault();
+    if(state==="playing") setPause(true);
+  });
+
+  addEventListener("orientationchange",()=>{
+    setTimeout(resize,80);
+    setTimeout(resize,320);
+  });
+
+  // ---------- Buttons ----------
+  $("startBtn").addEventListener("click", resetGame);
+  $("restartBtn").addEventListener("click", resetGame);
+  $("pauseResumeBtn").addEventListener("click", ()=>setPause(false));
+  $("pauseSettleBtn").addEventListener("click", ()=>gameOver("settle"));
+  $("pauseRestartBtn").addEventListener("click", ()=>showPauseConfirm("restart"));
+  $("pauseHomeBtn").addEventListener("click", ()=>showPauseConfirm("home"));
+  $("pauseConfirmCancel").addEventListener("click", ()=>{pausePendingAction=null;UI.pauseConfirm.classList.add("hidden");});
+  $("pauseConfirmDo").addEventListener("click", ()=>{
+    const action=pausePendingAction;
+    pausePendingAction=null;
+    UI.pauseConfirm.classList.add("hidden");
+    if(action==="restart") resetGame();
+    else if(action==="home") returnHome();
+  });
+  $("gameOverHomeBtn").addEventListener("click", returnHome);
+  $("howBtn").addEventListener("click", ()=>UI.how.classList.remove("hidden"));
+  $("metaBtn").addEventListener("click", ()=>openMeta("menu"));
+  $("metaGameOverBtn").addEventListener("click", ()=>openMeta("gameover"));
+  $("metaClose").addEventListener("click", closeMeta);
+  $("gacha1").addEventListener("click", ()=>doGacha(1));
+  $("gacha10").addEventListener("click", ()=>doGacha(10));
+  $("saveExportBtn").addEventListener("click", downloadSave);
+  $("saveImportBtn").addEventListener("click", ()=>$("saveImportFile").click());
+  $("saveImportFile").addEventListener("change", e=>{
+    const f=e.target.files?.[0];
+    readImportFile(f);
+    e.target.value="";
+  });
+  $("saveImportCancel").addEventListener("click", ()=>{
+    pendingImportedSave=null;
+    UI.saveImportPreview.classList.add("hidden");
+    UI.saveTransferMessage.textContent="Importを取り消しました。現在のセーブは変更されていません。";
+  });
+  $("saveImportApply").addEventListener("click", applyImportedSave);
+  $("forgeCreate").addEventListener("click", createForgedCard);
+  $("howClose").addEventListener("click", ()=>UI.how.classList.add("hidden"));
+  UI.how.addEventListener("click", e=>{if(e.target===UI.how)UI.how.classList.add("hidden")});
+
+  // Menu ambient motion
+  function menuPulse(){
+    if(state==="menu" && rings.length<10 && Math.random()<.28){
+      const x=rand(W*.12,W*.88),y=rand(H*.15,H*.85);
+      const life=rand(.7,1.2);
+      rings.push({x,y,r:rand(8,20),life,max:life,hue:pick([185,220,280])});
+    }
+    setTimeout(menuPulse,450);
+  }
+  menuPulse();
+})();
+</script>
+</body>
+</html>
