@@ -3,7 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>NEON FRACTURE v15 — モバイルWeb最適化版</title>
+  <meta name="theme-color" content="#05070d" />
+  <meta name="application-name" content="NEON FRACTURE" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="NEON FRACTURE" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <title>NEON FRACTURE v17 — PWA / Floating Stick</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -307,11 +316,13 @@
       #startScreen .start-actions {
         margin-top: 11px !important;
         gap: 6px !important;
-        flex-wrap: nowrap !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       }
       #startScreen .start-actions button {
-        padding: 8px 11px !important;
-        font-size: 10px !important;
+        width: 100% !important;
+        padding: 8px 9px !important;
+        font-size: 9px !important;
         border-radius: 9px !important;
         white-space: nowrap;
       }
@@ -455,6 +466,106 @@
       }
     }
 
+  
+    /* Floating mobile controls: each half of the screen is an input area.
+       The stick appears under the finger instead of forcing a fixed thumb position. */
+    #mobileControls {
+      position: absolute;
+      inset: 0;
+      z-index: 32;
+      pointer-events: none;
+    }
+    .mobile-touch-zone {
+      position: absolute;
+      top: 20%;
+      bottom: 0;
+      width: 50%;
+      pointer-events: auto;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #moveZone { left: 0; }
+    #aimZone { right: 0; }
+
+    .mobile-stick {
+      position: absolute !important;
+      left: 0 !important;
+      right: auto !important;
+      top: 0 !important;
+      bottom: auto !important;
+      width: 132px;
+      height: 132px;
+      margin: -66px 0 0 -66px;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(.84);
+      transition: opacity .07s ease, transform .07s ease;
+      pointer-events: none !important;
+    }
+    .mobile-stick.active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1);
+    }
+    #aimStick { border-color: rgba(34,211,238,.28); }
+
+    #mobileDashBtn, #mobilePauseBtn {
+      z-index: 6;
+      pointer-events: auto !important;
+    }
+
+    #mobileZoneHint {
+      position: absolute;
+      left: 50%;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(2,6,23,.36);
+      font-size: 8px;
+      color: rgba(203,213,225,.48);
+      font-weight: 800;
+      letter-spacing: .05em;
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity .3s ease;
+    }
+    body.mobile-stick-used #mobileZoneHint { opacity: 0; }
+
+    #pwaInstallHint {
+      position: fixed;
+      left: 50%;
+      top: max(12px, env(safe-area-inset-top));
+      transform: translateX(-50%);
+      z-index: 80;
+      width: min(520px, calc(100vw - 28px));
+      pointer-events: none;
+    }
+
+    @media (display-mode: standalone), (display-mode: fullscreen) {
+      #pwaInstallBtn { display: none !important; }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-height: 620px) {
+      .mobile-stick {
+        width: 112px;
+        height: 112px;
+        margin: -56px 0 0 -56px;
+      }
+
+      /* Floating sticks free the bottom corners, so DASH can live at the right edge. */
+      #mobileDashBtn {
+        right: max(18px, env(safe-area-inset-right)) !important;
+        bottom: max(18px, env(safe-area-inset-bottom)) !important;
+      }
+      #mobilePauseBtn {
+        right: max(12px, env(safe-area-inset-right)) !important;
+        top: max(10px, env(safe-area-inset-top)) !important;
+      }
+      #mobileFireHint { display: none !important; }
+    }
+
   </style>
 </head>
 <body class="font-display text-slate-100">
@@ -558,6 +669,9 @@
               <button id="metaBtn" class="pointer-events-auto rounded-xl px-5 py-3.5 border border-amber-300/20 bg-amber-300/[.06] text-sm font-black text-amber-200 hover:bg-amber-300/[.11] transition">
                 研究・カード工房
               </button>
+              <button id="pwaInstallBtn" class="hidden pointer-events-auto rounded-xl px-5 py-3.5 border border-cyan-300/20 bg-cyan-300/[.05] text-sm font-black text-cyan-100 hover:bg-cyan-300/[.10] transition">
+                アプリとして追加
+              </button>
             </div>
 
             <div class="mt-6 rounded-2xl px-5 py-4 border border-amber-300/10 bg-amber-300/[.035] flex items-center justify-between gap-4 max-w-md start-credit">
@@ -599,7 +713,7 @@
               <div class="flex items-center justify-between gap-4 border-t border-white/[.05] pt-5">
                 <div>
                   <div class="font-black text-sm text-cyan-100">モバイル操作</div>
-                  <div class="text-xs text-slate-500 mt-1">左スティック移動 / 右スティック照準＋射撃</div>
+                  <div class="text-xs text-slate-500 mt-1">左半分を触る: 移動 / 右半分を触る: 照準＋射撃</div>
                 </div>
                 <div class="text-[10px] text-cyan-300/70 font-black">横画面</div>
               </div>
@@ -955,17 +1069,27 @@
       </div>
     </section>
 
-    <!-- Mobile twin-stick controls -->
+    <!-- Mobile floating twin-stick controls -->
     <div id="mobileControls" class="hidden">
-      <div id="moveStick" class="mobile-stick" aria-label="移動スティック">
+      <div id="moveZone" class="mobile-touch-zone" aria-label="移動操作エリア"></div>
+      <div id="aimZone" class="mobile-touch-zone" aria-label="照準・射撃操作エリア"></div>
+
+      <div id="moveStick" class="mobile-stick" aria-hidden="true">
         <div id="moveStickKnob" class="mobile-stick-knob"></div>
       </div>
-      <div id="aimStick" class="mobile-stick" aria-label="照準・射撃スティック">
+      <div id="aimStick" class="mobile-stick" aria-hidden="true">
         <div id="aimStickKnob" class="mobile-stick-knob"></div>
       </div>
+
       <button id="mobileDashBtn" type="button">DASH</button>
       <button id="mobilePauseBtn" type="button">Ⅱ</button>
-      <div id="mobileFireHint">右スティック：照準＋射撃</div>
+      <div id="mobileZoneHint">下部左：移動 ／ 下部右：照準＋射撃</div>
+    </div>
+
+    <div id="pwaInstallHint" class="hidden">
+      <div class="glass rounded-xl px-4 py-3 text-[10px] leading-5 text-slate-300 text-center">
+        <span id="pwaInstallHintText"></span>
+      </div>
     </div>
 
     <div id="rotateHint">
@@ -1024,9 +1148,11 @@
     saveTransferMessage: $("saveTransferMessage"), saveImportPreview: $("saveImportPreview"),
     saveImportName: $("saveImportName"), savePreviewHigh: $("savePreviewHigh"), savePreviewWave: $("savePreviewWave"),
     savePreviewCredits: $("savePreviewCredits"), savePreviewAssets: $("savePreviewAssets"),
-    mobileControls: $("mobileControls"), moveStick: $("moveStick"), moveStickKnob: $("moveStickKnob"),
+    mobileControls: $("mobileControls"), moveZone: $("moveZone"), aimZone: $("aimZone"),
+    moveStick: $("moveStick"), moveStickKnob: $("moveStickKnob"),
     aimStick: $("aimStick"), aimStickKnob: $("aimStickKnob"), mobileDashBtn: $("mobileDashBtn"),
-    mobilePauseBtn: $("mobilePauseBtn")
+    mobilePauseBtn: $("mobilePauseBtn"), pwaInstallBtn: $("pwaInstallBtn"),
+    pwaInstallHint: $("pwaInstallHint"), pwaInstallHintText: $("pwaInstallHintText")
   };
 
   const TAU = Math.PI * 2;
@@ -1169,24 +1295,48 @@
       mobileMove.x=0; mobileMove.y=0; mobileMove.mag=0; mobileMove.active=false; mobileMove.pointerId=null;
       mobileAim.mag=0; mobileAim.active=false; mobileAim.pointerId=null;
       mouse.down=false;
-      UI.moveStickKnob.style.transform="translate(0px,0px)";
-      UI.aimStickKnob.style.transform="translate(0px,0px)";
+      resetMobileStickVisual(UI.moveStick,UI.moveStickKnob);
+      resetMobileStickVisual(UI.aimStick,UI.aimStickKnob);
     }
   }
 
-  function bindVirtualStick(el, knob, stateObj, onVector){
-    if(!el || !knob) return;
+  function resetMobileStickVisual(stick,knob){
+    if(stick){
+      stick.classList.remove("active");
+      stick.style.left="0px";
+      stick.style.top="0px";
+    }
+    if(knob) knob.style.transform="translate(0px,0px)";
+  }
+
+  function bindFloatingStick(zone, stick, knob, stateObj, onVector){
+    if(!zone || !stick || !knob) return;
+    const maxRadius=()=>Math.max(38,stick.getBoundingClientRect().width*.34);
+    let revealTimer=null;
+    let revealed=false;
+
+    const showAt=(x,y)=>{
+      stick.style.left=x+"px";
+      stick.style.top=y+"px";
+      stick.classList.add("active");
+      revealed=true;
+      document.body.classList.add("mobile-stick-used");
+    };
 
     const update=(ev)=>{
-      const r=el.getBoundingClientRect();
-      const cx=r.left+r.width/2, cy=r.top+r.height/2;
-      let dx=ev.clientX-cx, dy=ev.clientY-cy;
-      const max=r.width*.34;
-      const len=Math.hypot(dx,dy);
+      const dx0=ev.clientX-stateObj.originX;
+      const dy0=ev.clientY-stateObj.originY;
+      const len=Math.hypot(dx0,dy0);
+      const max=maxRadius();
       const clamped=Math.min(max,len);
+      let dx=0,dy=0;
       if(len>0){
-        dx=dx/len*clamped;
-        dy=dy/len*clamped;
+        dx=dx0/len*clamped;
+        dy=dy0/len*clamped;
+      }
+      if(!revealed && len>6){
+        clearTimeout(revealTimer);
+        showAt(stateObj.originX,stateObj.originY);
       }
       knob.style.transform=`translate(${dx}px,${dy}px)`;
       stateObj.x=max?dx/max:0;
@@ -1195,31 +1345,45 @@
       onVector(stateObj.x,stateObj.y,stateObj.mag);
     };
 
-    el.addEventListener("pointerdown",ev=>{
-      if(!touchCapable) return;
+    const finish=(ev)=>{
+      if(stateObj.pointerId!==ev.pointerId) return;
+      clearTimeout(revealTimer);
+      stateObj.active=false;
+      stateObj.pointerId=null;
+      stateObj.x=0;stateObj.y=0;stateObj.mag=0;
+      revealed=false;
+      resetMobileStickVisual(stick,knob);
+      onVector(0,0,0);
+    };
+
+    zone.addEventListener("pointerdown",ev=>{
+      if(!touchCapable || ev.pointerType==="mouse" || state!=="playing" || stateObj.active) return;
       ev.preventDefault();
       stateObj.active=true;
       stateObj.pointerId=ev.pointerId;
-      try{ el.setPointerCapture(ev.pointerId); }catch{}
-      update(ev);
+      stateObj.originX=ev.clientX;
+      stateObj.originY=ev.clientY;
+      stateObj.x=0;stateObj.y=0;stateObj.mag=0;
+      revealed=false;
+      try{zone.setPointerCapture(ev.pointerId)}catch{}
+      revealTimer=setTimeout(()=>{
+        if(stateObj.active && stateObj.pointerId===ev.pointerId && !revealed){
+          showAt(stateObj.originX,stateObj.originY);
+        }
+      },70);
     });
 
-    el.addEventListener("pointermove",ev=>{
+    zone.addEventListener("pointermove",ev=>{
       if(!stateObj.active || stateObj.pointerId!==ev.pointerId) return;
       ev.preventDefault();
       update(ev);
     });
 
-    const end=(ev)=>{
-      if(stateObj.pointerId!==ev.pointerId) return;
-      stateObj.active=false;
-      stateObj.pointerId=null;
-      stateObj.x=0; stateObj.y=0; stateObj.mag=0;
-      knob.style.transform="translate(0px,0px)";
-      onVector(0,0,0);
-    };
-    el.addEventListener("pointerup",end);
-    el.addEventListener("pointercancel",end);
+    zone.addEventListener("pointerup",finish);
+    zone.addEventListener("pointercancel",finish);
+    zone.addEventListener("lostpointercapture",ev=>{
+      if(stateObj.pointerId===ev.pointerId) finish(ev);
+    });
   }
 
   addEventListener("keydown", e => {
@@ -1964,6 +2128,7 @@
   let player = playerBase();
 
   function resetGame() {
+    tryLandscapeLock();
     state = "playing";
     time = 0; screenShake = 0; flash = 0;
     score = 0; kills = 0; wave = 1; spawnTimer = .5; waveTimer = 0;
@@ -3354,19 +3519,19 @@
   requestAnimationFrame(loop);
 
   // ---------- Mobile controls ----------
-  bindVirtualStick(UI.moveStick,UI.moveStickKnob,mobileMove,()=>{});
+  bindFloatingStick(UI.moveZone,UI.moveStick,UI.moveStickKnob,mobileMove,()=>{});
 
-  bindVirtualStick(UI.aimStick,UI.aimStickKnob,mobileAim,(x,y,mag)=>{
+  bindFloatingStick(UI.aimZone,UI.aimStick,UI.aimStickKnob,mobileAim,(x,y,mag)=>{
     if(state!=="playing"){
       mouse.down=false;
       return;
     }
-    if(mag>.12){
+    if(mag>.10){
       const len=Math.hypot(x,y)||1;
       const nx=x/len, ny=y/len;
       mouse.x=player.x+nx*720;
       mouse.y=player.y+ny*720;
-      mouse.down=mag>.22;
+      mouse.down=mag>.18;
     }else{
       mouse.down=false;
     }
@@ -3375,12 +3540,14 @@
   UI.mobileDashBtn?.addEventListener("pointerdown",e=>{
     if(!touchCapable || state!=="playing") return;
     e.preventDefault();
+    e.stopPropagation();
     dash();
   });
 
   UI.mobilePauseBtn?.addEventListener("pointerdown",e=>{
     if(!touchCapable) return;
     e.preventDefault();
+    e.stopPropagation();
     if(state==="playing") setPause(true);
   });
 
@@ -3388,6 +3555,73 @@
     setTimeout(resize,80);
     setTimeout(resize,320);
   });
+
+  // ---------- PWA ----------
+  let deferredInstallPrompt=null;
+  const isStandalone=()=>matchMedia("(display-mode: standalone)").matches ||
+    matchMedia("(display-mode: fullscreen)").matches ||
+    window.navigator.standalone===true;
+
+  function showPwaHint(message,ms=5200){
+    if(!UI.pwaInstallHint || !UI.pwaInstallHintText) return;
+    UI.pwaInstallHintText.textContent=message;
+    UI.pwaInstallHint.classList.remove("hidden");
+    clearTimeout(showPwaHint._t);
+    showPwaHint._t=setTimeout(()=>UI.pwaInstallHint.classList.add("hidden"),ms);
+  }
+
+  addEventListener("beforeinstallprompt",e=>{
+    e.preventDefault();
+    deferredInstallPrompt=e;
+    if(!isStandalone()) UI.pwaInstallBtn?.classList.remove("hidden");
+  });
+
+  addEventListener("appinstalled",()=>{
+    deferredInstallPrompt=null;
+    UI.pwaInstallBtn?.classList.add("hidden");
+    showPwaHint("NEON FRACTUREをアプリとして追加しました。次回はホーム画面から起動できます。",4200);
+  });
+
+  UI.pwaInstallBtn?.addEventListener("click",async()=>{
+    if(isStandalone()){
+      showPwaHint("すでにPWAモードで起動しています。");
+      return;
+    }
+    if(deferredInstallPrompt){
+      const prompt=deferredInstallPrompt;
+      deferredInstallPrompt=null;
+      await prompt.prompt();
+      await prompt.userChoice.catch(()=>null);
+      UI.pwaInstallBtn.classList.add("hidden");
+      return;
+    }
+    const isiOS=/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+    if(isiOS){
+      showPwaHint("Safariの共有ボタン →「ホーム画面に追加」でPWAとして起動できます。",7000);
+    }else{
+      showPwaHint("ブラウザのメニューから「アプリをインストール」または「ホーム画面に追加」を選んでください。",7000);
+    }
+  });
+
+  if(touchCapable && !isStandalone()){
+    const isiOS=/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+    if(isiOS) UI.pwaInstallBtn?.classList.remove("hidden");
+  }
+
+  async function tryLandscapeLock(){
+    if(!isStandalone()) return;
+    try{
+      await screen.orientation?.lock?.("landscape");
+    }catch{}
+  }
+
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+    addEventListener("load",()=>{
+      navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    });
+  }
 
   // ---------- Buttons ----------
   $("startBtn").addEventListener("click", resetGame);
