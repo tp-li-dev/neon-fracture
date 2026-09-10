@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
-  <title>NEON FRACTURE v24 — フローティングパッド座標修正版</title>
+  <title>NEON FRACTURE v25 — スティック表示位置修正版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -527,13 +527,13 @@
     /* これはパッド本体ではなく、親指を置きやすい目安。 */
     .mobile-zone-origin-hint {
       position: absolute;
-      width: 104px;
-      height: 104px;
+      width: 74px;
+      height: 74px;
       border-radius: 9999px;
       border: 1px solid rgba(148,163,184,.075);
       background: radial-gradient(circle, rgba(255,255,255,.012) 0 34%, transparent 35%);
       pointer-events: none;
-      opacity: .48;
+      opacity: .28;
     }
     #moveOriginHint {
       left: 24%;
@@ -566,9 +566,9 @@
 
     .mobile-stick {
       position: absolute !important;
-      left: 0 !important;
+      left: 0;
       right: auto !important;
-      top: 0 !important;
+      top: 0;
       bottom: auto !important;
       width: 126px;
       height: 126px;
@@ -2279,7 +2279,7 @@
 
       <button id="mobileDashBtn" type="button">DASH</button>
       <button id="mobilePauseBtn" type="button">Ⅱ</button>
-      <div id="mobileZoneHint">枠内の好きな位置を長押し → そこにスティック表示</div>
+      <div id="mobileZoneHint">枠内を長押し → 指を置いた位置にスティック表示</div>
     </div>
 
     <div id="pwaInstallHint" class="hidden">
@@ -2499,8 +2499,8 @@
   function resetMobileStickVisual(stick,knob){
     if(stick){
       stick.classList.remove("active");
-      stick.style.left="0px";
-      stick.style.top="0px";
+      stick.style.removeProperty("left");
+      stick.style.removeProperty("top");
     }
     if(knob) knob.style.transform="translate(0px,0px)";
   }
@@ -2530,11 +2530,23 @@
       stateObj.visualOriginX = localX;
       stateObj.visualOriginY = localY;
 
-      stick.style.left=localX+"px";
-      stick.style.top=localY+"px";
+      stick.style.setProperty("left", localX+"px", "important");
+      stick.style.setProperty("top", localY+"px", "important");
       stick.classList.add("active");
       revealed=true;
       document.body.classList.add("mobile-stick-used");
+
+      requestAnimationFrame(()=>{
+        const sr=stick.getBoundingClientRect();
+        const expectedX=controlsRect.left+localX;
+        const expectedY=controlsRect.top+localY;
+        const actualX=sr.left+sr.width/2;
+        const actualY=sr.top+sr.height/2;
+        if(Math.abs(actualX-expectedX)>4 || Math.abs(actualY-expectedY)>4){
+          stick.style.setProperty("left", localX+"px", "important");
+          stick.style.setProperty("top", localY+"px", "important");
+        }
+      });
     };
 
     const update=(ev)=>{
