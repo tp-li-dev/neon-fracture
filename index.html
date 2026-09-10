@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
-  <title>NEON FRACTURE v18 — バランス・モバイルUI改善版</title>
+  <title>NEON FRACTURE v20 — モバイル専用UI版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -611,6 +611,673 @@
       #mobileFireHint { display: none !important; }
     }
 
+  
+    /* v19: touch devices get a dedicated upgrade layout. */
+    @media (pointer: coarse) and (orientation: landscape) and (max-height: 700px) {
+      #upgradeScreen.upgrade-screen {
+        overflow: hidden !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding:
+          max(8px, env(safe-area-inset-top))
+          max(12px, env(safe-area-inset-right))
+          max(8px, env(safe-area-inset-bottom))
+          max(12px, env(safe-area-inset-left)) !important;
+      }
+      #upgradeScreen .upgrade-shell {
+        width: min(100%, 1180px) !important;
+        max-height: 100% !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      #upgradeScreen .upgrade-heading {
+        margin-bottom: 8px !important;
+      }
+      #upgradeScreen .upgrade-heading .hud-label {
+        font-size: 7px !important;
+        letter-spacing: .14em !important;
+      }
+      #upgradeScreen .upgrade-title {
+        margin-top: 1px !important;
+        font-size: clamp(25px, 7.8vh, 40px) !important;
+        line-height: .95 !important;
+      }
+      #upgradeScreen .upgrade-subtitle {
+        margin-top: 3px !important;
+        font-size: 9px !important;
+        line-height: 1.2 !important;
+      }
+      #upgradeScreen .upgrade-grid {
+        grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+        gap: clamp(7px,1.1vw,11px) !important;
+        min-height: 0 !important;
+      }
+      #upgradeScreen .upgrade-choice {
+        min-height: 0 !important;
+        height: clamp(220px, 60vh, 305px) !important;
+        padding: clamp(11px,2.2vh,17px) !important;
+        border-radius: 17px !important;
+        overflow: hidden;
+      }
+      #upgradeScreen .upgrade-choice:hover {
+        transform: none !important;
+      }
+      #upgradeScreen .upgrade-icon {
+        width: clamp(35px,7.5vh,45px) !important;
+        height: clamp(35px,7.5vh,45px) !important;
+        border-radius: 10px !important;
+        font-size: clamp(16px,4.2vh,22px) !important;
+      }
+      #upgradeScreen .upgrade-rarity {
+        font-size: 7px !important;
+        letter-spacing: .1em !important;
+      }
+      #upgradeScreen .upgrade-name {
+        margin-top: clamp(9px,2.3vh,15px) !important;
+        font-size: clamp(16px,4.5vh,23px) !important;
+        line-height: 1.05 !important;
+      }
+      #upgradeScreen .upgrade-desc {
+        margin-top: 7px !important;
+        font-size: clamp(9px,2.35vh,11px) !important;
+        line-height: 1.35 !important;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      #upgradeScreen .upgrade-footer {
+        margin-top: 7px !important;
+        padding-top: 7px !important;
+      }
+      #upgradeScreen .upgrade-key { display:none !important; }
+      #upgradeScreen .upgrade-select-label {
+        width: 100%;
+        text-align: center;
+        color: rgba(165,243,252,.68) !important;
+        font-size: 8px !important;
+        letter-spacing: .08em;
+      }
+      #upgradeScreen .upgrade-select-label::after {
+        content:"  •  タップして選択";
+      }
+
+      #hud {
+        transform: scale(.72) !important;
+        transform-origin: top center !important;
+        top: max(6px, env(safe-area-inset-top)) !important;
+      }
+      #xpHud {
+        transform: translateX(-50%) scale(.74) !important;
+      }
+      #dashHud { display:none !important; }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-height: 480px) {
+      #upgradeScreen .upgrade-heading { margin-bottom: 5px !important; }
+      #upgradeScreen .upgrade-title {
+        font-size: clamp(22px,7vh,30px) !important;
+      }
+      #upgradeScreen .upgrade-subtitle { display:none !important; }
+      #upgradeScreen .upgrade-choice {
+        height: clamp(195px,68vh,255px) !important;
+        padding: 9px 11px !important;
+      }
+      #upgradeScreen .upgrade-name {
+        margin-top: 7px !important;
+        font-size: clamp(15px,4.5vh,19px) !important;
+      }
+      #upgradeScreen .upgrade-desc {
+        font-size: clamp(8px,2.5vh,10px) !important;
+        -webkit-line-clamp: 2;
+      }
+      #upgradeScreen .upgrade-footer {
+        margin-top: 4px !important;
+        padding-top: 4px !important;
+      }
+    }
+
+    @media (pointer: coarse) and (orientation: portrait) {
+      #upgradeScreen.upgrade-screen {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        align-items: flex-start !important;
+        padding:
+          max(14px, env(safe-area-inset-top))
+          max(12px, env(safe-area-inset-right))
+          max(18px, env(safe-area-inset-bottom))
+          max(12px, env(safe-area-inset-left)) !important;
+      }
+      #upgradeScreen .upgrade-shell { max-width:620px !important; }
+      #upgradeScreen .upgrade-heading { margin:4px 0 12px !important; }
+      #upgradeScreen .upgrade-title { font-size:32px !important; }
+      #upgradeScreen .upgrade-subtitle { font-size:10px !important; }
+      #upgradeScreen .upgrade-grid {
+        grid-template-columns:1fr !important;
+        gap:8px !important;
+      }
+      #upgradeScreen .upgrade-choice {
+        min-height:0 !important;
+        padding:13px 15px !important;
+        border-radius:15px !important;
+      }
+      #upgradeScreen .upgrade-name {
+        margin-top:9px !important;
+        font-size:18px !important;
+      }
+      #upgradeScreen .upgrade-desc {
+        margin-top:5px !important;
+        font-size:11px !important;
+        line-height:1.4 !important;
+      }
+      #upgradeScreen .upgrade-footer {
+        margin-top:8px !important;
+        padding-top:6px !important;
+      }
+      #upgradeScreen .upgrade-key { display:none !important; }
+      #upgradeScreen .upgrade-select-label {
+        color:rgba(165,243,252,.68) !important;
+      }
+      #upgradeScreen .upgrade-select-label::after {
+        content:"  •  タップして選択";
+      }
+    }
+
+  
+    /* ==========================================================
+       v20 MOBILE UI
+       Touch devices use their own composition instead of scaling
+       the desktop layout.
+       ========================================================== */
+    @media (pointer: coarse) {
+      /* ---------- Gameplay HUD ---------- */
+      #hud.game-hud {
+        inset: 0 auto auto 0 !important;
+        width: 100% !important;
+        padding:
+          max(7px, env(safe-area-inset-top))
+          max(10px, env(safe-area-inset-right))
+          0
+          max(10px, env(safe-area-inset-left)) !important;
+        transform: none !important;
+      }
+
+      #hud.game-hud > .flex {
+        display: contents !important;
+      }
+
+      /* HP / Level / Score: compact upper-left panel */
+      #hud.game-hud > .flex > .glass:first-child {
+        position: absolute !important;
+        left: max(10px, env(safe-area-inset-left)) !important;
+        top: max(8px, env(safe-area-inset-top)) !important;
+        width: min(38vw, 270px) !important;
+        min-width: 0 !important;
+        padding: 8px 10px !important;
+        border-radius: 12px !important;
+        background: rgba(5,10,22,.68) !important;
+        backdrop-filter: blur(8px) !important;
+      }
+      #hud.game-hud > .flex > .glass:first-child .mb-2 {
+        margin-bottom: 4px !important;
+      }
+      #hud.game-hud > .flex > .glass:first-child .h-2\.5 {
+        height: 5px !important;
+      }
+      #hud.game-hud > .flex > .glass:first-child .mt-3 {
+        margin-top: 5px !important;
+      }
+      #hud.game-hud > .flex > .glass:first-child .hud-label {
+        font-size: 6px !important;
+        letter-spacing: .10em !important;
+      }
+      #hud.game-hud #hpText {
+        font-size: 8px !important;
+      }
+      #hud.game-hud #levelText,
+      #hud.game-hud #scoreText {
+        font-size: 12px !important;
+        line-height: 1 !important;
+      }
+
+      /* Combo: compact upper-right panel */
+      #hud.game-hud > .flex > .glass:nth-child(2) {
+        position: absolute !important;
+        right: max(58px, calc(env(safe-area-inset-right) + 50px)) !important;
+        top: max(8px, env(safe-area-inset-top)) !important;
+        width: min(25vw, 175px) !important;
+        min-width: 0 !important;
+        padding: 7px 9px !important;
+        border-radius: 12px !important;
+        background: rgba(5,10,22,.64) !important;
+      }
+      #hud.game-hud > .flex > .glass:nth-child(2) .hud-label {
+        font-size: 6px !important;
+      }
+      #hud.game-hud #comboText {
+        font-size: 21px !important;
+      }
+      #hud.game-hud #comboKills {
+        font-size: 6px !important;
+      }
+      #hud.game-hud > .flex > .glass:nth-child(2) .mt-2 {
+        margin-top: 4px !important;
+      }
+      #hud.game-hud > .flex > .glass:nth-child(2) .h-1\.5 {
+        height: 3px !important;
+      }
+
+      /* Wave/objective becomes a thin top-center status strip. */
+      #hud.game-hud > .absolute {
+        top: max(8px, env(safe-area-inset-top)) !important;
+        width: min(35vw, 290px) !important;
+        padding: 4px 8px !important;
+        border-radius: 10px;
+        background: rgba(5,10,22,.46);
+        backdrop-filter: blur(6px);
+      }
+      #hud.game-hud #waveText {
+        font-size: 7px !important;
+      }
+      #hud.game-hud #objectiveText {
+        margin-top: 1px !important;
+        font-size: 7px !important;
+        line-height: 1.25 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* XP moves underneath the top strip, leaving the bottom fully free. */
+      #xpHud.game-xp-hud {
+        top: max(57px, calc(env(safe-area-inset-top) + 52px)) !important;
+        bottom: auto !important;
+        width: min(46vw, 390px) !important;
+        transform: translateX(-50%) !important;
+      }
+      #xpHud.game-xp-hud > .flex {
+        margin-bottom: 2px !important;
+      }
+      #xpHud.game-xp-hud .hud-label,
+      #xpHud.game-xp-hud #rarityBoostText,
+      #xpHud.game-xp-hud #xpText {
+        font-size: 6px !important;
+      }
+      #xpHud.game-xp-hud > .h-2\.5 {
+        height: 5px !important;
+      }
+      #xpHud.game-xp-hud > .hidden {
+        display: none !important;
+      }
+
+      /* ---------- Pause ---------- */
+      #pauseScreen.pause-mobile-screen {
+        padding:
+          max(8px, env(safe-area-inset-top))
+          max(10px, env(safe-area-inset-right))
+          max(8px, env(safe-area-inset-bottom))
+          max(10px, env(safe-area-inset-left)) !important;
+        align-items: stretch !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+      #pauseScreen .pause-mobile-card {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 100% !important;
+        border-radius: 0 !important;
+        border: 0 !important;
+        background: rgba(4,8,18,.94) !important;
+        padding: 12px 14px !important;
+        display: grid !important;
+        grid-template-columns: minmax(180px,.72fr) minmax(260px,1.28fr) !important;
+        grid-template-rows: auto 1fr !important;
+        gap: 10px 16px !important;
+        align-items: center;
+      }
+      #pauseScreen .pause-mobile-card > .text-center {
+        grid-column: 1;
+        grid-row: 1;
+        text-align: left !important;
+      }
+      #pauseScreen .pause-mobile-card > .text-center h2 {
+        font-size: 28px !important;
+        margin-top: 1px !important;
+      }
+      #pauseScreen .pause-mobile-card > .text-center p {
+        display: none !important;
+      }
+      #pauseScreen .pause-mobile-card > .mt-6.grid.grid-cols-2 {
+        grid-column: 1;
+        grid-row: 2;
+        margin-top: 0 !important;
+        gap: 7px !important;
+        align-self: start;
+      }
+      #pauseScreen .pause-mobile-card > .mt-6.grid.grid-cols-2 > div {
+        padding: 9px !important;
+      }
+      #pauseScreen #pauseLevel,
+      #pauseScreen #pauseScore {
+        font-size: 16px !important;
+      }
+      #pauseScreen .pause-mobile-card > .mt-3 {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: end;
+        padding: 8px 10px !important;
+        margin: 0 0 2px !important;
+      }
+      #pauseScreen .pause-mobile-card > .mt-6.grid.gap-2\.5 {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        margin-top: 0 !important;
+        gap: 7px !important;
+      }
+      #pauseScreen .pause-mobile-card button {
+        min-height: 42px;
+        padding: 9px 12px !important;
+        font-size: 11px !important;
+      }
+      #pauseScreen #pauseConfirm {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        margin-top: 0 !important;
+      }
+
+      /* ---------- Game over ---------- */
+      #gameOverScreen.gameover-mobile-screen {
+        align-items: stretch !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding:
+          max(8px, env(safe-area-inset-top))
+          max(10px, env(safe-area-inset-right))
+          max(8px, env(safe-area-inset-bottom))
+          max(10px, env(safe-area-inset-left)) !important;
+      }
+      #gameOverScreen .gameover-mobile-card {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 100% !important;
+        border-radius: 0 !important;
+        border: 0 !important;
+        background: rgba(4,8,18,.95) !important;
+        padding: 12px 14px !important;
+        text-align: left !important;
+        display: grid !important;
+        grid-template-columns: minmax(220px,.78fr) minmax(330px,1.22fr) !important;
+        grid-auto-rows: min-content;
+        column-gap: 16px;
+        align-content: center;
+      }
+      #gameOverScreen #gameOverTag,
+      #gameOverScreen #gameOverTitle,
+      #gameOverScreen #gameOverMessage,
+      #gameOverScreen #newRecord {
+        grid-column: 1;
+      }
+      #gameOverScreen #gameOverTitle {
+        margin-top: 2px !important;
+        font-size: clamp(29px,9vh,46px) !important;
+        line-height: .95 !important;
+      }
+      #gameOverScreen #gameOverMessage {
+        margin-top: 5px !important;
+        font-size: 9px !important;
+      }
+      #gameOverScreen .gameover-stats {
+        grid-column: 2;
+        grid-row: 1 / span 4;
+        margin-top: 0 !important;
+        grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+        gap: 7px !important;
+      }
+      #gameOverScreen .gameover-stats > div {
+        padding: 10px !important;
+        border-radius: 12px !important;
+      }
+      #gameOverScreen .gameover-stats .text-2xl,
+      #gameOverScreen .gameover-stats .md\:text-3xl {
+        font-size: 18px !important;
+      }
+      #gameOverScreen .gameover-mobile-card > .mt-3.text-\[10px\] {
+        display: none !important;
+      }
+      #gameOverScreen #runLootBox {
+        grid-column: 1 / -1;
+        margin-top: 9px !important;
+        padding: 9px 11px !important;
+      }
+      #gameOverScreen #runLootText {
+        margin-top: 3px !important;
+        font-size: 9px !important;
+        line-height: 1.45 !important;
+      }
+      #gameOverScreen #newRecord {
+        margin-top: 7px !important;
+        padding: 7px 10px !important;
+        font-size: 10px !important;
+      }
+      #gameOverScreen .gameover-actions {
+        grid-column: 1 / -1;
+        margin-top: 9px !important;
+        display: grid !important;
+        grid-template-columns: 1.2fr 1fr .8fr !important;
+        gap: 7px !important;
+      }
+      #gameOverScreen .gameover-actions button {
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 10px !important;
+        font-size: 10px !important;
+      }
+
+      /* ---------- How-to ---------- */
+      #howScreen.mobile-sheet-screen {
+        align-items: flex-start !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding:
+          max(8px, env(safe-area-inset-top))
+          max(10px, env(safe-area-inset-right))
+          max(12px, env(safe-area-inset-bottom))
+          max(10px, env(safe-area-inset-left)) !important;
+      }
+      #howScreen .how-mobile-card {
+        max-width: none !important;
+        width: 100% !important;
+        min-height: 100% !important;
+        border-radius: 0 !important;
+        border: 0 !important;
+        background: rgba(4,8,18,.96) !important;
+        padding: 13px 15px !important;
+      }
+      #howScreen .how-mobile-card h2 {
+        font-size: 28px !important;
+      }
+      #howScreen .how-mobile-card .grid.sm\:grid-cols-2 {
+        grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+        gap: 8px !important;
+        margin-top: 10px !important;
+      }
+      #howScreen .how-mobile-card .rounded-2xl.p-5 {
+        padding: 10px !important;
+      }
+      #howScreen .how-mobile-card p {
+        font-size: 9px !important;
+        line-height: 1.5 !important;
+      }
+
+      /* ---------- Laboratory / Card Forge ---------- */
+      #metaScreen.mobile-meta-screen {
+        padding:
+          max(8px, env(safe-area-inset-top))
+          max(10px, env(safe-area-inset-right))
+          max(14px, env(safe-area-inset-bottom))
+          max(10px, env(safe-area-inset-left)) !important;
+        background: rgba(3,7,16,.97) !important;
+        backdrop-filter: none !important;
+      }
+      #metaScreen .meta-mobile-shell {
+        max-width: none !important;
+        padding: 0 !important;
+      }
+      #metaScreen .meta-mobile-shell > .flex.items-start {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        margin-bottom: 8px !important;
+        padding: 7px 2px 8px !important;
+        background: linear-gradient(180deg,rgba(3,7,16,.98) 75%,rgba(3,7,16,0));
+      }
+      #metaScreen .meta-mobile-shell > .flex.items-start h2 {
+        font-size: 21px !important;
+        margin-top: 1px !important;
+      }
+      #metaScreen .meta-mobile-shell > .flex.items-start p {
+        display: none !important;
+      }
+      #metaScreen #metaClose {
+        width: 38px !important;
+        height: 38px !important;
+      }
+      #metaScreen .glass.rounded-2xl.p-5.mb-5 {
+        margin-bottom: 8px !important;
+        padding: 10px 12px !important;
+        border-radius: 13px !important;
+      }
+      #metaScreen .glass.rounded-2xl.p-5.mb-5 .text-3xl {
+        font-size: 21px !important;
+      }
+      #metaScreen .grid.lg\:grid-cols-\[1\.08fr_\.92fr\] {
+        grid-template-columns: 1fr !important;
+        gap: 9px !important;
+      }
+      #metaScreen .space-y-5 > * + * {
+        margin-top: 9px !important;
+      }
+      #metaScreen .glass.rounded-3xl {
+        padding: 12px !important;
+        border-radius: 15px !important;
+      }
+      #metaScreen .glass.rounded-3xl h3 {
+        font-size: 17px !important;
+      }
+      #metaScreen #metaStats,
+      #metaScreen #forgeParts,
+      #metaScreen #cardCollection,
+      #metaScreen #moduleCollection {
+        grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+        gap: 7px !important;
+      }
+      #metaScreen button,
+      #metaScreen select {
+        min-height: 38px;
+      }
+      #metaScreen #gachaResults {
+        grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+      }
+      #metaScreen #syntaxSummary {
+        display: grid !important;
+        grid-template-columns: repeat(2,minmax(0,1fr));
+        gap: 6px !important;
+      }
+
+      /* ---------- Floating controls ---------- */
+      #mobilePauseBtn {
+        z-index: 60 !important;
+      }
+      #mobileDashBtn {
+        z-index: 58 !important;
+      }
+      #mobileZoneHint {
+        top: auto !important;
+        bottom: max(7px, env(safe-area-inset-bottom)) !important;
+        font-size: 6px !important;
+      }
+    }
+
+    /* Extra-tight landscape phones. */
+    @media (pointer: coarse) and (orientation: landscape) and (max-height: 460px) {
+      #hud.game-hud > .flex > .glass:first-child {
+        width: min(35vw,230px) !important;
+        padding: 6px 8px !important;
+      }
+      #hud.game-hud > .flex > .glass:nth-child(2) {
+        width: min(22vw,145px) !important;
+        padding: 6px 8px !important;
+      }
+      #hud.game-hud #comboText { font-size:18px !important; }
+      #xpHud.game-xp-hud {
+        top: max(49px,calc(env(safe-area-inset-top) + 46px)) !important;
+        width: min(42vw,330px) !important;
+      }
+
+      #pauseScreen .pause-mobile-card {
+        padding: 8px 10px !important;
+        gap: 6px 10px !important;
+      }
+      #pauseScreen .pause-mobile-card > .text-center h2 {
+        font-size: 22px !important;
+      }
+      #pauseScreen .pause-mobile-card button {
+        min-height: 35px !important;
+        padding: 6px 9px !important;
+        font-size: 9px !important;
+      }
+
+      #gameOverScreen .gameover-mobile-card {
+        padding: 8px 10px !important;
+      }
+      #gameOverScreen #gameOverTitle {
+        font-size: 27px !important;
+      }
+      #gameOverScreen .gameover-stats > div {
+        padding: 7px !important;
+      }
+      #gameOverScreen .gameover-actions button {
+        min-height: 35px !important;
+      }
+    }
+
+    /* Portrait remains functional; game is still landscape-recommended. */
+    @media (pointer: coarse) and (orientation: portrait) {
+      #hud.game-hud > .flex > .glass:first-child {
+        width: 46vw !important;
+      }
+      #hud.game-hud > .flex > .glass:nth-child(2) {
+        width: 31vw !important;
+      }
+      #hud.game-hud > .absolute {
+        top: 72px !important;
+        width: 66vw !important;
+      }
+      #xpHud.game-xp-hud {
+        top: 105px !important;
+        width: 74vw !important;
+      }
+      #pauseScreen .pause-mobile-card,
+      #gameOverScreen .gameover-mobile-card {
+        display: block !important;
+        min-height: auto !important;
+        border-radius: 18px !important;
+        padding: 15px !important;
+      }
+      #pauseScreen .pause-mobile-card > *,
+      #gameOverScreen .gameover-mobile-card > * {
+        margin-top: 10px !important;
+      }
+      #metaScreen #metaStats,
+      #metaScreen #forgeParts,
+      #metaScreen #cardCollection,
+      #metaScreen #moduleCollection,
+      #metaScreen #syntaxSummary {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
   </style>
 </head>
 <body class="font-display text-slate-100">
@@ -618,7 +1285,7 @@
     <canvas id="game" class="absolute inset-0 w-full h-full"></canvas>
 
     <!-- Top HUD -->
-    <div id="hud" class="absolute inset-x-0 top-0 p-4 md:p-6 pointer-events-none opacity-0 transition-opacity duration-300">
+    <div id="hud" class="absolute inset-x-0 top-0 p-4 md:p-6 pointer-events-none opacity-0 transition-opacity duration-300 game-hud">
       <div class="flex items-start justify-between gap-4">
         <div class="glass rounded-2xl px-4 py-3 min-w-[220px] md:min-w-[300px]">
           <div class="flex items-center justify-between mb-2">
@@ -659,7 +1326,7 @@
     </div>
 
     <!-- XP footer -->
-    <div id="xpHud" class="absolute left-1/2 bottom-5 -translate-x-1/2 w-[min(620px,88vw)] pointer-events-none opacity-0 transition-opacity duration-300">
+    <div id="xpHud" class="absolute left-1/2 bottom-5 -translate-x-1/2 w-[min(620px,88vw)] pointer-events-none opacity-0 transition-opacity duration-300 game-xp-hud">
       <div class="flex items-center justify-between mb-1 px-1">
         <span class="hud-label text-[9px] text-slate-500 font-black">共鳴経験値</span>
         <div class="flex items-center gap-3">
@@ -758,7 +1425,7 @@
               <div class="flex items-center justify-between gap-4 border-t border-white/[.05] pt-5">
                 <div>
                   <div class="font-black text-sm text-cyan-100">モバイル操作</div>
-                  <div class="text-xs text-slate-500 mt-1">左半分を触る: 移動 / 右半分を触る: 照準＋射撃</div>
+                  <div class="text-xs text-slate-500 mt-1">左操作エリアを長押し: 移動 / 右操作エリアを長押し: 照準＋射撃</div>
                 </div>
                 <div class="text-[10px] text-cyan-300/70 font-black">横画面</div>
               </div>
@@ -776,8 +1443,8 @@
     </section>
 
     <!-- Tutorial -->
-    <section id="howScreen" class="hidden absolute inset-0 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-6">
-      <div class="glass rounded-3xl max-w-2xl w-full p-8">
+    <section id="howScreen" class="hidden absolute inset-0 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-6 mobile-sheet-screen">
+      <div class="glass rounded-3xl max-w-2xl w-full p-8 how-mobile-card">
         <div class="flex justify-between gap-4">
           <div>
             <div class="hud-label text-[10px] text-cyan-300 font-black">攻略ガイド</div>
@@ -842,7 +1509,7 @@
           <h2 class="mt-2 text-4xl md:text-5xl font-black tracking-tight">アップグレードを選択</h2>
           <p class="mt-2 text-sm text-slate-500">1つ選択。組み合わせ次第で毎回違うビルドになる。</p>
         </div>
-        <div id="upgradeCards" class="grid md:grid-cols-3 gap-4 md:gap-5"></div>
+        <div id="upgradeCards" class="grid md:grid-cols-3 gap-4 md:gap-5 upgrade-grid"></div>
       </div>
     </section>
 
@@ -855,12 +1522,12 @@
     </section>
 
     <!-- Pause / Run menu -->
-    <section id="pauseScreen" class="hidden absolute inset-0 z-50 bg-slate-950/68 backdrop-blur-md flex items-center justify-center p-5">
-      <div class="glass rounded-3xl p-7 md:p-8 w-[min(540px,94vw)]">
+    <section id="pauseScreen" class="hidden absolute inset-0 z-50 bg-slate-950/68 backdrop-blur-md flex items-center justify-center p-5 mobile-sheet-screen pause-mobile-screen">
+      <div class="glass rounded-3xl p-7 md:p-8 w-[min(540px,94vw)] pause-mobile-card">
         <div class="text-center">
           <div class="hud-label text-[10px] text-slate-500 font-black">RUN CONTROL</div>
           <h2 class="text-4xl font-black mt-2">一時停止</h2>
-          <p class="text-sm text-slate-500 mt-2">ESCでもゲームへ戻れます</p>
+          <p class="text-sm text-slate-500 mt-2 upgrade-subtitle">ESCでもゲームへ戻れます</p>
         </div>
 
         <div class="mt-6 grid grid-cols-2 gap-3 text-xs">
@@ -914,13 +1581,13 @@
     </section>
 
     <!-- Game over -->
-    <section id="gameOverScreen" class="hidden absolute inset-0 bg-slate-950/75 backdrop-blur-xl flex items-center justify-center p-5">
-      <div class="glass rounded-[2rem] w-full max-w-3xl p-8 md:p-10 text-center">
+    <section id="gameOverScreen" class="hidden absolute inset-0 bg-slate-950/75 backdrop-blur-xl flex items-center justify-center p-5 mobile-sheet-screen gameover-mobile-screen">
+      <div class="glass rounded-[2rem] w-full max-w-3xl p-8 md:p-10 text-center gameover-mobile-card">
         <div id="gameOverTag" class="hud-label text-[10px] text-rose-300 font-black">シグナル消失</div>
         <h2 id="gameOverTitle" class="mt-3 text-5xl md:text-7xl font-black tracking-[-.06em]">撃破された</h2>
         <p id="gameOverMessage" class="mt-4 text-sm text-slate-500">ネオン空間にシグナルを飲み込まれた。</p>
 
-        <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 gameover-stats">
           <div class="rounded-2xl bg-white/[.035] border border-white/[.06] p-5">
             <div class="hud-label text-[9px] text-slate-500 font-bold">スコア</div>
             <div id="finalScore" class="text-2xl md:text-3xl font-black mt-1">0</div>
@@ -948,7 +1615,7 @@
           ハイスコア更新！
         </div>
 
-        <div class="mt-7 flex flex-wrap justify-center gap-3">
+        <div class="mt-7 flex flex-wrap justify-center gap-3 gameover-actions">
           <button id="restartBtn" class="pointer-events-auto rounded-xl px-7 py-3.5 bg-slate-100 text-slate-950 text-sm font-black hover:bg-cyan-200 transition">
             もう一度挑戦 ↻
           </button>
@@ -963,8 +1630,8 @@
     </section>
 
     <!-- Persistent progression / gacha -->
-    <section id="metaScreen" class="hidden absolute inset-0 z-40 bg-slate-950/88 backdrop-blur-xl overflow-y-auto p-4 md:p-8">
-      <div class="w-full max-w-6xl mx-auto py-4 md:py-8">
+    <section id="metaScreen" class="hidden absolute inset-0 z-40 bg-slate-950/88 backdrop-blur-xl overflow-y-auto p-4 md:p-8 mobile-meta-screen">
+      <div class="w-full max-w-6xl mx-auto py-4 md:py-8 meta-mobile-shell">
         <div class="flex items-start justify-between gap-4 mb-6">
           <div>
             <div class="hud-label text-[10px] text-amber-300/80 font-black">NEON LABORATORY</div>
@@ -2494,19 +3161,19 @@
     choices.forEach((u, i) => {
       const btn = document.createElement("button");
       const epicGlow = u.rarity === "EPIC" ? " shadow-violet border-violet-400/20" : "";
-      btn.className = "upgrade-card pointer-events-auto glass rounded-[1.6rem] p-6 md:p-7 text-left min-h-[260px] flex flex-col justify-between border border-white/[.08]" + epicGlow;
+      btn.className = "upgrade-card pointer-events-auto glass rounded-[1.6rem] p-6 md:p-7 text-left min-h-[260px] flex flex-col justify-between border border-white/[.08] upgrade-choice" + epicGlow;
       btn.innerHTML = `
         <div>
           <div class="flex items-start justify-between gap-4">
-            <div class="w-12 h-12 rounded-xl bg-white/[.05] border border-white/[.07] flex items-center justify-center text-2xl">${u.icon}</div>
-            <div class="hud-label text-[9px] font-black ${rareClass[u.rarity]}">${rareLabel[u.rarity]}</div>
+            <div class="w-12 h-12 rounded-xl bg-white/[.05] border border-white/[.07] flex items-center justify-center text-2xl upgrade-icon">${u.icon}</div>
+            <div class="hud-label text-[9px] font-black ${rareClass[u.rarity]} upgrade-rarity">${rareLabel[u.rarity]}</div>
           </div>
-          <h3 class="mt-7 text-2xl font-black tracking-tight">${u.name}</h3>
-          <p class="mt-3 text-sm leading-6 text-slate-400">${u.desc}</p>
+          <h3 class="mt-7 text-2xl font-black tracking-tight upgrade-name">${u.name}</h3>
+          <p class="mt-3 text-sm leading-6 text-slate-400 upgrade-desc">${u.desc}</p>
         </div>
-        <div class="mt-7 pt-4 border-t border-white/[.06] flex items-center justify-between">
-          <span class="text-[10px] text-slate-600 font-bold">${u.rarity === "EPIC" ? "強力な変異" : "選択"}</span>
-          <span class="key">${i+1}</span>
+        <div class="mt-7 pt-4 border-t border-white/[.06] flex items-center justify-between upgrade-footer">
+          <span class="text-[10px] text-slate-600 font-bold upgrade-select-label">${u.rarity === "EPIC" ? "強力な変異" : "選択"}</span>
+          <span class="key upgrade-key">${i+1}</span>
         </div>`;
       btn.addEventListener("click", () => selectUpgrade(u));
       UI.upgradeCards.appendChild(btn);
