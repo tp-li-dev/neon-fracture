@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
-  <title>NEON FRACTURE v25 — スティック表示位置修正版</title>
+  <title>NEON FRACTURE v26 — PROGRESSION REFORGE</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -1750,6 +1750,89 @@
       }
     }
 
+  
+    /* ==========================================================
+       v26 SAFE UI SYSTEM + density/progression UX
+       All interactive UI uses one shared safe coordinate frame.
+       Canvas can still render edge-to-edge.
+       ========================================================== */
+    :root {
+      --nf-browser-left: 0px;
+      --nf-browser-right: 0px;
+      --nf-safe-left: max(env(safe-area-inset-left, 0px), var(--nf-browser-left));
+      --nf-safe-right: max(env(safe-area-inset-right, 0px), var(--nf-browser-right));
+      --nf-safe-top: env(safe-area-inset-top, 0px);
+      --nf-safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    body.ios-browser-landscape { --nf-browser-left: 108px; --nf-browser-right: 18px; }
+
+    @media (pointer: coarse) and (orientation: landscape) {
+      #startScreen,
+      #upgradeScreen.upgrade-screen,
+      #pauseScreen.pause-mobile-screen,
+      #gameOverScreen.gameover-mobile-screen,
+      #howScreen.mobile-sheet-screen {
+        padding-left: max(14px,var(--nf-safe-left)) !important;
+        padding-right: max(14px,var(--nf-safe-right)) !important;
+      }
+      #metaScreen.mobile-meta-screen {
+        padding-left: max(14px,var(--nf-safe-left)) !important;
+        padding-right: max(14px,var(--nf-safe-right)) !important;
+      }
+      #metaClose { right:max(12px,var(--nf-safe-right)) !important; }
+
+      /* HUD gets non-overlapping left/center/right lanes. */
+      #hud.game-hud > .flex > .glass:first-child {
+        left:max(10px,var(--nf-safe-left)) !important;
+        width:min(29vw,280px) !important;
+      }
+      #hud.game-hud > .flex > .glass:nth-child(2) {
+        right:max(58px,calc(var(--nf-safe-right) + 46px)) !important;
+        width:min(19vw,170px) !important;
+      }
+      #hud.game-hud > .absolute {
+        width:min(29vw,270px) !important;
+      }
+      #xpHud.game-xp-hud {
+        width:min(31vw,300px) !important;
+        top:max(58px,calc(var(--nf-safe-top) + 54px)) !important;
+      }
+
+      /* Touch zones and buttons share the same safe frame. */
+      #moveZone { left:max(8px,var(--nf-safe-left)) !important; width:calc(50% - max(8px,var(--nf-safe-left)) - 4px) !important; }
+      #aimZone { right:max(8px,var(--nf-safe-right)) !important; width:calc(50% - max(8px,var(--nf-safe-right)) - 4px) !important; }
+      #mobilePauseBtn { right:max(16px,calc(var(--nf-safe-right) + 4px)) !important; }
+      #mobileDashBtn { right:max(22px,calc(var(--nf-safe-right) + 8px)) !important; bottom:max(24px,calc(var(--nf-safe-bottom) + 14px)) !important; }
+
+      /* Upgrade cards must never enter the iPhone browser dead zone. */
+      #upgradeScreen .upgrade-shell { width:100% !important; max-width:1180px !important; }
+      #upgradeScreen .upgrade-grid { width:100% !important; }
+      #upgradeScreen .upgrade-title { font-size:clamp(24px,7vh,38px) !important; }
+      #upgradeScreen .upgrade-choice { min-width:0 !important; overflow:hidden; }
+      #upgradeScreen .upgrade-name { overflow-wrap:anywhere; }
+
+      .meta-summary-strip { grid-template-columns:1fr 1fr 1fr !important; }
+      .card-filter-bar { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+      .player-level-panel { margin-bottom:10px !important; }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-height:470px) {
+      body.ios-browser-landscape { --nf-browser-left: 104px; --nf-browser-right: 16px; }
+      #hud.game-hud > .flex > .glass:first-child { width:min(27vw,250px) !important; }
+      #hud.game-hud > .flex > .glass:nth-child(2) { width:min(17vw,145px) !important; }
+      #xpHud.game-xp-hud { width:min(28vw,255px) !important; }
+      #upgradeScreen .upgrade-choice { height:clamp(190px,57vh,250px) !important; }
+      #upgradeScreen .upgrade-title { font-size:clamp(22px,6.5vh,31px) !important; }
+      #upgradeScreen .upgrade-desc { -webkit-line-clamp:2 !important; }
+      #metaScreen .meta-summary-strip { padding:7px 9px !important; }
+    }
+
+    @media (pointer: coarse) and (orientation: portrait) {
+      .meta-summary-strip { grid-template-columns:1fr !important; text-align:left !important; }
+      .meta-summary-strip > div { text-align:left !important; }
+      .card-filter-bar { grid-template-columns:1fr 1fr !important; }
+    }
+
   </style>
 </head>
 <body class="font-display text-slate-100">
@@ -1858,12 +1941,20 @@
               </button>
             </div>
 
-            <div class="mt-6 rounded-2xl px-5 py-4 border border-amber-300/10 bg-amber-300/[.035] flex items-center justify-between gap-4 max-w-md start-credit">
-              <div>
-                <div class="hud-label text-[9px] text-amber-300/70 font-black">所持クレジット</div>
-                <div class="mt-1 text-2xl font-black"><span id="creditStart">0</span> <span class="text-xs text-amber-300">CR</span></div>
+            <div class="mt-6 rounded-2xl px-5 py-4 border border-amber-300/10 bg-amber-300/[.035] max-w-xl start-credit">
+              <div class="grid grid-cols-2 gap-4 items-center">
+                <div>
+                  <div class="hud-label text-[9px] text-cyan-300/70 font-black">PLAYER LEVEL</div>
+                  <div class="mt-1 text-2xl font-black">Lv.<span id="startPlayerLevel">1</span></div>
+                  <div class="mt-2 h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="startPlayerXpBar" class="h-full bg-gradient-to-r from-cyan-300 to-violet-400" style="width:0%"></div></div>
+                  <div id="startPlayerXpText" class="mt-1 text-[9px] text-slate-500">0 / 0 XP</div>
+                </div>
+                <div class="text-right border-l border-white/[.07] pl-4">
+                  <div class="hud-label text-[9px] text-amber-300/70 font-black">所持クレジット</div>
+                  <div class="mt-1 text-2xl font-black"><span id="creditStart">0</span> <span class="text-xs text-amber-300">CR</span></div>
+                  <div class="mt-1 text-[9px] text-slate-500">研究で基礎値へ%補正</div>
+                </div>
               </div>
-              <div class="text-right text-[10px] leading-5 text-slate-500">スコアをCRへ変換<br>恒久強化とモジュールに使用</div>
             </div>
 
             <div class="mt-7 pt-6 border-t border-white/[.07] flex flex-wrap gap-x-8 gap-y-3 text-xs text-slate-500 start-stats">
@@ -2077,10 +2168,14 @@
             <div class="text-2xl md:text-3xl font-black mt-1 text-amber-200">+<span id="earnedCredits">0</span></div>
           </div>
         </div>
-        <div class="mt-3 text-[10px] text-slate-600">CR換算: スコア÷30 + ウェーブボーナス + 撃破ボーナス + ボス撃破ボーナス × 換金効率</div>
+        <div class="mt-3 text-[10px] text-slate-600">CR換算: スコア中心 + ウェーブ / 撃破 / ボス補正 × 換金研究。Player XPはスコアから自動加算</div>
         <div id="runLootBox" class="mt-4 rounded-2xl border border-violet-300/10 bg-violet-300/[.035] p-4 text-left">
-          <div class="flex items-center justify-between gap-3"><div class="hud-label text-[9px] text-violet-300/70 font-black">RUN ANALYSIS</div><div id="runLootCount" class="text-[10px] text-slate-500">0個解析</div></div>
-          <div id="runLootText" class="mt-2 text-xs leading-6 text-slate-400">スコアに応じて構文・カードを獲得します。</div>
+          <div class="flex items-center justify-between gap-3">
+            <div><div class="hud-label text-[9px] text-violet-300/70 font-black">RUN ANALYSIS</div><div class="mt-1 text-xs font-black">報酬評価 <span id="rewardRank" class="text-cyan-200">C</span></div></div>
+            <div class="text-right"><div id="runLootCount" class="text-[10px] text-slate-500">0個解析</div><div class="text-[10px] text-cyan-300">Player XP +<span id="earnedPlayerXp">0</span></div></div>
+          </div>
+          <div id="runLootText" class="mt-2 text-xs leading-6 text-slate-400">スコアに応じて構文・カード・装備を獲得します。</div>
+          <div id="rewardRatesText" class="mt-2 pt-2 border-t border-white/[.06] text-[9px] leading-5 text-slate-500"></div>
         </div>
 
         <div id="newRecord" class="hidden mt-5 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 py-3 text-sm font-black text-cyan-200">
@@ -2113,14 +2208,19 @@
           <button id="metaClose" class="pointer-events-auto shrink-0 h-11 w-11 rounded-xl border border-white/10 hover:bg-white/10 text-slate-400">✕</button>
         </div>
 
-        <div class="glass rounded-2xl p-5 mb-5 flex flex-wrap items-center justify-between gap-4 meta-summary-strip">
+        <div class="glass rounded-2xl p-5 mb-5 grid grid-cols-3 gap-4 items-center meta-summary-strip">
           <div>
+            <div class="hud-label text-[9px] text-cyan-300/70 font-black">PLAYER LEVEL</div>
+            <div class="text-2xl font-black mt-1">Lv.<span id="metaPlayerLevel">1</span></div>
+            <div id="metaPlayerXpText" class="text-[9px] text-slate-500 mt-1">0 / 0 XP</div>
+          </div>
+          <div class="text-center">
             <div class="hud-label text-[9px] text-amber-300/70 font-black">所持クレジット</div>
             <div class="text-3xl font-black mt-1"><span id="metaCredits">0</span> <span class="text-sm text-amber-300">CR</span></div>
           </div>
           <div class="text-right">
-            <div class="hud-label text-[9px] text-violet-300/70 font-black">装備モジュール</div>
-            <div id="equippedModuleText" class="mt-1 text-sm font-black text-slate-200">なし</div>
+            <div class="hud-label text-[9px] text-violet-300/70 font-black">LOADOUT</div>
+            <div id="equippedModuleText" class="mt-1 text-sm font-black text-slate-200">装備 0/3 / カード 0/3</div>
           </div>
         </div>
 
@@ -2141,6 +2241,17 @@
                 <div><div class="hud-label text-[9px] text-cyan-300/70 font-black">PERMANENT STATS</div><h3 class="text-2xl font-black mt-1">ステータス研究</h3></div>
                 <div class="text-[10px] text-slate-500">購入効果は全ランに適用</div>
               </div>
+              <div class="mb-4 rounded-2xl border border-cyan-300/10 bg-cyan-300/[.025] p-4 player-level-panel">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div class="hud-label text-[8px] text-cyan-300/70 font-black">LEVEL BASE STATS</div>
+                    <div class="mt-1 text-sm font-black">Player Lv.<span id="playerLevelPanelLevel">1</span> による基礎数値</div>
+                  </div>
+                  <div id="playerLevelPanelXp" class="text-[10px] text-slate-500">0 / 0 XP</div>
+                </div>
+                <div id="playerBaseStats" class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]"></div>
+              </div>
+              <div class="flex items-center justify-between mb-3"><div class="text-[10px] font-black text-slate-400">CR研究 — 基礎数値へ割合補正</div><div class="text-[9px] text-slate-600">Player Lvとは別成長</div></div>
               <div id="metaStats" class="grid sm:grid-cols-2 gap-3"></div>
             </div>
 
@@ -2164,14 +2275,21 @@
                 <div><div class="hud-label text-[9px] text-violet-300/70 font-black">CARD LIBRARY</div><h3 class="text-2xl font-black mt-1">カードコレクション</h3></div>
                 <div class="text-[10px] text-slate-500"><span id="equippedCardsCount">0</span> / 3 装備</div>
               </div>
+              <div class="mb-3 grid grid-cols-2 md:grid-cols-4 gap-2 card-filter-bar">
+                <select id="cardFilterRarity" class="bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-[10px]"><option value="all">全レアリティ</option><option>COMMON</option><option>RARE</option><option>EPIC</option><option>LEGENDARY</option></select>
+                <select id="cardFilterTrigger" class="bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-[10px]"><option value="all">全トリガー</option></select>
+                <select id="cardFilterEffect" class="bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-[10px]"><option value="all">全効果</option></select>
+                <select id="cardFilterState" class="bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2 text-[10px]"><option value="all">すべて</option><option value="equipped">装備中</option><option value="unequipped">未装備</option></select>
+              </div>
               <div id="cardCollection" class="grid sm:grid-cols-2 gap-3"></div>
             </div>
 
             <div class="glass rounded-3xl p-5 md:p-7 meta-section meta-tab-collection">
               <div class="flex items-end justify-between gap-3 mb-5">
-                <div><div class="hud-label text-[9px] text-slate-400/70 font-black">LEGACY MODULES</div><h3 class="text-xl font-black mt-1">コアモジュール</h3></div>
-                <div class="text-[10px] text-slate-600">従来装備も併用可能</div>
+                <div><div class="hud-label text-[9px] text-emerald-300/70 font-black">EQUIPMENT</div><h3 class="text-xl font-black mt-1">装備ロードアウト</h3></div>
+                <div class="text-[10px] text-slate-600">CORE / ARMOR / DRIVE 各1枠</div>
               </div>
+              <div id="gearSlotsSummary" class="mb-3 grid grid-cols-3 gap-2"></div>
               <div id="moduleCollection" class="grid sm:grid-cols-2 gap-3"></div>
             </div>
           </div>
@@ -2179,20 +2297,20 @@
           <div class="space-y-5 h-fit lg:sticky lg:top-8">
             <div class="glass rounded-3xl p-5 md:p-7 meta-section meta-tab-gacha">
               <div class="hud-label text-[9px] text-amber-300/70 font-black">SYNTAX GACHA</div>
-              <h3 class="text-2xl font-black mt-1">構文・カードガチャ</h3>
-              <p class="mt-2 text-xs leading-5 text-slate-500">定型文・単語・完成カード・旧式コアが出現。未所持の構文は優先され、重複はCRへ還元される。</p>
+              <h3 class="text-2xl font-black mt-1">構文・カード・装備解析</h3>
+              <p class="mt-2 text-xs leading-5 text-slate-500">構文・完成カード・装備を解析。構文重複はCRへ、装備重複は装備Lvへ変換される。</p>
 
               <div class="mt-5 grid grid-cols-2 gap-3">
                 <button id="gacha1" class="pointer-events-auto rounded-2xl p-4 bg-white/[.045] border border-white/[.08] hover:border-cyan-300/30 hover:bg-white/[.07] transition text-left">
-                  <div class="text-sm font-black">1回解析</div><div class="text-xs text-amber-200 mt-1">350 CR</div>
+                  <div class="text-sm font-black">1回解析</div><div class="text-xs text-amber-200 mt-1">250 CR</div>
                 </button>
                 <button id="gacha10" class="pointer-events-auto rounded-2xl p-4 bg-gradient-to-br from-violet-500/[.12] to-cyan-400/[.07] border border-violet-300/20 hover:border-violet-300/40 transition text-left">
-                  <div class="text-sm font-black">10回解析</div><div class="text-xs text-amber-200 mt-1">3,150 CR</div>
+                  <div class="text-sm font-black">10回解析</div><div class="text-xs text-amber-200 mt-1">2,250 CR</div>
                 </button>
               </div>
 
               <div class="mt-4 rounded-xl bg-slate-950/50 border border-white/[.06] px-4 py-3 flex justify-between text-[10px]">
-                <span class="text-slate-500">内訳</span><span class="text-slate-400">構文 65% / 完成カード 20% / コア 15%</span>
+                <span class="text-slate-500">内訳</span><span class="text-slate-400">構文 55% / 完成カード 20% / 装備 25%</span>
               </div>
               <div class="mt-2 rounded-xl bg-slate-950/50 border border-white/[.06] px-4 py-3 flex justify-between text-[10px]">
                 <span class="text-slate-500">高レア保証</span><span id="pityText" class="text-violet-300 font-black">0 / 25</span>
@@ -2478,6 +2596,11 @@
   const mouse = { x: W/2, y: H/2, down: false };
 
   const touchCapable = ("ontouchstart" in window) || (navigator.maxTouchPoints||0) > 0 || matchMedia("(pointer: coarse)").matches;
+  function syncSafeUiClass(){
+    const isiOS=/iPhone|iPad|iPod/i.test(navigator.userAgent),standalone=matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches||navigator.standalone===true;
+    document.body.classList.toggle("ios-browser-landscape",isiOS&&!standalone&&innerWidth>innerHeight);
+  }
+  syncSafeUiClass();addEventListener("resize",syncSafeUiClass);window.visualViewport?.addEventListener("resize",syncSafeUiClass);
   const mobileMove = {x:0,y:0,mag:0,active:false,pointerId:null};
   const mobileAim = {x:1,y:0,mag:0,active:false,pointerId:null};
 
@@ -2681,10 +2804,11 @@
     maxBullets: 200,
     maxEnemyBullets: 78,
     maxParticles: 170,
-    maxGems: 85,
+    maxGems: 110,
     maxTexts: 38,
     maxRings: 36,
-    hudFps: 12
+    hudFps: 12,
+    maxEnemies: 72
   };
 
   const save = {
@@ -2693,13 +2817,13 @@
   };
 
   const META_STATS = {
-    power:    {name:"出力増幅", icon:"✦", max:20, base:120, growth:1.32, desc:lv=>`開始時の弾ダメージ +${lv*3}%`},
-    hull:     {name:"船体強化", icon:"⬡", max:20, base:110, growth:1.31, desc:lv=>`開始時の最大HP +${lv*6}`},
-    mobility: {name:"機動補正", icon:"➤", max:20, base:125, growth:1.33, desc:lv=>`移動速度 +${(lv*1.5).toFixed(1)}%`},
-    critical: {name:"照準演算", icon:"◇", max:15, base:170, growth:1.36, desc:lv=>`初期クリティカル率 +${lv}%`},
-    recovery: {name:"吸収回路", icon:"♥", max:15, base:220, growth:1.38, desc:lv=>`初期HP吸収 +${(lv*.2).toFixed(1)}%`},
-    magnet:   {name:"回収磁場", icon:"◉", max:15, base:100, growth:1.30, desc:lv=>`経験値回収範囲 +${lv*9}`},
-    economy:  {name:"換金効率", icon:"CR", max:15, base:240, growth:1.40, desc:lv=>`ラン終了時のCR獲得 +${lv*4}%`}
+    power:    {name:"出力研究", icon:"✦", max:40, base:90, step:32, curve:2.4, unit:"%", value:lv=>lv*2.5, desc:lv=>`弾ダメージ +${(lv*2.5).toFixed(1)}%`},
+    hull:     {name:"耐久研究", icon:"⬡", max:40, base:85, step:30, curve:2.3, unit:"%", value:lv=>lv*3.0, desc:lv=>`最大HP +${(lv*3).toFixed(0)}%`},
+    mobility: {name:"機動研究", icon:"➤", max:30, base:105,step:36, curve:2.7, unit:"%", value:lv=>lv*.8, desc:lv=>`移動速度 +${(lv*.8).toFixed(1)}%`},
+    critical: {name:"照準研究", icon:"◇", max:25, base:120,step:40, curve:3.0, unit:"%", value:lv=>lv*.8, desc:lv=>`クリティカル率 +${(lv*.8).toFixed(1)}%`},
+    recovery: {name:"吸収研究", icon:"♥", max:25, base:135,step:44, curve:3.2, unit:"%", value:lv=>lv*.25,desc:lv=>`HP吸収 +${(lv*.25).toFixed(2)}%`},
+    magnet:   {name:"回収研究", icon:"◉", max:30, base:75, step:28, curve:2.1, unit:"%", value:lv=>lv*3, desc:lv=>`経験値回収範囲 +${lv*3}%`},
+    economy:  {name:"換金研究", icon:"CR",max:30, base:120,step:42, curve:3.0, unit:"%", value:lv=>lv*3, desc:lv=>`ラン終了CR +${lv*3}%`}
   };
 
   const MODULES = [
@@ -2719,6 +2843,13 @@
   ];
   const MODULE_BY_ID = Object.fromEntries(MODULES.map(m=>[m.id,m]));
   const MODULE_RARITY = {COMMON:{label:"コモン",cls:"text-slate-300",border:"border-slate-400/15"},RARE:{label:"レア",cls:"text-cyan-300",border:"border-cyan-300/20"},EPIC:{label:"エピック",cls:"text-violet-300",border:"border-violet-300/25"},LEGENDARY:{label:"レジェンダリー",cls:"text-amber-300",border:"border-amber-300/30"}};
+  const MODULE_SLOT = {
+    pulse:"core", rail:"core", reactor:"core", nova:"core", oracle:"core", sovereign:"core",
+    shell:"armor", crimson:"armor", fortune:"armor",
+    vector:"drive", collector:"drive", dronecore:"drive", chronos:"drive"
+  };
+  const GEAR_SLOT_LABEL={core:"CORE",armor:"ARMOR",drive:"DRIVE"};
+  function moduleSlot(id){return MODULE_SLOT[id]||"core";}
 
   // ---------- Card syntax system ----------
   // 各日本語パーツは内部IDに結び付いている。文章解析はせず、実行時はIDで直接分岐する。
@@ -2802,6 +2933,8 @@
     const prefix={COMMON:"",RARE:"強化型 ",EPIC:"超越型 ",LEGENDARY:"《終極》"}[card.rarity]||"";
     return `${prefix}${trig}${eff}`;
   }
+  function cardSignature(card){return [card.trigger,card.condition,card.chance,card.effect,card.power].join("|");}
+  function findDuplicateCard(card){const sig=cardSignature(card);return (meta?.cards||[]).find(c=>cardSignature(c)===sig)||null;}
   function normalizeCard(raw){
     const c={...raw}; c.cost=cardCost(c); c.rarity=cardRarity(c.cost); c.id=c.id||`card_${Date.now()}_${Math.random().toString(36).slice(2,7)}`; c.name=c.name||generatedCardName(c); return c;
   }
@@ -2870,13 +3003,21 @@
 
   let forgeSelection={trigger:"on_kill",condition:"always",chance:"c25",effect:"heal",power:"p80"};
 
-  const defaultMeta = () => ({credits:0,stats:{power:0,hull:0,mobility:0,critical:0,recovery:0,magnet:0,economy:0},modules:{},equipped:null,pity:0,totalRuns:0,
+  const defaultMeta = () => ({credits:0,playerLevel:1,playerXp:0,stats:{power:0,hull:0,mobility:0,critical:0,recovery:0,magnet:0,economy:0},modules:{},equipped:null,equippedGear:{core:null,armor:null,drive:null},pity:0,totalRuns:0,
     syntax:Object.fromEntries(STARTER_PARTS.map(id=>[id,1])),cards:[],equippedCards:[]});
   function loadMeta(){
     try {
       const raw=JSON.parse(localStorage.getItem("nf_meta_v1")||"null") || defaultMeta();
       const d=defaultMeta();
-      return {...d,...raw,stats:{...d.stats,...(raw.stats||{})},modules:{...(raw.modules||{})},syntax:{...d.syntax,...(raw.syntax||{})},cards:Array.isArray(raw.cards)?raw.cards.map(normalizeCard):[],equippedCards:Array.isArray(raw.equippedCards)?raw.equippedCards.slice(0,3):[]};
+      const equippedGear={...d.equippedGear,...(raw.equippedGear||{})};
+      // v25以前の単一モジュール装備を対応スロットへ自動移行。
+      if(raw.equipped && MODULE_BY_ID[raw.equipped]) equippedGear[moduleSlot(raw.equipped)]=raw.equipped;
+      for(const slot of Object.keys(equippedGear)) if(equippedGear[slot]&&!MODULE_BY_ID[equippedGear[slot]]) equippedGear[slot]=null;
+      return {...d,...raw,
+        playerLevel:Math.max(1,Math.floor(Number(raw.playerLevel)||1)),
+        playerXp:Math.max(0,Number(raw.playerXp)||0),
+        stats:{...d.stats,...(raw.stats||{})},modules:{...(raw.modules||{})},equippedGear,
+        syntax:{...d.syntax,...(raw.syntax||{})},cards:Array.isArray(raw.cards)?raw.cards.map(normalizeCard):[],equippedCards:Array.isArray(raw.equippedCards)?raw.equippedCards.slice(0,3):[]};
     } catch { return defaultMeta(); }
   }
   let meta = loadMeta();
@@ -2891,7 +3032,7 @@
       app: SAVE_EXPORT_APP,
       formatVersion: SAVE_EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
-      gameVersion: "v11",
+      gameVersion: "v26",
       data: {
         high: Number(save.high)||0,
         wave: Number(save.wave)||0,
@@ -2954,19 +3095,30 @@
         )
       : [];
 
-    const cardIds=new Set(cards.map(c=>c.uid));
+    const cardIds=new Set(cards.map(c=>c.id));
     const equippedCards=Array.isArray(raw.equippedCards)
       ? raw.equippedCards.filter(id=>cardIds.has(id)).slice(0,3)
       : [];
 
     const equipped = MODULE_BY_ID[raw.equipped] && modules[raw.equipped] ? raw.equipped : null;
+    const equippedGear={core:null,armor:null,drive:null};
+    if(raw.equippedGear && typeof raw.equippedGear==="object"){
+      for(const slot of Object.keys(equippedGear)){
+        const id=raw.equippedGear[slot];
+        if(MODULE_BY_ID[id] && modules[id] && moduleSlot(id)===slot) equippedGear[slot]=id;
+      }
+    }
+    if(equipped) equippedGear[moduleSlot(equipped)]=equipped;
 
     return {
       ...d,
       credits: clamp(Math.floor(Number(raw.credits)||0),0,999999999),
+      playerLevel: clamp(Math.floor(Number(raw.playerLevel)||1),1,99999999),
+      playerXp: clamp(Number(raw.playerXp)||0,0,999999999999),
       stats,
       modules,
-      equipped,
+      equipped:null,
+      equippedGear,
       pity: clamp(Math.floor(Number(raw.pity)||0),0,1000),
       totalRuns: clamp(Math.floor(Number(raw.totalRuns)||0),0,99999999),
       syntax,
@@ -3071,21 +3223,47 @@
   makeStars();
   addEventListener("resize", makeStars);
 
-  function statCost(key){ const d=META_STATS[key],lv=meta.stats[key]||0; return Math.floor(d.base*Math.pow(d.growth,lv)/10)*10; }
+  function playerXpNeeded(level){return Math.floor(120 + 82*Math.sqrt(Math.max(1,level)));}
+  function scoreToPlayerXp(s){return Math.max(20,Math.floor(25 + .72*Math.pow(Math.max(0,s),.72)));}
+  function playerLevelBase(level=meta.playerLevel){
+    const q=Math.sqrt(Math.max(0,level-1));
+    return {damage:.90*q,maxHp:4.2*q,magnet:2.4*q,bulletSpeed:.65*q};
+  }
+  function awardPlayerXp(amount){
+    let gainedLevels=0; meta.playerXp=Math.max(0,(meta.playerXp||0)+amount);
+    while(meta.playerXp>=playerXpNeeded(meta.playerLevel)){
+      meta.playerXp-=playerXpNeeded(meta.playerLevel); meta.playerLevel++; gainedLevels++;
+      if(gainedLevels>10000) break;
+    }
+    return gainedLevels;
+  }
+  function statCost(key){
+    const d=META_STATS[key],lv=meta.stats[key]||0;
+    return Math.max(50,Math.round((d.base + d.step*lv + d.curve*lv*lv)/10)*10);
+  }
   function applyMetaBonuses(p){
+    const base=playerLevelBase();
+    p.damage+=base.damage;
+    p.maxHp+=base.maxHp;
+    p.magnet+=base.magnet;
+    p.bulletSpeed+=base.bulletSpeed;
+    p.hp=p.maxHp;
     const st=meta.stats;
-    p.damage*=1+(st.power||0)*.03;
-    p.maxHp+=(st.hull||0)*6; p.hp=p.maxHp;
-    p.speed*=1+(st.mobility||0)*.015;
-    p.crit=Math.min(1,p.crit+(st.critical||0)*.01);
-    p.lifesteal+=(st.recovery||0)*.002;
-    p.magnet+=(st.magnet||0)*9;
-    const mod=MODULE_BY_ID[meta.equipped], lv=meta.modules[meta.equipped]||0;
-    if(mod&&lv>0) mod.apply(p,lv);
+    p.damage*=1+(st.power||0)*.025;
+    p.maxHp*=1+(st.hull||0)*.03; p.hp=p.maxHp;
+    p.speed*=1+(st.mobility||0)*.008;
+    p.crit=Math.min(1,p.crit+(st.critical||0)*.008);
+    p.lifesteal+=(st.recovery||0)*.0025;
+    p.magnet*=1+(st.magnet||0)*.03;
+    for(const slot of ["core","armor","drive"]){
+      const id=meta.equippedGear?.[slot],mod=MODULE_BY_ID[id],lv=meta.modules[id]||0;
+      if(mod&&lv>0) mod.apply(p,lv);
+    }
   }
   function earnedCreditAmount(){
-    const raw=Math.floor(score/30)+wave*10+Math.floor(kills/5)*2+bossesDefeated*75;
-    return Math.max(0,Math.floor(raw*(1+(meta.stats.economy||0)*.04)));
+    // 1ランごとの進歩を感じやすくしつつ、スコアが主な収入源になる。
+    const raw=Math.floor(score/48)+wave*18+Math.floor(kills/3)+bossesDefeated*120;
+    return Math.max(0,Math.floor(raw*(1+(meta.stats.economy||0)*.03)));
   }
   function unlockedParts(type){ return CARD_PARTS[type].filter(p=>meta.syntax?.[p.id]); }
   function renderForge(){
@@ -3102,24 +3280,32 @@
     updateForgePreview();
   }
   function updateForgePreview(){
-    const card=normalizeCard({...forgeSelection,id:"preview"});const r=CARD_RARITY[card.rarity];
-    UI.forgePreview.textContent=describeCard(card);UI.forgeCost.textContent=`${card.cost} / 15`;UI.forgeRarity.textContent=r.label;UI.forgeRarity.className=`text-xs font-black ${r.cls}`;
-    UI.forgeCreate.disabled=card.cost>15;UI.forgeCreate.textContent=card.cost>15?'コスト超過':'この構文でカードを生成';
+    const card=normalizeCard({...forgeSelection,id:"preview"});const r=CARD_RARITY[card.rarity],dup=findDuplicateCard(card);
+    UI.forgePreview.textContent=describeCard(card)+(dup?`  /  保有済み: ${dup.name}`:"");UI.forgeCost.textContent=`${card.cost} / 15`;UI.forgeRarity.textContent=r.label;UI.forgeRarity.className=`text-xs font-black ${r.cls}`;
+    UI.forgeCreate.disabled=card.cost>15||!!dup;UI.forgeCreate.textContent=card.cost>15?'コスト超過':dup?'同一構文カードを保有済み':'この構文でカードを生成';
   }
   function createForgedCard(){
     const card=normalizeCard({...forgeSelection});if(card.cost>15)return;
-    if(meta.cards.length>=30){UI.gachaMessage.textContent="カード保管上限30枚です。不要なカードを削除してください。";return;}
+    const dup=findDuplicateCard(card);if(dup){UI.gachaMessage.textContent=`同じ構文の「${dup.name}」を既に保有しています。`;updateForgePreview();return;}
+    if(meta.cards.length>=120){UI.gachaMessage.textContent="カード保管上限120枚です。フィルターから整理してください。";return;}
     meta.cards.push(card);saveMeta();beep(card.rarity==="LEGENDARY"?760:520,.10,"triangle",.04,340);
   }
   function renderCards(){
-    if(!UI.cardCollection)return;UI.cardCollection.innerHTML="";UI.equippedCardsCount.textContent=(meta.equippedCards||[]).length;
-    if(!meta.cards.length){UI.cardCollection.innerHTML='<div class="sm:col-span-2 rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs text-slate-600">カード工房またはガチャでカードを入手できます。</div>';return;}
-    for(const card of meta.cards){
-      const r=CARD_RARITY[card.rarity],equipped=meta.equippedCards.includes(card.id);const el=document.createElement('div');
+    if(!UI.cardCollection)return;
+    UI.cardCollection.innerHTML="";UI.equippedCardsCount.textContent=(meta.equippedCards||[]).length;
+    const rarityFilter=$("cardFilterRarity")?.value||"all",triggerFilter=$("cardFilterTrigger")?.value||"all",effectFilter=$("cardFilterEffect")?.value||"all",stateFilter=$("cardFilterState")?.value||"all";
+    let cards=[...(meta.cards||[])].filter(card=>{
+      const eq=(meta.equippedCards||[]).includes(card.id);
+      return (rarityFilter==="all"||card.rarity===rarityFilter)&&(triggerFilter==="all"||card.trigger===triggerFilter)&&(effectFilter==="all"||card.effect===effectFilter)&&(stateFilter==="all"||(stateFilter==="equipped"&&eq)||(stateFilter==="unequipped"&&!eq));
+    });
+    cards.sort((a,b)=>Number((meta.equippedCards||[]).includes(b.id))-Number((meta.equippedCards||[]).includes(a.id)) || rarityValue(b.rarity)-rarityValue(a.rarity) || a.name.localeCompare(b.name,"ja"));
+    if(!cards.length){UI.cardCollection.innerHTML='<div class="sm:col-span-2 rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs text-slate-600">条件に一致するカードがありません。</div>';return;}
+    for(const card of cards){
+      const r=CARD_RARITY[card.rarity],equipped=(meta.equippedCards||[]).includes(card.id);const el=document.createElement('div');
       el.className=`rounded-2xl border ${r.border} bg-white/[.025] p-4 ${equipped?'ring-1 ring-amber-300/40':''}`;
       el.innerHTML=`<div class="flex justify-between gap-2"><div class="font-black text-sm">${card.name}</div><div class="hud-label text-[8px] ${r.cls} font-black">${r.label}</div></div><div class="text-[10px] leading-5 text-slate-500 mt-2">${describeCard(card)}</div><div class="flex items-center justify-between mt-3"><span class="text-[9px] text-slate-600">COST ${card.cost}</span><div class="flex gap-2"><button class="equip rounded-lg border border-white/10 px-2.5 py-1.5 text-[9px] font-black ${equipped?'text-amber-300':'text-cyan-200'}">${equipped?'解除':'装備'}</button><button class="del rounded-lg border border-rose-300/10 px-2.5 py-1.5 text-[9px] text-rose-300/70">削除</button></div></div>`;
       el.querySelector('.equip').onclick=()=>{if(equipped)meta.equippedCards=meta.equippedCards.filter(id=>id!==card.id);else if(meta.equippedCards.length<3)meta.equippedCards.push(card.id);else{UI.gachaMessage.textContent='カードは最大3枚まで装備できます。';return;}saveMeta();};
-      el.querySelector('.del').onclick=()=>{meta.cards=meta.cards.filter(c=>c.id!==card.id);meta.equippedCards=meta.equippedCards.filter(id=>id!==card.id);saveMeta();};UI.cardCollection.appendChild(el);
+      el.querySelector('.del').onclick=()=>{if(!confirm(`「${card.name}」を削除しますか？`))return;meta.cards=meta.cards.filter(c=>c.id!==card.id);meta.equippedCards=meta.equippedCards.filter(id=>id!==card.id);saveMeta();};UI.cardCollection.appendChild(el);
     }
   }
   function renderSyntaxSummary(){
@@ -3128,32 +3314,30 @@
   }
   function refreshMetaUI(){
     if(!UI.metaCredits) return;
-    UI.metaCredits.textContent=meta.credits.toLocaleString();
-    UI.creditStart.textContent=meta.credits.toLocaleString();
-    UI.pityText.textContent=`${meta.pity} / 25`;
-    const eq=MODULE_BY_ID[meta.equipped], eqlv=meta.modules[meta.equipped]||0;
-    UI.equippedModuleText.textContent=`カード ${(meta.equippedCards||[]).length}/3` + (eq?` / ${eq.name} Lv.${eqlv}`:"");
+    const need=playerXpNeeded(meta.playerLevel),xpPct=Math.min(100,(meta.playerXp/need)*100),base=playerLevelBase();
+    UI.metaCredits.textContent=meta.credits.toLocaleString();UI.creditStart.textContent=meta.credits.toLocaleString();UI.pityText.textContent=`${meta.pity} / 25`;
+    for(const [id,val] of [["startPlayerLevel",meta.playerLevel],["metaPlayerLevel",meta.playerLevel],["playerLevelPanelLevel",meta.playerLevel]]){const el=$(id);if(el)el.textContent=val.toLocaleString();}
+    for(const id of ["startPlayerXpText","metaPlayerXpText","playerLevelPanelXp"]){const el=$(id);if(el)el.textContent=`${Math.floor(meta.playerXp).toLocaleString()} / ${need.toLocaleString()} XP`;}
+    const sx=$("startPlayerXpBar");if(sx)sx.style.width=xpPct+"%";
+    const baseBox=$("playerBaseStats");if(baseBox)baseBox.innerHTML=`<div class="rounded-xl bg-slate-950/35 p-2"><span class="text-slate-500">基礎攻撃</span><div class="font-black text-cyan-100">${(18+base.damage).toFixed(1)}</div></div><div class="rounded-xl bg-slate-950/35 p-2"><span class="text-slate-500">基礎HP</span><div class="font-black text-cyan-100">${Math.round(100+base.maxHp)}</div></div><div class="rounded-xl bg-slate-950/35 p-2"><span class="text-slate-500">回収範囲</span><div class="font-black text-cyan-100">${Math.round(115+base.magnet)}</div></div><div class="rounded-xl bg-slate-950/35 p-2"><span class="text-slate-500">弾速</span><div class="font-black text-cyan-100">${Math.round(760+base.bulletSpeed)}</div></div>`;
+    const gearCount=Object.values(meta.equippedGear||{}).filter(Boolean).length;
+    UI.equippedModuleText.textContent=`装備 ${gearCount}/3 / カード ${(meta.equippedCards||[]).length}/3`;
 
     UI.metaStats.innerHTML="";
     for(const [key,d] of Object.entries(META_STATS)){
-      const lv=meta.stats[key]||0, maxed=lv>=d.max, cost=statCost(key);
-      const card=document.createElement("div");
-      card.className="rounded-2xl border border-white/[.07] bg-white/[.025] p-4";
-      card.innerHTML=`<div class="flex items-start justify-between gap-3"><div><div class="font-black text-sm">${d.icon} ${d.name}</div><div class="text-[11px] text-slate-500 mt-1">${d.desc(lv)}</div></div><div class="text-xs font-black text-cyan-200">Lv.${lv}/${d.max}</div></div><button class="mt-3 w-full rounded-xl py-2.5 text-xs font-black border ${maxed?'border-white/5 text-slate-600':'border-cyan-300/15 bg-cyan-300/[.05] text-cyan-100 hover:bg-cyan-300/[.09]'}" ${maxed?'disabled':''}>${maxed?'MAX':`${cost.toLocaleString()} CR で研究`}</button>`;
-      const b=card.querySelector("button");
-      b.onclick=()=>buyStat(key);
-      UI.metaStats.appendChild(card);
+      const lv=meta.stats[key]||0,maxed=lv>=d.max,cost=statCost(key),next=Math.min(d.max,lv+1);
+      const card=document.createElement("div");card.className="rounded-2xl border border-white/[.07] bg-white/[.025] p-4";
+      card.innerHTML=`<div class="flex items-start justify-between gap-3"><div><div class="font-black text-sm">${d.icon} ${d.name}</div><div class="text-[11px] text-slate-500 mt-1">${d.desc(lv)}</div></div><div class="text-xs font-black text-cyan-200">${d.value(lv).toFixed(d.value(lv)%1?1:0)}%</div></div><div class="mt-2 text-[9px] text-slate-600">${maxed?'研究完了':`次: ${d.value(next).toFixed(d.value(next)%1?1:0)}%`}</div><button class="mt-3 w-full rounded-xl py-2.5 text-xs font-black border ${maxed?'border-white/5 text-slate-600':'border-cyan-300/15 bg-cyan-300/[.05] text-cyan-100 hover:bg-cyan-300/[.09]'}" ${maxed?'disabled':''}>${maxed?'MAX':`${cost.toLocaleString()} CR で研究`}</button>`;
+      card.querySelector("button").onclick=()=>buyStat(key);UI.metaStats.appendChild(card);
     }
 
+    const gs=$("gearSlotsSummary");if(gs){gs.innerHTML="";for(const slot of ["core","armor","drive"]){const id=meta.equippedGear?.[slot],m=MODULE_BY_ID[id],lv=meta.modules[id]||0;const el=document.createElement("div");el.className="rounded-xl border border-white/[.07] bg-slate-950/30 p-3";el.innerHTML=`<div class="hud-label text-[8px] text-slate-500 font-black">${GEAR_SLOT_LABEL[slot]}</div><div class="mt-1 text-[10px] font-black ${m?'text-slate-200':'text-slate-600'}">${m?`${m.name} Lv.${lv}`:'EMPTY'}</div>`;gs.appendChild(el);}}
     UI.moduleCollection.innerHTML="";
     for(const m of MODULES){
-      const lv=meta.modules[m.id]||0, owned=lv>0, equipped=meta.equipped===m.id, r=MODULE_RARITY[m.rarity];
-      const card=document.createElement("button");
-      card.disabled=!owned;
-      card.className=`pointer-events-auto rounded-2xl border ${r.border} p-4 text-left transition ${owned?'bg-white/[.03] hover:bg-white/[.06]':'bg-slate-950/25 opacity-40'} ${equipped?'ring-1 ring-amber-300/50':''}`;
-      card.innerHTML=`<div class="flex justify-between gap-3"><span class="text-xl">${owned?m.icon:'?'}</span><span class="hud-label text-[8px] font-black ${r.cls}">${r.label}</span></div><div class="font-black text-sm mt-3">${owned?m.name:'未解析モジュール'}</div><div class="text-[10px] text-slate-500 mt-1 min-h-[28px]">${owned?m.desc(lv):'ガチャから入手'}</div><div class="mt-3 flex justify-between text-[10px]"><span class="${owned?'text-slate-300':'text-slate-600'}">${owned?`Lv.${lv}/5`:'LOCKED'}</span><span class="${equipped?'text-amber-300 font-black':'text-slate-600'}">${equipped?'装備中':owned?'タップで装備':''}</span></div>`;
-      if(owned) card.onclick=()=>{meta.equipped=equipped?null:m.id;saveMeta();beep(420,.06,"triangle",.025,180)};
-      UI.moduleCollection.appendChild(card);
+      const lv=meta.modules[m.id]||0,owned=lv>0,slot=moduleSlot(m.id),equipped=meta.equippedGear?.[slot]===m.id,r=MODULE_RARITY[m.rarity];
+      const card=document.createElement("button");card.disabled=!owned;card.className=`pointer-events-auto rounded-2xl border ${r.border} p-4 text-left transition ${owned?'bg-white/[.03] hover:bg-white/[.06]':'bg-slate-950/25 opacity-40'} ${equipped?'ring-1 ring-amber-300/50':''}`;
+      card.innerHTML=`<div class="flex justify-between gap-3"><span class="text-xl">${owned?m.icon:'?'}</span><span class="hud-label text-[8px] font-black ${r.cls}">${r.label} / ${GEAR_SLOT_LABEL[slot]}</span></div><div class="font-black text-sm mt-3">${owned?m.name:'未解析装備'}</div><div class="text-[10px] text-slate-500 mt-1 min-h-[28px]">${owned?m.desc(lv):'ガチャ・ラン報酬から入手'}</div><div class="mt-3 flex justify-between text-[10px]"><span class="${owned?'text-slate-300':'text-slate-600'}">${owned?`Lv.${lv}/5`:'LOCKED'}</span><span class="${equipped?'text-amber-300 font-black':'text-slate-600'}">${equipped?'装備中':owned?`${GEAR_SLOT_LABEL[slot]}へ装備`:''}</span></div>`;
+      if(owned)card.onclick=()=>{meta.equippedGear[slot]=equipped?null:m.id;meta.equipped=null;saveMeta();beep(420,.06,"triangle",.025,180)};UI.moduleCollection.appendChild(card);
     }
     renderForge();renderCards();renderSyntaxSummary();
   }
@@ -3186,19 +3370,21 @@
     const card=best||normalizeCard({trigger:"on_kill",condition:"always",chance:"c50",effect:"explode",power:"p120"});card.rarity=cardRarity(card.cost);card.name=generatedCardName(card);return card;
   }
   function grantCompletedCard(rarity){
-    const card=randomCardForRarity(rarity);if(meta.cards.length<30)meta.cards.push(card);else meta.credits+=150*rarityValue(rarity);
-    // 完成カードを引いた時、その文章を構成する語彙も解析済みにする。
+    const card=randomCardForRarity(rarity),dup=findDuplicateCard(card);let refund=0,duplicate=false;
+    if(dup){duplicate=true;refund=90*rarityValue(card.rarity);meta.credits+=refund;}
+    else if(meta.cards.length<120)meta.cards.push(card);
+    else{refund=150*rarityValue(rarity);meta.credits+=refund;}
     [card.trigger,card.condition,card.chance,card.effect,card.power].forEach(id=>meta.syntax[id]=(meta.syntax[id]||0)+1);
-    return {kind:"card",card,rarity:card.rarity,refund:meta.cards.length>=30?150*rarityValue(rarity):0};
+    return {kind:"card",card:dup||card,rarity:card.rarity,refund,duplicate};
   }
   function pullModule(rarity){
     const pool=MODULES.filter(m=>m.rarity===rarity),m=pick(pool.length?pool:MODULES.filter(m=>m.rarity==="RARE"));const old=meta.modules[m.id]||0;let refund=0;
     if(old>=5){refund={COMMON:80,RARE:160,EPIC:300,LEGENDARY:650}[m.rarity];meta.credits+=refund;}else meta.modules[m.id]=old+1;
     return {kind:"module",m,rarity:m.rarity,lv:meta.modules[m.id]||5,refund};
   }
-  function mixedPull(rarity){const r=Math.random();if(r<.65)return grantSyntaxPart(rarity);if(r<.85)return grantCompletedCard(rarity);return pullModule(rarity);}
+  function mixedPull(rarity){const r=Math.random();if(r<.55)return grantSyntaxPart(rarity);if(r<.75)return grantCompletedCard(rarity);return pullModule(rarity);}
   function doGacha(count){
-    const cost=count===10?3150:350;if(meta.credits<cost){UI.gachaMessage.textContent=`${cost.toLocaleString()} CR必要です。`;beep(100,.12,"square",.025,-20);return;}meta.credits-=cost;
+    const cost=count===10?2250:250;if(meta.credits<cost){UI.gachaMessage.textContent=`${cost.toLocaleString()} CR必要です。`;beep(100,.12,"square",.025,-20);return;}meta.credits-=cost;
     const results=[];let gotRarePlus=false;
     for(let i=0;i<count;i++){const forceEpic=meta.pity>=24;const forceRare=count===10&&i===9&&!gotRarePlus;const rarity=rarityRoll(forceRare,forceEpic);if(rarityValue(rarity)>=2)gotRarePlus=true;results.push(mixedPull(rarity));if(rarityValue(rarity)>=3)meta.pity=0;else meta.pity++;}
     saveMeta();renderGachaResults(results);const best=results.reduce((b,x)=>Math.max(b,rarityValue(x.rarity)),1);beep(best>=4?760:best>=3?610:440,.16,"triangle",.045,420);
@@ -3208,19 +3394,45 @@
     for(const x of results){refunds+=x.refund||0;const r=CARD_RARITY[x.rarity]||CARD_RARITY.COMMON;const el=document.createElement('div');el.className=`rounded-xl border ${r.border} bg-white/[.035] p-3`;
       if(x.kind==="syntax")el.innerHTML=`<div class="text-[8px] ${r.cls} font-black">構文 / ${r.label}</div><div class="font-black text-xs mt-1">${x.part.text||'条件なし'}</div><div class="text-[9px] text-slate-500 mt-1">COST ${x.part.cost>=0?'+':''}${x.part.cost}${x.refund?` / 重複 +${x.refund}CR`:''}</div>`;
       else if(x.kind==="card")el.innerHTML=`<div class="text-[8px] ${r.cls} font-black">完成カード / ${r.label}</div><div class="font-black text-xs mt-1">${x.card.name}</div><div class="text-[9px] text-slate-500 mt-1 leading-4">${describeCard(x.card)}</div>`;
-      else el.innerHTML=`<div class="text-[8px] ${r.cls} font-black">コア / ${r.label}</div><div class="font-black text-xs mt-1">${x.m.name}</div><div class="text-[9px] text-slate-500 mt-1">Lv.${x.lv}${x.refund?` / +${x.refund}CR`:''}</div>`;UI.gachaResults.appendChild(el);
+      else el.innerHTML=`<div class="text-[8px] ${r.cls} font-black">装備 / ${r.label}</div><div class="font-black text-xs mt-1">${x.m.name}</div><div class="text-[9px] text-slate-500 mt-1">Lv.${x.lv}${x.refund?` / +${x.refund}CR`:''}</div>`;UI.gachaResults.appendChild(el);
     }
     UI.gachaMessage.innerHTML=`解析完了。${refunds?`重複分 <b class="text-amber-300">${refunds} CR</b> を還元。`:''}`;renderForge();renderCards();renderSyntaxSummary();
   }
-  function runRewardCount(){return Math.min(20,2+Math.floor(Math.sqrt(Math.max(0,score))/70)+bossesDefeated);}
+  function scoreRewardProfile(s=score){
+    const f=s/(s+120000);
+    let slots=2,rank="C";
+    if(s>=25000){slots=3;rank="B";} if(s>=75000){slots=4;rank="A";} if(s>=150000){slots=5;rank="S";} if(s>=300000){slots=6;rank="SS";} if(s>=600000){slots=8;rank="SSS";} if(s>=1000000)slots=10;
+    slots=Math.min(12,slots+Math.min(2,bossesDefeated));
+    return {factor:f,slots,rank,
+      gear:.12+(.40-.12)*f,
+      card:.10+(.30-.10)*f,
+      rarePlus:.22+(.46-.22)*f,
+      epicPlus:.05+(.18-.05)*f,
+      legendary:.004+(.04-.004)*f};
+  }
+  function runRewardCount(){return scoreRewardProfile().slots;}
+  function runRarityRoll(profile,min="COMMON"){
+    const r=Math.random();let rarity=r<profile.legendary?"LEGENDARY":r<profile.epicPlus?"EPIC":r<profile.rarePlus?"RARE":"COMMON";
+    if(rarityValue(rarity)<rarityValue(min))rarity=min;
+    return rarity;
+  }
   function grantRunLoot(){
-    const count=runRewardCount(),results=[];let cards=0,newSyntax=0;
-    for(let i=0;i<count;i++){
-      const quality=Math.random()+Math.min(.28,score/600000);const rarity=quality>.96?"EPIC":quality>.74?"RARE":"COMMON";
-      if(Math.random()<Math.min(.28,.08+score/900000)){results.push(grantCompletedCard(rarity));cards++;}
-      else {const before=Object.keys(meta.syntax).filter(k=>meta.syntax[k]).length;results.push(grantSyntaxPart(rarity));const after=Object.keys(meta.syntax).filter(k=>meta.syntax[k]).length;if(after>before)newSyntax++;}
+    const profile=scoreRewardProfile(),results=[],guarantees=[{kind:"syntax",min:"COMMON"}];
+    if(score>=75000) guarantees.push({kind:"any",min:"RARE"});
+    if(score>=150000) guarantees.push({kind:"gear",min:"RARE"});
+    if(score>=300000) guarantees.push({kind:"any",min:"EPIC"});
+    if(score>=600000) guarantees.push({kind:"gear",min:"EPIC"});
+    let cards=0,newSyntax=0,gear=0;
+    for(let i=0;i<profile.slots;i++){
+      const g=guarantees[i]||null,rarity=runRarityRoll(profile,g?.min||"COMMON");let kind=g?.kind||"any";
+      if(kind==="any"){const r=Math.random();kind=r<profile.gear?"gear":r<profile.gear+profile.card?"card":"syntax";}
+      let x;
+      if(kind==="gear"){x=pullModule(rarity);gear++;}
+      else if(kind==="card"){x=grantCompletedCard(rarity);cards++;}
+      else{const before=Object.values(meta.syntax).filter(Boolean).length;x=grantSyntaxPart(rarity);const after=Object.values(meta.syntax).filter(Boolean).length;if(after>before)newSyntax++;}
+      results.push(x);
     }
-    return {count,cards,newSyntax,results};
+    return {count:profile.slots,cards,newSyntax,gear,results,profile};
   }
   let metaReturnState="menu";
   function openMeta(from="menu"){
@@ -3313,6 +3525,8 @@
     }
   }
 
+  function runXpNeeded(level){return Math.max(12,Math.round(8 + 5*level + 2*Math.pow(level,1.25)));}
+
   const playerBase = () => ({
     x: W/2, y: H/2,
     vx: 0, vy: 0,
@@ -3320,7 +3534,7 @@
     speed: 275,
     phaseSpeedTimer: 0,
     hp: 100, maxHp: 100,
-    level: 1, xp: 0, nextXp: 10,
+    level: 1, xp: 0, nextXp: runXpNeeded(1),
     damage: 18,
     fireRate: 6.5,
     bulletSpeed: 760,
@@ -3415,8 +3629,10 @@
     }
 
     const earnedCredits = earnedCreditAmount();
+    const playerXpGain=scoreToPlayerXp(score),levelBefore=meta.playerLevel;
     meta.credits += earnedCredits;
     meta.totalRuns = (meta.totalRuns||0) + 1;
+    const levelsGained=awardPlayerXp(playerXpGain);
     const runLoot = grantRunLoot();
     localStorage.setItem("nf_meta_v1",JSON.stringify(meta));
 
@@ -3424,8 +3640,10 @@
     UI.finalWave.textContent = wave;
     UI.finalKills.textContent = kills;
     UI.earnedCredits.textContent = earnedCredits.toLocaleString();
-    UI.runLootCount.textContent = `${runLoot.count}個解析`;
-    UI.runLootText.innerHTML = `スコアから <b class="text-cyan-200">${runLoot.count}個</b> の報酬を解析。新規構文 <b class="text-violet-200">${runLoot.newSyntax}</b> / 完成カード <b class="text-amber-200">${runLoot.cards}</b>。高スコアほど解析数と高レア率が増える。`;
+    UI.runLootCount.textContent = `${runLoot.count}枠解析`;
+    $("earnedPlayerXp").textContent=playerXpGain.toLocaleString();$("rewardRank").textContent=runLoot.profile.rank;
+    UI.runLootText.innerHTML = `最低保証込み <b class="text-cyan-200">${runLoot.count}枠</b>。新規構文 <b class="text-violet-200">${runLoot.newSyntax}</b> / 完成カード <b class="text-amber-200">${runLoot.cards}</b> / 装備 <b class="text-emerald-200">${runLoot.gear}</b>。Player Lv.${levelBefore}${levelsGained?` → <b class="text-cyan-200">${meta.playerLevel}</b> (+${levelsGained})`:''}`;
+    $("rewardRatesText").innerHTML=`スコア補正: 装備 ${(runLoot.profile.gear*100).toFixed(1)}% / 完成カード ${(runLoot.profile.card*100).toFixed(1)}% / RARE+ ${(runLoot.profile.rarePlus*100).toFixed(1)}% / EPIC+ ${(runLoot.profile.epicPlus*100).toFixed(1)}% / LEGENDARY ${(runLoot.profile.legendary*100).toFixed(2)}%（各確率には上限あり）`;
     UI.newRecord.classList.toggle("hidden", !wasHigh);
 
     if(reason==="settle"){
@@ -3438,9 +3656,9 @@
       $("gameOverTag").className="hud-label text-[10px] text-rose-300 font-black";
       UI.gameOverTitle.textContent="撃破された";
       UI.gameOverMessage.textContent = wave >= 10
-        ? "ここまで来れば十分な強者だ。次はさらに先へ。"
+        ? "高Wave到達。ビルドを調整すればさらに伸ばせる。"
         : wave >= 5
-        ? "かなり良い記録。ネオン空間はあなたの動きを学習している。"
+        ? "報酬を持ち帰った。装備と研究を更新して次のランへ。"
         : "シグナルが途絶えた。能力の組み合わせを変えて再挑戦しよう。";
     }
 
@@ -3739,12 +3957,8 @@
   function addXP(amount) {
     player.xp += amount;
     while (player.xp >= player.nextXp) {
-      player.xp -= player.nextXp;
-      player.level++;
-      // v18: 後半の必要XPが指数的に膨らみすぎないよう緩和。
-      // v17: x1.23+5 → v18: x1.16+5
-      player.nextXp = Math.floor(player.nextXp * 1.16 + 5);
-      pendingLevelUps++;
+      player.xp -= player.nextXp;player.level++;player.nextXp=runXpNeeded(player.level);pendingLevelUps++;
+      if(pendingLevelUps>12) break;
     }
     if (pendingLevelUps > 0 && state === "playing") showUpgrade();
   }
@@ -3828,7 +4042,7 @@
     const point = chooseSpawnPoint(boss);
     let x = point.x, y = point.y;
 
-    const scale = 1 + wave*.078 + Math.max(0, wave-6)*.022;
+    const scale = 1 + Math.max(0,wave-1)*.055 + Math.max(0,wave-15)*.015;
     const defs = {
       chaser:   {r:13,hp:30,speed:82,damage:14,value:8,hue:350},
       swift:    {r:9,hp:18,speed:132,damage:10,value:10,hue:185},
@@ -3843,9 +4057,9 @@
     if (boss) {
       bossKind = ["warden","spinner","hunter"][(Math.floor(wave/5)-1)%3];
       const bossDefs = {
-        warden:{r:43,hp:680+wave*118,speed:43,damage:29,value:280,hue:330,shoot:true},
-        spinner:{r:40,hp:630+wave*108,speed:53,damage:27,value:280,hue:275,shoot:true},
-        hunter:{r:37,hp:570+wave*100,speed:66,damage:26,value:280,hue:18,shoot:true}
+        warden:{r:43,hp:900,speed:36,damage:27,value:320,hue:330,shoot:true},
+        spinner:{r:40,hp:840,speed:40,damage:26,value:320,hue:275,shoot:true},
+        hunter:{r:37,hp:790,speed:46,damage:25,value:320,hue:18,shoot:true}
       };
       d = bossDefs[bossKind];
     }
@@ -3856,10 +4070,9 @@
     const eliteSpeed = elite ? 1.07 : 1;
     enemies.push({
       x,y,vx:0,vy:0,type,r:d.r+(elite?2:0),
-      hp:d.hp*scale*eliteHp,maxHp:d.hp*scale*eliteHp,
-      // 速度は敵種の個性を残しつつ、Waveで暴走しないよう上昇を緩くして上限を設定。
-      // Wave1=等倍、Wave20付近でも約+11%。v17は毎Wave+1.4%だった。
-      speed:d.speed*(1+Math.min(30,Math.max(0,wave-1))*.006)*eliteSpeed,
+      hp:d.hp*(boss?(1+Math.max(0,wave-5)*.055):scale)*eliteHp,maxHp:d.hp*(boss?(1+Math.max(0,wave-5)*.055):scale)*eliteHp,
+      // 通常敵は種別ごとの速度を保ち、BossはWaveで高速化しない。
+      speed:(boss?d.speed:d.speed*(1+Math.min(24,Math.max(0,wave-1))*.003))*eliteSpeed,
       // 攻撃力は10Waveごとの明確な危険度段階へ。
       // Wave10/20/30...で +20% ずつ上昇。
       damage:d.damage*(1+Math.floor(wave/10)*.20)*eliteDmg,
@@ -3900,15 +4113,24 @@
         shots = [{a,s:210,r:4,d:8}];
         e.shootTimer = 2.15;
       }
-    } else if (e.bossKind === "spinner") {
-      for (let i=0;i<5;i++) shots.push({a:e.phase+i*TAU/5,s:205,r:5,d:10});
-      e.shootTimer = 1.65;
-    } else if (e.bossKind === "hunter") {
-      shots = [{a:a-.10,s:315,r:5,d:11},{a,s:335,r:6,d:13},{a:a+.10,s:315,r:5,d:11}];
-      e.shootTimer = 1.5;
     } else {
-      for (let i=0;i<5;i++) shots.push({a:a+(i-2)*.16,s:235,r:5,d:10});
-      e.shootTimer = 1.55;
+      const hpRate=Math.max(0,e.hp/e.maxHp);
+      if(e.bossKind==="spinner"){
+        const n=hpRate>.66?5:hpRate>.33?7:9;
+        for(let i=0;i<n;i++)shots.push({a:e.phase+i*TAU/n,s:hpRate>.33?195:215,r:5,d:9});
+        if(hpRate<=.66)shots.push({a,s:245,r:4,d:9});
+        e.shootTimer=hpRate>.66?1.8:hpRate>.33?1.55:1.28;
+      }else if(e.bossKind==="hunter"){
+        const spread=hpRate>.66?[-.11,0,.11]:hpRate>.33?[-.22,-.1,0,.1,.22]:[-.28,-.14,0,.14,.28];
+        for(const o of spread)shots.push({a:a+o,s:hpRate>.33?275:300,r:o===0?6:5,d:o===0?12:9});
+        if(hpRate<=.33){shots.push({a:a+1.05,s:220,r:4,d:8},{a:a-1.05,s:220,r:4,d:8});}
+        e.shootTimer=hpRate>.66?1.7:hpRate>.33?1.45:1.18;
+      }else{
+        const n=hpRate>.70?3:hpRate>.35?5:7;
+        for(let i=0;i<n;i++)shots.push({a:a+(i-(n-1)/2)*.145,s:220,r:5,d:10});
+        if(hpRate<=.70){const ringN=hpRate>.35?6:8;for(let i=0;i<ringN;i++)shots.push({a:e.phase+i*TAU/ringN,s:175,r:4,d:7});}
+        e.shootTimer=hpRate>.70?1.75:hpRate>.35?1.48:1.22;
+      }
     }
 
     for (const sh of shots) {
@@ -4066,11 +4288,11 @@
   }
 
   const GEM_TYPES = {
-    fragment:{hue:185,r:4,xp:1,label:"断片"},
-    dense:{hue:220,r:5,xp:3,label:"高密度"},
-    vital:{hue:145,r:5,xp:2,label:"生命",heal:.035},
-    rare:{hue:280,r:6,xp:5,label:"希少",rarity:1},
-    boss:{hue:42,r:8,xp:20,label:"ボスコア",heal:.15,epic:true}
+    fragment:{hue:185,r:4,xp:2,label:"断片"},
+    dense:{hue:220,r:5,xp:6,label:"高密度"},
+    vital:{hue:145,r:5,xp:4,label:"生命",heal:.035},
+    rare:{hue:280,r:6,xp:10,label:"希少",rarity:1},
+    boss:{hue:42,r:8,xp:45,label:"ボスコア",heal:.15,epic:true}
   };
 
   function dropGem(x, y, kind="fragment") {
@@ -4086,7 +4308,8 @@
         return;
       }
     }
-    gems.push({x:x+rand(-12,12),y:y+rand(-12,12),vx:rand(-65,65),vy:rand(-65,65),r:type.r,value:type.xp,kind,hue:type.hue,life:20});
+    const xpScale=1+Math.floor(Math.max(0,wave-1)/7)*.55;
+    gems.push({x:x+rand(-12,12),y:y+rand(-12,12),vx:rand(-65,65),vy:rand(-65,65),r:type.r,value:Math.max(1,Math.round(type.xp*xpScale)),kind,hue:type.hue,life:20});
   }
 
   function collectGem(g) {
@@ -4144,9 +4367,9 @@
     beep(e.boss?80:260+Math.random()*90,e.boss?.25:.035,e.boss?"sawtooth":"triangle",e.boss?.05:.012,e.boss?100:80);
 
     if (e.split && !e.boss) {
-      for(let i=0;i<2 && enemies.length<34;i++) {
+      for(let i=0;i<2 && enemies.length<PERF.maxEnemies;i++) {
         enemies.push({x:e.x+rand(-10,10),y:e.y+rand(-10,10),vx:rand(-45,45),vy:rand(-45,45),type:"swift",r:7,
-          hp:12+wave*2,maxHp:12+wave*2,speed:138,damage:8,value:6,hue:135,shoot:false,split:false,charge:false,orbit:false,
+          hp:12+wave*1.5,maxHp:12+wave*1.5,speed:132,damage:8,value:7,hue:135,shoot:false,split:false,charge:false,orbit:false,
           boss:false,bossKind:null,spawnDelay:0,spawnTotal:0,shootTimer:1,chargeTimer:2,chargeTime:0,slow:0,slowPower:0,hitFlash:0,phase:rand(0,TAU)});
       }
     }
@@ -4171,6 +4394,7 @@
     if (newWave !== wave) {
       wave = newWave;
       waveTimer = 0;
+      score += 260 + wave*42;
       texts.push({x:W/2,y:H*.26,text:"ウェーブ "+String(wave).padStart(2,"0"),life:1.2,max:1.2,hue:190,size:28});
       // 既存ボスが生存中なら次のボスWaveをスキップ。複数ボスは絶対に同居させない。
       if (wave % 5 === 0 && !bossAlive && !enemies.some(e=>e.boss&&!e._dead)) spawnBoss();
@@ -4205,15 +4429,14 @@
     // Spawn
     spawnTimer -= dt;
     if (spawnTimer<=0 && !bossWarningTimer) {
-      // 敵数は無限に増やさず、後半は耐久・種類で難易度を上げる。
-      const regularCount = enemies.reduce((n, e) => n + (!e._dead && !e.boss ? 1 : 0), 0);
-      const normalCap = Math.min(30, 14 + Math.floor(wave * 1.0));
-      // ボス中は雑魚の物量を大きく落とす。難しさはボス本体のパターンに寄せる。
-      const activeCap = bossAlive ? Math.min(4, 2 + Math.floor(wave / 10)) : normalCap;
-      if (regularCount < activeCap) spawnEnemy();
-
-      const baseInterval = Math.max(.40, .90 - Math.min(wave, 18) * .022);
-      spawnTimer = baseInterval * (bossAlive ? 2.65 : 1) * rand(.88, 1.14);
+      // v26: 敵密度をしっかり確保。難易度は速度より物量・耐久・攻撃構成で作る。
+      const regularCount = enemies.reduce((n,e)=>n+(!e._dead&&!e.boss?1:0),0);
+      const normalCap=Math.min(58,18+Math.floor(wave*1.45));
+      const activeCap=bossAlive?Math.min(6,3+Math.floor(wave/12)):normalCap;
+      const batch=bossAlive?1:(wave<6?1:wave<16?2:3);
+      for(let n=0;n<batch && regularCount+n<activeCap && enemies.length<PERF.maxEnemies;n++)spawnEnemy();
+      const baseInterval=Math.max(.24,.68-Math.min(wave,28)*.014);
+      spawnTimer=baseInterval*(bossAlive?2.20:1)*rand(.90,1.10);
     }
     bossWarningTimer = Math.max(0,bossWarningTimer-dt);
 
@@ -4912,6 +5135,15 @@
       navigator.serviceWorker.register("./sw.js").catch(()=>{});
     });
   }
+
+  // ---------- Collection filters ----------
+  function setupCardFilters(){
+    const trg=$("cardFilterTrigger"),eff=$("cardFilterEffect");
+    if(trg&&trg.options.length===1)for(const p of CARD_PARTS.trigger){const o=document.createElement("option");o.value=p.id;o.textContent=p.text;trg.appendChild(o);}
+    if(eff&&eff.options.length===1)for(const p of CARD_PARTS.effect){const o=document.createElement("option");o.value=p.id;o.textContent=p.text;eff.appendChild(o);}
+    for(const id of ["cardFilterRarity","cardFilterTrigger","cardFilterEffect","cardFilterState"]){$(id)?.addEventListener("change",renderCards);}
+  }
+  setupCardFilters();
 
   // ---------- Buttons ----------
   $("startBtn").addEventListener("click", resetGame);
