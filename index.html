@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
-  <title>NEON FRACTURE v17 — PWA / Floating Stick</title>
+  <title>NEON FRACTURE v18 — バランス・モバイルUI改善版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -477,7 +477,7 @@
     }
     .mobile-touch-zone {
       position: absolute;
-      top: 20%;
+      top: 32%;
       bottom: 0;
       width: 50%;
       pointer-events: auto;
@@ -487,6 +487,51 @@
     }
     #moveZone { left: 0; }
     #aimZone { right: 0; }
+
+    /* v18: フローティングスティックが有効な領域を常時うっすら可視化。
+       円の中のどこからでも押し始めた位置がスティック中心になる。 */
+    .mobile-touch-zone::before {
+      content: "";
+      position: absolute;
+      left: 7%;
+      right: 7%;
+      top: 8%;
+      bottom: max(8%, env(safe-area-inset-bottom));
+      border: 1px solid rgba(148,163,184,.12);
+      border-radius: 44% / 58%;
+      background:
+        radial-gradient(circle at 50% 58%, rgba(148,163,184,.030) 0 31%, transparent 32%),
+        radial-gradient(circle at 50% 58%, transparent 0 50%, rgba(148,163,184,.025) 51% 52%, transparent 53%);
+      box-shadow: inset 0 0 42px rgba(2,6,23,.10);
+      pointer-events: none;
+    }
+    .mobile-touch-zone::after {
+      position: absolute;
+      left: 50%;
+      bottom: max(13px, calc(env(safe-area-inset-bottom) + 5px));
+      transform: translateX(-50%);
+      font-size: 7px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: .14em;
+      white-space: nowrap;
+      color: rgba(203,213,225,.24);
+      pointer-events: none;
+    }
+    #moveZone::after { content: "MOVE AREA"; }
+    #aimZone::after { content: "AIM + FIRE AREA"; }
+    #moveZone::before {
+      border-color: rgba(103,232,249,.11);
+      background:
+        radial-gradient(circle at 50% 58%, rgba(34,211,238,.035) 0 31%, transparent 32%),
+        radial-gradient(circle at 50% 58%, transparent 0 50%, rgba(34,211,238,.035) 51% 52%, transparent 53%);
+    }
+    #aimZone::before {
+      border-color: rgba(196,181,253,.12);
+      background:
+        radial-gradient(circle at 50% 58%, rgba(168,85,247,.035) 0 31%, transparent 32%),
+        radial-gradient(circle at 50% 58%, transparent 0 50%, rgba(168,85,247,.035) 51% 52%, transparent 53%);
+    }
 
     .mobile-stick {
       position: absolute !important;
@@ -531,7 +576,7 @@
       pointer-events: none;
       transition: opacity .3s ease;
     }
-    body.mobile-stick-used #mobileZoneHint { opacity: 0; }
+    body.mobile-stick-used #mobileZoneHint { opacity: .14; }
 
     #pwaInstallHint {
       position: fixed;
@@ -1083,7 +1128,7 @@
 
       <button id="mobileDashBtn" type="button">DASH</button>
       <button id="mobilePauseBtn" type="button">Ⅱ</button>
-      <div id="mobileZoneHint">下部左：移動 ／ 下部右：照準＋射撃</div>
+      <div id="mobileZoneHint">薄い操作エリア内を長押し：左=移動 ／ 右=照準＋射撃</div>
     </div>
 
     <div id="pwaInstallHint" class="hidden">
@@ -2493,7 +2538,9 @@
     while (player.xp >= player.nextXp) {
       player.xp -= player.nextXp;
       player.level++;
-      player.nextXp = Math.floor(player.nextXp * 1.23 + 5);
+      // v18: 後半の必要XPが指数的に膨らみすぎないよう緩和。
+      // v17: x1.23+5 → v18: x1.16+5
+      player.nextXp = Math.floor(player.nextXp * 1.16 + 5);
       pendingLevelUps++;
     }
     if (pendingLevelUps > 0 && state === "playing") showUpgrade();
@@ -2581,12 +2628,12 @@
     const scale = 1 + wave*.078 + Math.max(0, wave-6)*.022;
     const defs = {
       chaser:   {r:13,hp:30,speed:82,damage:14,value:8,hue:350},
-      swift:    {r:9,hp:18,speed:145,damage:10,value:10,hue:185},
+      swift:    {r:9,hp:18,speed:132,damage:10,value:10,hue:185},
       tank:     {r:20,hp:95,speed:48,damage:22,value:18,hue:280},
       shooter:  {r:14,hp:48,speed:62,damage:12,value:16,hue:42,shoot:true},
-      splitter: {r:16,hp:62,speed:72,damage:15,value:20,hue:135,split:true},
+      splitter: {r:16,hp:62,speed:68,damage:15,value:20,hue:135,split:true},
       charger:  {r:12,hp:44,speed:70,damage:20,value:18,hue:12,charge:true},
-      orbiter:  {r:12,hp:42,speed:88,damage:12,value:18,hue:215,shoot:true,orbit:true}
+      orbiter:  {r:12,hp:42,speed:80,damage:12,value:18,hue:215,shoot:true,orbit:true}
     };
     let d = defs[type] || defs.chaser;
     let bossKind = null;
@@ -2595,7 +2642,7 @@
       const bossDefs = {
         warden:{r:43,hp:680+wave*118,speed:43,damage:29,value:280,hue:330,shoot:true},
         spinner:{r:40,hp:630+wave*108,speed:53,damage:27,value:280,hue:275,shoot:true},
-        hunter:{r:37,hp:570+wave*100,speed:72,damage:26,value:280,hue:18,shoot:true}
+        hunter:{r:37,hp:570+wave*100,speed:66,damage:26,value:280,hue:18,shoot:true}
       };
       d = bossDefs[bossKind];
     }
@@ -2603,12 +2650,16 @@
     const elite = !boss && wave >= 3 && Math.random() < Math.min(.22, .025 + wave*.012);
     const eliteHp = elite ? 1.85 : 1;
     const eliteDmg = elite ? 1.38 : 1;
-    const eliteSpeed = elite ? 1.10 : 1;
+    const eliteSpeed = elite ? 1.07 : 1;
     enemies.push({
       x,y,vx:0,vy:0,type,r:d.r+(elite?2:0),
       hp:d.hp*scale*eliteHp,maxHp:d.hp*scale*eliteHp,
-      speed:d.speed*(1+wave*.014)*eliteSpeed,
-      damage:d.damage*(1+wave*(boss?.035:.05))*eliteDmg,
+      // 速度は敵種の個性を残しつつ、Waveで暴走しないよう上昇を緩くして上限を設定。
+      // Wave1=等倍、Wave20付近でも約+11%。v17は毎Wave+1.4%だった。
+      speed:d.speed*(1+Math.min(30,Math.max(0,wave-1))*.006)*eliteSpeed,
+      // 攻撃力は10Waveごとの明確な危険度段階へ。
+      // Wave10/20/30...で +20% ずつ上昇。
+      damage:d.damage*(1+Math.floor(wave/10)*.20)*eliteDmg,
       value:Math.floor(d.value*(elite?2.1:1)),hue:(d.hue+(elite?22:0))%360,elite,
       shoot:!!d.shoot,split:!!d.split,charge:!!d.charge,orbit:!!d.orbit,
       boss:!!boss,bossKind,
@@ -2619,6 +2670,8 @@
   }
 
   function spawnBoss() {
+    // 二重保険。Wave更新以外から呼ばれても同時ボスを生成しない。
+    if (bossAlive || enemies.some(e=>e.boss&&!e._dead)) return false;
     bossAlive = true;
     bossWarningTimer = 1.35;
     // ボス開始時に不要な敵弾を消し、突入時の描画負荷と事故を軽減。
@@ -2627,6 +2680,7 @@
     setTimeout(() => UI.bossWarning.classList.add("hidden"), 1300);
     spawnEnemy("boss", true);
     beep(70,.65,"sawtooth",.05,30);
+    return true;
   }
 
   function enemyShoot(e) {
@@ -2658,7 +2712,7 @@
       if (bullets.length >= PERF.maxBullets) break;
       const currentEnemy = bullets.reduce((n,b)=>n+(b.enemy?1:0),0);
       if (currentEnemy >= PERF.maxEnemyBullets) break;
-      const projectileScale = (1 + wave*.04) * (e.elite ? 1.28 : 1);
+      const projectileScale = (1 + Math.floor(wave/10)*.20) * (e.elite ? 1.25 : 1);
       bullets.push({x:e.x,y:e.y,vx:Math.cos(sh.a)*sh.s,vy:Math.sin(sh.a)*sh.s,
         r:sh.r,life:e.boss?3.2:3.5,damage:sh.d*projectileScale,enemy:true,hue:e.hue});
     }
@@ -2889,7 +2943,7 @@
     if (e.split && !e.boss) {
       for(let i=0;i<2 && enemies.length<34;i++) {
         enemies.push({x:e.x+rand(-10,10),y:e.y+rand(-10,10),vx:rand(-45,45),vy:rand(-45,45),type:"swift",r:7,
-          hp:12+wave*2,maxHp:12+wave*2,speed:155,damage:8,value:6,hue:135,shoot:false,split:false,charge:false,orbit:false,
+          hp:12+wave*2,maxHp:12+wave*2,speed:138,damage:8,value:6,hue:135,shoot:false,split:false,charge:false,orbit:false,
           boss:false,bossKind:null,spawnDelay:0,spawnTotal:0,shootTimer:1,chargeTimer:2,chargeTime:0,slow:0,slowPower:0,hitFlash:0,phase:rand(0,TAU)});
       }
     }
@@ -2915,7 +2969,8 @@
       wave = newWave;
       waveTimer = 0;
       texts.push({x:W/2,y:H*.26,text:"ウェーブ "+String(wave).padStart(2,"0"),life:1.2,max:1.2,hue:190,size:28});
-      if (wave % 5 === 0) spawnBoss();
+      // 既存ボスが生存中なら次のボスWaveをスキップ。複数ボスは絶対に同居させない。
+      if (wave % 5 === 0 && !bossAlive && !enemies.some(e=>e.boss&&!e._dead)) spawnBoss();
       emitCardTrigger("on_wave",{wave});
       beep(300,.12,"triangle",.03,220);
     }
@@ -3123,7 +3178,12 @@
     UI.waveText.textContent="ウェーブ "+String(wave).padStart(2,"0");
     const boss = enemies.find(e=>e.boss&&!e._dead);
     const bossName = boss?.bossKind === "spinner" ? "回転異常体" : boss?.bossKind === "hunter" ? "追跡異常体" : "防衛異常体";
-    UI.objectiveText.textContent=bossAlive ? `${bossName}を撃破せよ` : wave%5===4 ? "ボス反応が接近中…" : "ネオン空間を生き残れ。";
+    const dmgTier=Math.floor(wave/10);
+    UI.objectiveText.textContent=bossAlive
+      ? `${bossName}を撃破せよ / 敵攻撃 ${100+dmgTier*20}%`
+      : wave%5===4
+      ? `ボス反応が接近中… / 敵攻撃 ${100+dmgTier*20}%`
+      : `ネオン空間を生き残れ。 / 敵攻撃 ${100+dmgTier*20}%`;
     UI.xpText.textContent=`${Math.floor(player.xp)} / ${player.nextXp}`;
     UI.xpBar.style.width=(player.xp/player.nextXp*100)+"%";
     UI.rarityBoostText.textContent = player.epicGuarantee ? "次回エピック確定" : `希少共鳴 ${player.rarityCharge} / 3`;
