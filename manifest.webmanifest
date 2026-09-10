@@ -1,7 +1,7 @@
 {
   "name": "NEON FRACTURE",
   "short_name": "NEON FRACTURE",
-  "description": "カード構文を組み上げて戦うネオン・アリーナローグライト。",
+  "description": "カード構文を組み上げ、有限ネオンフィールドを生き残るアクションローグライト。",
   "id": "./",
   "start_url": "./",
   "scope": "./",

@@ -1,20 +1,13 @@
-NEON FRACTURE PWA bundle
+NEON FRACTURE v20
 
-Upload these files to the repository root (main branch):
-- index.html
-- manifest.webmanifest
-- sw.js
-- icon-192.png
-- icon-512.png
+Mobile UI is now a dedicated layout rather than a scaled desktop UI.
 
-GitHub Pages:
-https://tp-li-dev.github.io/neon-fracture/
-
-On iPhone/iPad:
-Safari -> Share -> Add to Home Screen
-Launch from the Home Screen for standalone/PWA display.
-
-Notes:
-- Tailwind remains CDN-based as requested.
-- The service worker caches the Tailwind CDN response after the first successful online load.
-- Mobile gameplay uses floating sticks: touch/hold or drag in the lower-left/lower-right control zones.
+- Gameplay HUD reorganized for touch screens
+- XP bar moved to upper center to keep control area clear
+- Pause menu redesigned as a landscape action dashboard
+- Game-over screen redesigned as a landscape result dashboard
+- How-to screen becomes a mobile full-screen sheet
+- Laboratory/card forge switches to compact single-column mobile composition
+- Existing v19 mobile upgrade layout preserved
+- Floating touch zones preserved
+- PWA cache bumped to v20-1

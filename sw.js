@@ -1,4 +1,4 @@
-const CACHE = "neon-fracture-v17-1";
+const CACHE = "neon-fracture-v20-1";
 const CORE = [
   "./",
   "./index.html",
