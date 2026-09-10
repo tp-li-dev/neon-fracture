@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
-  <title>NEON FRACTURE v23 — iPhoneセーフエリア・パッド修正版</title>
+  <title>NEON FRACTURE v24 — フローティングパッド座標修正版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -494,50 +494,75 @@
       width: calc(50% - env(safe-area-inset-right) * .55);
     }
 
-    /* v18: フローティングスティックが有効な領域を常時うっすら可視化。
-       円の中のどこからでも押し始めた位置がスティック中心になる。 */
+    /* v24: 操作可能エリアと実際のスティックを明確に分離する。 */
+    .mobile-touch-zone {
+      background: linear-gradient(
+        180deg,
+        rgba(15,23,42,0) 0%,
+        rgba(15,23,42,.012) 42%,
+        rgba(15,23,42,.028) 100%
+      );
+    }
     .mobile-touch-zone::before {
       content: "";
       position: absolute;
-      left: 10%;
-      right: 10%;
-      top: 12%;
-      bottom: max(14%, calc(env(safe-area-inset-bottom) + 18px));
-      border: 1px solid rgba(148,163,184,.12);
-      border-radius: 44% / 58%;
-      background:
-        radial-gradient(circle at 50% 58%, rgba(148,163,184,.030) 0 31%, transparent 32%),
-        radial-gradient(circle at 50% 58%, transparent 0 50%, rgba(148,163,184,.025) 51% 52%, transparent 53%);
-      box-shadow: inset 0 0 42px rgba(2,6,23,.10);
+      left: 8%;
+      right: 8%;
+      top: 10%;
+      bottom: max(10%, calc(env(safe-area-inset-bottom) + 14px));
+      border: 1px dashed rgba(148,163,184,.11);
+      border-radius: 22px;
+      background: transparent;
       pointer-events: none;
     }
+    #moveZone::before {
+      border-color: rgba(103,232,249,.11);
+      box-shadow: inset 0 0 34px rgba(34,211,238,.018);
+    }
+    #aimZone::before {
+      border-color: rgba(196,181,253,.11);
+      box-shadow: inset 0 0 34px rgba(168,85,247,.018);
+    }
+
+    /* これはパッド本体ではなく、親指を置きやすい目安。 */
+    .mobile-zone-origin-hint {
+      position: absolute;
+      width: 104px;
+      height: 104px;
+      border-radius: 9999px;
+      border: 1px solid rgba(148,163,184,.075);
+      background: radial-gradient(circle, rgba(255,255,255,.012) 0 34%, transparent 35%);
+      pointer-events: none;
+      opacity: .48;
+    }
+    #moveOriginHint {
+      left: 24%;
+      bottom: max(40px, calc(env(safe-area-inset-bottom) + 30px));
+      transform: translateX(-50%);
+      border-color: rgba(103,232,249,.085);
+    }
+    #aimOriginHint {
+      right: 24%;
+      bottom: max(40px, calc(env(safe-area-inset-bottom) + 30px));
+      transform: translateX(50%);
+      border-color: rgba(196,181,253,.09);
+    }
+
     .mobile-touch-zone::after {
       position: absolute;
       left: 50%;
-      bottom: max(14px, calc(env(safe-area-inset-bottom) + 14px));
+      bottom: max(14px, calc(env(safe-area-inset-bottom) + 12px));
       transform: translateX(-50%);
       font-size: 7px;
       line-height: 1;
       font-weight: 900;
       letter-spacing: .14em;
       white-space: nowrap;
-      color: rgba(203,213,225,.24);
+      color: rgba(203,213,225,.22);
       pointer-events: none;
     }
     #moveZone::after { content: "MOVE AREA"; }
     #aimZone::after { content: "AIM + FIRE AREA"; }
-    #moveZone::before {
-      border-color: rgba(103,232,249,.11);
-      background:
-        radial-gradient(circle at 50% 58%, rgba(34,211,238,.035) 0 31%, transparent 32%),
-        radial-gradient(circle at 50% 58%, transparent 0 50%, rgba(34,211,238,.035) 51% 52%, transparent 53%);
-    }
-    #aimZone::before {
-      border-color: rgba(196,181,253,.12);
-      background:
-        radial-gradient(circle at 50% 58%, rgba(168,85,247,.035) 0 31%, transparent 32%),
-        radial-gradient(circle at 50% 58%, transparent 0 50%, rgba(168,85,247,.035) 51% 52%, transparent 53%);
-    }
 
     .mobile-stick {
       position: absolute !important;
@@ -545,19 +570,36 @@
       right: auto !important;
       top: 0 !important;
       bottom: auto !important;
-      width: 132px;
-      height: 132px;
-      margin: -66px 0 0 -66px;
+      width: 126px;
+      height: 126px;
+      margin: -63px 0 0 -63px;
       opacity: 0;
       visibility: hidden;
-      transform: scale(.84);
-      transition: opacity .07s ease, transform .07s ease;
+      transform: scale(.82);
+      transition: opacity .055s ease, transform .055s ease;
       pointer-events: none !important;
+      border-width: 2px !important;
+      background:
+        radial-gradient(circle at center,
+          rgba(15,23,42,.72) 0 30%,
+          rgba(15,23,42,.36) 31% 59%,
+          rgba(15,23,42,.11) 60% 100%) !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.035),
+        inset 0 0 26px rgba(2,6,23,.72),
+        0 0 30px rgba(34,211,238,.11) !important;
     }
     .mobile-stick.active {
       opacity: 1;
       visibility: visible;
       transform: scale(1);
+    }
+    #moveStick.active { border-color: rgba(103,232,249,.52) !important; }
+    #aimStick.active { border-color: rgba(196,181,253,.56) !important; }
+    .mobile-stick.active .mobile-stick-knob {
+      background: rgba(226,232,240,.17) !important;
+      border-color: rgba(226,232,240,.45) !important;
+      box-shadow: 0 0 22px rgba(165,243,252,.15) !important;
     }
     #aimStick { border-color: rgba(34,211,238,.28); }
 
@@ -1652,33 +1694,6 @@
     }
 
   
-    /* v23: iPhone landscape needs more separation from the notch/home-indicator dead zones. */
-    @media (pointer: coarse) and (orientation: landscape) {
-      .mobile-touch-zone {
-        top: max(42%, 128px) !important;
-      }
-      .mobile-touch-zone::before {
-        left: 12% !important;
-        right: 12% !important;
-        top: 14% !important;
-        bottom: max(16%, calc(env(safe-area-inset-bottom) + 22px)) !important;
-      }
-      #moveZone::after, #aimZone::after {
-        bottom: max(18px, calc(env(safe-area-inset-bottom) + 18px)) !important;
-      }
-      #mobileZoneHint {
-        bottom: max(12px, calc(env(safe-area-inset-bottom) + 2px)) !important;
-      }
-    }
-
-    @supports (padding: max(0px)) {
-      body.mobile-input #app {
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-      }
-    }
-
-  
     @media (pointer: coarse) {
       #metaScreen.mobile-meta-screen {
         padding-top: max(10px, calc(env(safe-area-inset-top) + 4px)) !important;
@@ -1694,6 +1709,44 @@
         top: max(12px, calc(env(safe-area-inset-top) + 4px)) !important;
         right: max(12px, calc(env(safe-area-inset-right) + 4px)) !important;
         z-index: 35 !important;
+      }
+    }
+
+  
+    @media (pointer: coarse) and (orientation: landscape) {
+      .mobile-touch-zone {
+        top: 45% !important;
+      }
+      #moveZone {
+        left: max(8px, env(safe-area-inset-left)) !important;
+        width: calc(50% - max(8px, env(safe-area-inset-left)) - 4px) !important;
+      }
+      #aimZone {
+        right: max(8px, env(safe-area-inset-right)) !important;
+        width: calc(50% - max(8px, env(safe-area-inset-right)) - 4px) !important;
+      }
+
+      #mobileDashBtn {
+        right: max(22px, calc(env(safe-area-inset-right) + 10px)) !important;
+        bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px)) !important;
+      }
+      #mobilePauseBtn {
+        right: max(16px, calc(env(safe-area-inset-right) + 6px)) !important;
+        top: max(14px, calc(env(safe-area-inset-top) + 4px)) !important;
+      }
+      #mobileZoneHint {
+        bottom: max(10px, calc(env(safe-area-inset-bottom) + 2px)) !important;
+      }
+    }
+
+    @media (pointer: coarse) and (orientation: landscape) and (max-height: 470px) {
+      .mobile-touch-zone { top: 42% !important; }
+      .mobile-zone-origin-hint {
+        width: 86px;
+        height: 86px;
+      }
+      #moveOriginHint, #aimOriginHint {
+        bottom: max(34px, calc(env(safe-area-inset-bottom) + 26px));
       }
     }
 
@@ -2214,6 +2267,8 @@
     <div id="mobileControls" class="hidden">
       <div id="moveZone" class="mobile-touch-zone" aria-label="移動操作エリア"></div>
       <div id="aimZone" class="mobile-touch-zone" aria-label="照準・射撃操作エリア"></div>
+      <div id="moveOriginHint" class="mobile-zone-origin-hint"></div>
+      <div id="aimOriginHint" class="mobile-zone-origin-hint"></div>
 
       <div id="moveStick" class="mobile-stick" aria-hidden="true">
         <div id="moveStickKnob" class="mobile-stick-knob"></div>
@@ -2224,7 +2279,7 @@
 
       <button id="mobileDashBtn" type="button">DASH</button>
       <button id="mobilePauseBtn" type="button">Ⅱ</button>
-      <div id="mobileZoneHint">薄い操作エリア内を長押し：左=移動 ／ 右=照準＋射撃</div>
+      <div id="mobileZoneHint">枠内の好きな位置を長押し → そこにスティック表示</div>
     </div>
 
     <div id="pwaInstallHint" class="hidden">
@@ -2433,8 +2488,8 @@
     UI.mobileControls.classList.toggle("hidden", !visible);
     document.body.classList.toggle("mobile-game-active", !!visible);
     if(!visible){
-      mobileMove.x=0; mobileMove.y=0; mobileMove.mag=0; mobileMove.active=false; mobileMove.pointerId=null;
-      mobileAim.mag=0; mobileAim.active=false; mobileAim.pointerId=null;
+      mobileMove.x=0; mobileMove.y=0; mobileMove.mag=0; mobileMove.active=false; mobileMove.pointerId=null; mobileMove.visualOriginX=null; mobileMove.visualOriginY=null;
+      mobileAim.mag=0; mobileAim.active=false; mobileAim.pointerId=null; mobileAim.visualOriginX=null; mobileAim.visualOriginY=null;
       mouse.down=false;
       resetMobileStickVisual(UI.moveStick,UI.moveStickKnob);
       resetMobileStickVisual(UI.aimStick,UI.aimStickKnob);
@@ -2456,27 +2511,42 @@
     let revealTimer=null;
     let revealed=false;
 
-    const showAt=(x,y)=>{
-      const rect = stick.getBoundingClientRect();
-      const rootStyle = getComputedStyle(document.documentElement);
-      const safeL = Math.max(12, parseFloat(rootStyle.getPropertyValue("--safe-left")) || 0);
-      const safeR = Math.max(12, parseFloat(rootStyle.getPropertyValue("--safe-right")) || 0);
-      const safeT = Math.max(12, parseFloat(rootStyle.getPropertyValue("--safe-top")) || 0);
-      const safeB = Math.max(18, parseFloat(rootStyle.getPropertyValue("--safe-bottom")) || 0);
-      const rX = rect.width * .5;
-      const rY = rect.height * .5;
-      const clampedX = Math.min(window.innerWidth - safeR - rX, Math.max(safeL + rX, x));
-      const clampedY = Math.min(window.innerHeight - safeB - rY, Math.max(safeT + rY, y));
-      stick.style.left=clampedX+"px";
-      stick.style.top=clampedY+"px";
+    const showAt=(clientX,clientY)=>{
+      const controlsRect = UI.mobileControls.getBoundingClientRect();
+      const radius = (stick.offsetWidth || 126) * .5;
+
+      let localX = clientX - controlsRect.left;
+      let localY = clientY - controlsRect.top;
+
+      const zr = zone.getBoundingClientRect();
+      const minX = zr.left - controlsRect.left + radius + 8;
+      const maxX = zr.right - controlsRect.left - radius - 8;
+      const minY = zr.top - controlsRect.top + radius + 8;
+      const maxY = zr.bottom - controlsRect.top - radius - 14;
+
+      localX = Math.max(minX, Math.min(maxX, localX));
+      localY = Math.max(minY, Math.min(maxY, localY));
+
+      stateObj.visualOriginX = localX;
+      stateObj.visualOriginY = localY;
+
+      stick.style.left=localX+"px";
+      stick.style.top=localY+"px";
       stick.classList.add("active");
       revealed=true;
       document.body.classList.add("mobile-stick-used");
     };
 
     const update=(ev)=>{
-      const dx0=ev.clientX-stateObj.originX;
-      const dy0=ev.clientY-stateObj.originY;
+      const controlsRect = UI.mobileControls.getBoundingClientRect();
+      const originClientX = revealed && Number.isFinite(stateObj.visualOriginX)
+        ? controlsRect.left + stateObj.visualOriginX
+        : stateObj.originX;
+      const originClientY = revealed && Number.isFinite(stateObj.visualOriginY)
+        ? controlsRect.top + stateObj.visualOriginY
+        : stateObj.originY;
+      const dx0=ev.clientX-originClientX;
+      const dy0=ev.clientY-originClientY;
       const len=Math.hypot(dx0,dy0);
       const max=maxRadius();
       const clamped=Math.min(max,len);
@@ -2501,6 +2571,8 @@
       clearTimeout(revealTimer);
       stateObj.active=false;
       stateObj.pointerId=null;
+      stateObj.visualOriginX=null;
+      stateObj.visualOriginY=null;
       stateObj.x=0;stateObj.y=0;stateObj.mag=0;
       revealed=false;
       resetMobileStickVisual(stick,knob);
