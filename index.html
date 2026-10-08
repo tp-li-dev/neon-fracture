@@ -13,7 +13,7 @@
 <link href="./manifest.webmanifest" rel="manifest"/>
 <link href="./icon-192.png" rel="icon" sizes="192x192"/>
 <link href="./icon-192.png" rel="apple-touch-icon"/>
-<title>NEON FRACTURE v28.4 — Input State Rewrite</title>
+<title>NEON FRACTURE v28.5 — 継続研究・カスタム編成</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
@@ -2074,6 +2074,45 @@
  .nf28-pause-actions #pauseSettleBtn {grid-column:1/-1}
  body.mobile-input #xpHud.game-xp-hud {top:95px!important;width:70%!important}
 }
+
+/* v28.5: growth and custom-roster UI. Scoped to menus; gameplay controls are unchanged. */
+.nf285-research-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0}
+.nf285-research-tools strong{color:#a5f3fc;font-size:14px}
+.nf285-batch{display:flex;gap:6px;flex-wrap:wrap}
+.nf285-batch button,.nf285-pick-header button,.nf285-presets button{border:1px solid #ffffff24;background:#ffffff08;color:#cbd5e1;border-radius:9px;padding:8px 12px;min-height:40px;font-size:12px;cursor:pointer}
+.nf285-batch button[aria-pressed=true]{border-color:#67e8f9aa;color:#cffafe;background:#22d3ee1c}
+.nf285-caption{color:#94a3b8;font-size:12px;line-height:1.6;margin:10px 0;overflow-wrap:anywhere}
+#researchNotice{min-height:20px;color:#a5f3fc}
+#metaScreen #metaStats .nf285-research-card{padding:14px!important;border:1px solid #ffffff15;background:#ffffff05;border-radius:15px;display:flex;flex-direction:column;min-width:0}
+.nf285-research-card header{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px}
+.nf285-research-card small{color:#94a3b8;white-space:nowrap}
+.nf285-research-value{font-size:26px;font-weight:900;color:#a5f3fc;margin:10px 0;overflow-wrap:anywhere}
+.nf285-research-card p{font-size:12px!important;line-height:1.6;color:#94a3b8;margin:0 0 10px}
+.nf285-research-next{font-size:11px;color:#b6c9d6;margin-top:auto;padding-top:6px}
+#metaScreen #metaStats .nf285-research-card button{width:100%;margin-top:10px;min-height:44px!important;border-radius:10px;border:1px solid #22d3ee44;background:#22d3ee12;color:#cffafe;padding:9px!important;white-space:normal;font-size:12px!important;cursor:pointer}
+#metaScreen #metaStats .nf285-research-card button:disabled,#runConfigStart:disabled{opacity:.4;cursor:not-allowed}
+.nf285-custom-extra{margin-top:16px;padding-top:14px;border-top:1px solid #ffffff18;min-width:0}
+.nf285-custom-extra h3{font-size:15px;color:#ddd6fe;font-weight:800;margin-bottom:12px}
+.nf285-custom-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.nf285-custom-fields label{font-size:12px;color:#cbd5e1;min-width:0}
+.nf285-custom-fields input:not([type=range]),.nf285-custom-fields select,.nf285-pick-header select{display:block;width:100%;min-height:42px;background:#020617;color:#e2e8f0;border:1px solid #ffffff2a;border-radius:8px;padding:8px;margin-top:5px;font-size:16px}
+.nf285-custom-fields input[type=range]{width:100%;min-height:42px;accent-color:#67e8f9}
+.nf285-pick-header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:14px 0 8px;font-size:12px;color:#cbd5e1}
+.nf285-pick-header label{display:flex;align-items:center;gap:8px;min-height:40px}
+.nf285-pick-header select{width:auto;margin:0}
+.nf285-enemy-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.nf285-enemy-list label{display:flex;align-items:center;gap:8px;border:1px solid #ffffff18;background:#ffffff06;border-radius:10px;padding:9px;min-height:44px;min-width:0;font-size:12px;cursor:pointer}
+.nf285-enemy-list input{width:18px;height:18px;accent-color:#67e8f9;flex:0 0 auto}
+.nf285-presets{display:flex;flex-wrap:wrap;gap:5px}
+.nf285-growth-preview{margin-top:12px;font-size:12px;color:#cbd5e1}
+.nf285-growth-preview table{width:100%;margin-top:8px;font-variant-numeric:tabular-nums;border-collapse:collapse}
+.nf285-growth-preview th,.nf285-growth-preview td{border-bottom:1px solid #ffffff12;padding:7px 4px;text-align:right;overflow-wrap:anywhere}
+.nf285-growth-preview th:first-child,.nf285-growth-preview td:first-child{text-align:left}
+.nf285-setup-error{font-size:12px;color:#fda4af;line-height:1.5;margin-top:12px}
+#customSettingsPanel [hidden]{display:none!important}
+#runConfigScreen .run-config-shell{min-height:0}
+@media(max-width:700px){.nf285-custom-fields{grid-template-columns:1fr 1fr}.nf285-custom-fields label:last-child{grid-column:1/-1}.nf285-enemy-list{grid-template-columns:1fr 1fr}.nf285-research-tools{align-items:flex-start}.nf285-research-value{font-size:23px}}
+
 </style>
 <style id="nf281-input-style">/* v28.4 input and interaction layer. Single-owner layout, no moving button targets. */
 #app .hidden, #app [hidden] {display:none!important}
@@ -2150,7 +2189,24 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
 @media (orientation:portrait) and (max-width:650px) {
  body.nf-touch #xpHud.game-xp-hud {width:62vw!important;top:110px!important}
 }
-</style></head>
+</style>
+<style id="nf285-config-layout">
+#runConfigScreen.run-config-screen{align-items:stretch!important;overflow:hidden!important;padding:12px max(12px,var(--nf-safe-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,var(--nf-safe-left,0px))!important}
+#runConfigScreen .run-config-shell{width:min(1400px,100%)!important;max-width:1400px!important;height:100%;min-height:0;box-sizing:border-box;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:12px;padding:16px!important;overflow:hidden}
+#runConfigScreen .run-config-shell>.flex{margin:0!important;min-height:44px}
+#runConfigScreen .run-config-grid{display:grid!important;grid-template-columns:minmax(0,1.6fr) minmax(255px,.9fr)!important;min-height:0!important;overflow:hidden;gap:14px!important}
+#runConfigScreen .run-config-grid>div{min-height:0;overflow-y:auto!important;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;height:100%!important;box-sizing:border-box;scrollbar-gutter:stable;padding-right:4px}
+#runConfigScreen #runConfigSummary{border-radius:16px;padding:12px!important}
+#runConfigScreen .nf285-config-actions{display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #ffffff18;padding-top:10px}
+#runConfigScreen .nf285-config-actions button{width:180px;min-height:44px;padding:8px!important;font-size:13px!important;border-radius:10px;font-weight:800}
+#runConfigCancel{background:#101d2d;color:#cbd5e1;border:1px solid #ffffff22}
+#runConfigStart{background:#a5f3fc;color:#083344}
+#runConfigClose{min-width:44px;min-height:44px}
+#customSettingsPanel .nf285-enemy-list{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+@media(max-width:620px){#runConfigScreen .run-config-grid{display:block!important;overflow-y:auto!important}#runConfigScreen .run-config-grid>div{height:auto!important;overflow:visible!important}#runConfigScreen #runConfigSummary{margin-top:12px}#runConfigScreen .nf285-config-actions button{width:50%}#runConfigScreen .run-config-title{font-size:23px!important}}
+@media(max-height:500px){#runConfigScreen .run-config-shell{padding:10px!important;gap:8px;border-radius:16px}#runConfigScreen .run-config-title{font-size:21px!important}#runConfigScreen .run-config-subtitle{display:none}#runConfigScreen .nf285-config-actions{padding-top:6px}#runConfigScreen .nf285-config-actions button{min-height:42px}#runConfigScreen .run-config-shell>.flex .hud-label{display:none}#runConfigSummary .summary-detail{display:block!important;font-size:11px!important;line-height:1.4!important}}
+</style>
+</head>
 <body class="font-display text-slate-100">
 <div class="relative w-screen h-screen overflow-hidden noise scanlines" id="app">
 <canvas aria-label="ゲーム操作領域" class="absolute inset-0 w-full h-full" id="game" role="application" tabindex="0"></canvas>
@@ -2342,17 +2398,33 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
 <button class="difficulty-card pointer-events-auto rounded-xl border border-violet-300/10 bg-violet-300/[.02] p-3 text-left" data-difficulty="custom"><div class="font-black text-xs text-violet-200">CUSTOM</div><div class="difficulty-desc text-[9px] text-slate-500 mt-1">条件からCPと報酬倍率を自動計算。</div></button>
 </div>
 <div class="hidden mt-3 rounded-2xl border border-violet-300/10 bg-violet-300/[.025] p-4" id="customSettingsPanel">
-<div class="flex flex-wrap items-center justify-between gap-2 mb-3"><div class="font-black text-xs text-violet-100">CUSTOM PARAMETERS</div><div class="flex gap-1"><button class="custom-preset-btn rounded-lg px-2 py-1 border border-white/10 text-[8px]" data-custom-preset="swarm">SWARM</button><button class="custom-preset-btn rounded-lg px-2 py-1 border border-white/10 text-[8px]" data-custom-preset="bullet">BULLET HELL</button><button class="custom-preset-btn rounded-lg px-2 py-1 border border-white/10 text-[8px]" data-custom-preset="boss">BOSS RUSH</button><button class="custom-preset-btn rounded-lg px-2 py-1 border border-white/10 text-[8px]" data-custom-preset="onehit">ONE HIT</button></div></div>
+<div class="flex flex-wrap items-center justify-between gap-2 mb-3"><div class="font-black text-xs text-violet-100">CUSTOM PARAMETERS</div><div class="nf285-presets"><button class="custom-preset-btn rounded-lg px-2 py-1 border border-white/10 text-[8px]" data-custom-preset="swarm">SWARM</button><button class="custom-preset-btn rounded-lg px-2 py-1 border border-white/10 text-[8px]" data-custom-preset="bullet">BULLET HELL</button><button class="custom-preset-btn rounded-lg px-2 py-1 border border-white/10 text-[8px]" data-custom-preset="boss">BOSS RUSH</button><button class="custom-preset-btn rounded-lg px-2 py-1 border border-white/10 text-[8px]" data-custom-preset="onehit">ONE HIT</button><button class="custom-preset-btn" data-custom-preset="allboss" type="button">ALL BOSS</button><button class="custom-preset-btn" data-custom-preset="maximum" type="button">最高成長</button></div></div>
 <div class="custom-grid grid md:grid-cols-3 gap-3 text-[9px]">
 <label>敵密度 <b class="text-cyan-200" id="customDensityValue">1.8x</b><input class="w-full mt-1" id="customDensity" max="3.5" min="0.5" step="0.1" type="range" value="1.8"/></label>
-<label>HP成長 <b class="text-cyan-200" id="customHpValue">2.0x</b><input class="w-full mt-1" id="customHp" max="4" min="0.5" step="0.1" type="range" value="2"/></label>
-<label>火力成長 <b class="text-cyan-200" id="customDamageValue">1.8x</b><input class="w-full mt-1" id="customDamage" max="4" min="0.5" step="0.1" type="range" value="1.8"/></label>
+<label>HP成長 <b class="text-cyan-200" id="customHpValue">2.0x</b><input class="w-full mt-1" id="customHp" max="8" min="0.5" step="0.1" type="range" value="2"/></label>
+<label>火力成長 <b class="text-cyan-200" id="customDamageValue">1.8x</b><input class="w-full mt-1" id="customDamage" max="8" min="0.5" step="0.1" type="range" value="1.8"/></label>
 <label>Elite率 <b class="text-cyan-200" id="customEliteValue">2.0x</b><input class="w-full mt-1" id="customElite" max="4" min="0.5" step="0.1" type="range" value="2"/></label>
 <label>攻撃密度 <b class="text-cyan-200" id="customAttackValue">1.6x</b><input class="w-full mt-1" id="customAttack" max="3" min="0.7" step="0.1" type="range" value="1.6"/></label>
 <label>Boss間隔 <select class="w-full mt-1 rounded-lg bg-slate-950 border border-white/10 px-2 py-1.5" id="customBossInterval"><option value="10">10 Wave</option><option selected="" value="5">5 Wave</option><option value="4">4 Wave</option><option value="3">3 Wave</option></select></label>
 </div>
 <div class="mt-3 flex flex-wrap gap-3 text-[9px]"><label class="flex gap-2 items-center"><input checked="" id="customShield" type="checkbox"/> Shield/Barrier有効</label><label class="flex gap-2 items-center">回復 <select class="rounded bg-slate-950 border border-white/10 px-2 py-1" id="customHeal"><option value="1">100%</option><option value="0.5">50%</option><option value="0">OFF</option></select></label><label class="flex gap-2 items-center text-amber-200"><input id="customOneHit" type="checkbox"/> ONE HIT</label></div>
+<div class="nf285-custom-extra">
+<h3>敵のレベル・編成</h3>
+<div class="nf285-custom-fields">
+<label>開始敵Lv <input id="customStartLevel" inputmode="numeric" max="10000" min="1" step="1" type="number" value="1"/></label>
+<label>敵Lv成長 <b id="customLevelRateValue">2.0 / Wave</b><input id="customLevelRate" max="12" min="0.5" step="0.5" type="range" value="2"/></label>
+<label>敵の編成<select id="customRosterMode"><option value="auto">通常編成（Lvで種類解放）</option><option value="selected">選んだ通常敵のみ</option><option value="bossOnly">全敵ボス / ALL BOSS</option></select></label>
 </div>
+<p class="nf285-caption">開始するのはWave 1のままです。敵Lvだけを上げます。成長値が2を超えるとWave経過で加速。移動速度は変わりません。</p>
+<div hidden="" id="customEnemyPanel">
+<div class="nf285-pick-header"><strong>出現する通常敵</strong><span><button id="customEnemyAll" type="button">全選択</button><button id="customEnemyNone" type="button">全解除</button></span></div>
+<div class="nf285-enemy-list" id="customEnemyTypes"></div>
+<p class="nf285-caption">選択した種類を最初から出します。ボス召喚・分裂も選択外の敵は生成しません。</p>
+</div>
+<div class="nf285-pick-header"><label><input checked="" id="customBossEnabled" type="checkbox"/> 定期ボスを出現させる</label><label hidden="" id="customBossLimitLabel">同時ボス <select id="customBossLimit"><option value="1">1体</option><option selected="" value="2">2体</option><option value="3">3体</option></select></label></div>
+<div class="nf285-enemy-list" id="customBossTypes"></div>
+<p class="nf285-caption" id="customBossNote">通常設定ではボスは同時1体。CLEARの最終戦にはボスが出現します。</p>
+</div></div>
 </div>
 <div class="rounded-2xl border border-cyan-300/10 bg-slate-950/35 p-4 h-fit" id="runConfigSummary">
 <div class="hud-label text-[8px] text-cyan-300/70 font-black">CHALLENGE POWER</div>
@@ -2366,11 +2438,11 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
 <div class="rounded-lg bg-white/[.03] p-2">火力成長 <b class="block mt-1" id="runConfigDamage">×1.00</b></div>
 <div class="rounded-lg bg-white/[.03] p-2">攻撃密度 <b class="block mt-1" id="runConfigAttack">×1.00</b></div>
 </div>
-<div class="summary-detail mt-3 text-[9px] leading-5 text-slate-500" id="runConfigRules"></div>
-<div class="mt-4 grid grid-cols-2 gap-2"><button class="pointer-events-auto rounded-xl py-3 border border-white/10 text-xs font-black text-slate-300" id="runConfigCancel">戻る</button><button class="pointer-events-auto rounded-xl py-3 bg-cyan-100 text-cyan-950 text-xs font-black" id="runConfigStart">RUN START →</button></div>
+<div class="summary-detail mt-3 text-[9px] leading-5 text-slate-500" id="runConfigRules"></div><div class="nf285-growth-preview" id="enemyGrowthPreview"></div><p class="nf285-setup-error" id="runSetupError" role="alert"></p>
+
 </div>
 </div>
-</div>
+<div class="nf285-config-actions"><button class="pointer-events-auto rounded-xl py-3 border border-white/10 text-xs font-black text-slate-300" id="runConfigCancel">戻る</button><button class="pointer-events-auto rounded-xl py-3 bg-cyan-100 text-cyan-950 text-xs font-black" id="runConfigStart">RUN START →</button></div></div>
 </section>
 <!-- Tutorial -->
 <section class="hidden absolute inset-0 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-6 mobile-sheet-screen" id="howScreen">
@@ -2561,7 +2633,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
 <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]" id="playerBaseStats"></div>
 </div>
 <div class="flex items-center justify-between mb-3"><div class="text-[10px] font-black text-slate-400">CR研究 — 基礎数値へ割合補正</div><div class="text-[9px] text-slate-600">Player Lvとは別成長</div></div>
-<div class="grid sm:grid-cols-2 gap-3" id="metaStats"></div>
+<div class="nf285-research-tools"><strong>継続研究 · 上限なし</strong><div class="nf285-batch" role="group" aria-label="研究の購入数"><button type="button" data-research-batch="1" aria-pressed="true">1段</button><button type="button" data-research-batch="10">10段</button><button type="button" data-research-batch="100">100段</button><button type="button" data-research-batch="max">買えるだけ</button></div></div><p class="nf285-caption">数値成長はユーザーLv、割合強化はCR研究。購入済みの段数はそのまま引き継ぎます。</p><p id="researchNotice" class="nf285-caption" role="status" aria-live="polite"></p><div class="grid sm:grid-cols-2 gap-3" id="metaStats"></div>
 </div>
 <div class="glass rounded-3xl p-5 md:p-7 meta-section meta-tab-forge">
 <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
@@ -3331,24 +3403,48 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
   let runEndReason = "death";
 
   const DIFFICULTIES = {
-    easy:     {label:"EASY",cp:1.00,reward:1.00,density:1.00,hpGrowth:1.00,damageGrowth:1.00,elite:1.00,attack:1.00,bossInterval:5,shield:true,barrier:true,heal:1,oneHit:false},
-    normal:   {label:"NORMAL",cp:2.00,reward:1.35,density:1.50,hpGrowth:1.45,damageGrowth:1.40,elite:1.65,attack:1.35,bossInterval:5,shield:true,barrier:true,heal:1,oneHit:false},
-    hard:     {label:"HARD",cp:3.40,reward:1.85,density:2.00,hpGrowth:2.00,damageGrowth:1.90,elite:2.35,attack:1.75,bossInterval:5,shield:true,barrier:true,heal:.85,oneHit:false},
-    hardcore: {label:"HARDCORE",cp:5.20,reward:2.45,density:2.35,hpGrowth:2.70,damageGrowth:2.55,elite:3.00,attack:2.15,bossInterval:4,shield:false,barrier:false,heal:.50,oneHit:false},
-    fracture: {label:"FRACTURE",cp:7.20,reward:3.20,density:2.65,hpGrowth:3.25,damageGrowth:3.00,elite:3.50,attack:2.50,bossInterval:4,shield:false,barrier:false,heal:0,oneHit:true}
+    easy:     {label:"EASY",levelRate:2,startLevel:1,cp:1.00,reward:1.00,density:1.00,hpGrowth:1.00,damageGrowth:1.00,elite:1.00,attack:1.00,bossInterval:5,shield:true,barrier:true,heal:1,oneHit:false},
+    normal:   {label:"NORMAL",levelRate:2.4,startLevel:1,cp:2.00,reward:1.35,density:1.50,hpGrowth:1.45,damageGrowth:1.40,elite:1.65,attack:1.35,bossInterval:5,shield:true,barrier:true,heal:1,oneHit:false},
+    hard:     {label:"HARD",levelRate:3.4,startLevel:1,cp:3.40,reward:1.85,density:2.00,hpGrowth:2.00,damageGrowth:1.90,elite:2.35,attack:1.75,bossInterval:5,shield:true,barrier:true,heal:.85,oneHit:false},
+    hardcore: {label:"HARDCORE",levelRate:4.8,startLevel:1,cp:5.20,reward:2.45,density:2.35,hpGrowth:2.70,damageGrowth:2.55,elite:3.00,attack:2.15,bossInterval:4,shield:false,barrier:false,heal:.50,oneHit:false},
+    fracture: {label:"FRACTURE",levelRate:6,startLevel:1,cp:7.20,reward:3.20,density:2.65,hpGrowth:3.25,damageGrowth:3.00,elite:3.50,attack:2.50,bossInterval:4,shield:false,barrier:false,heal:0,oneHit:true}
   };
-  const defaultRunConfig = () => ({mode:"endless",difficulty:"easy",clearWave:30,custom:{density:1.8,hpGrowth:2,damageGrowth:1.8,elite:2,attack:1.6,bossInterval:5,shield:true,heal:1,oneHit:false}});
-  function loadRunConfig(){try{const r=JSON.parse(storage.getItem("nf_run_config")||"null");return {...defaultRunConfig(),...(r||{}),custom:{...defaultRunConfig().custom,...(r?.custom||{})}}}catch{return defaultRunConfig()}}
+
+  const CUSTOM_ENEMY_IDS=['chaser','swift','tank','shooter','splitter','charger','orbiter','disruptor','lancer','bombardier','medic','bulwark','suppressor'];
+  const CUSTOM_BOSS_IDS=['warden','spinner','hunter'];
+  const defaultRunConfig = () => ({mode:'endless',difficulty:'easy',clearWave:30,custom:{density:1.8,hpGrowth:2,damageGrowth:1.8,elite:2,attack:1.6,bossInterval:5,shield:true,heal:1,oneHit:false,startLevel:1,levelRate:2,rosterMode:'auto',enemyTypes:[...CUSTOM_ENEMY_IDS],bossTypes:[...CUSTOM_BOSS_IDS],bossEnabled:true,bossLimit:2}});
+  function boundedNumber(v,fallback,min,max){const n=Number(v);return Number.isFinite(n)?clamp(n,min,max):fallback;}
+  function cleanCustomConfig(raw={}){
+    const d=defaultRunConfig().custom,c={...d,...raw};
+    return {...c,
+      density:boundedNumber(c.density,d.density,.5,3.5),hpGrowth:boundedNumber(c.hpGrowth,2,.5,8),damageGrowth:boundedNumber(c.damageGrowth,1.8,.5,8),
+      elite:boundedNumber(c.elite,2,.5,4),attack:boundedNumber(c.attack,1.6,.7,3),bossInterval:[3,4,5,10].includes(Number(c.bossInterval))?Number(c.bossInterval):5,
+      startLevel:Math.floor(boundedNumber(c.startLevel,1,1,10000)),levelRate:boundedNumber(c.levelRate,2,.5,12),
+      rosterMode:['auto','selected','bossOnly'].includes(c.rosterMode)?c.rosterMode:'auto',
+      enemyTypes:Array.isArray(c.enemyTypes)?CUSTOM_ENEMY_IDS.filter(id=>c.enemyTypes.includes(id)):[...CUSTOM_ENEMY_IDS],
+      bossTypes:Array.isArray(c.bossTypes)?CUSTOM_BOSS_IDS.filter(id=>c.bossTypes.includes(id)):[...CUSTOM_BOSS_IDS],
+      bossEnabled:c.bossEnabled!==false,bossLimit:Math.round(boundedNumber(c.bossLimit,2,1,3)),
+      shield:c.shield!==false,heal:boundedNumber(c.heal,1,0,1),oneHit:c.oneHit===true};
+  }
+  function cleanRunConfig(raw={}){const d=defaultRunConfig();return {
+    mode:raw.mode==='clear'?'clear':'endless',difficulty:raw.difficulty==='custom'||DIFFICULTIES[raw.difficulty]?raw.difficulty:d.difficulty,
+    clearWave:Math.floor(boundedNumber(raw.clearWave,30,5,1000)),custom:cleanCustomConfig(raw.custom)};}
+  function loadRunConfig(){try{return cleanRunConfig(JSON.parse(storage.getItem('nf_run_config')||'{}')||{})}catch{return defaultRunConfig();}}
   let runConfig=loadRunConfig();
-  function customChallenge(c=runConfig.custom){
-    const density=clamp(Number(c.density)||1,.5,3.5),hpGrowth=clamp(Number(c.hpGrowth)||1,.5,4),damageGrowth=clamp(Number(c.damageGrowth)||1,.5,4),elite=clamp(Number(c.elite)||1,.5,4),attack=clamp(Number(c.attack)||1,.7,3),bossInterval=clamp(Math.floor(Number(c.bossInterval)||5),3,10),heal=clamp(Number(c.heal),0,1);
+  function customChallenge(raw=runConfig.custom){
+    const c=cleanCustomConfig(raw),{density,hpGrowth,damageGrowth,elite,attack,bossInterval,heal}=c;
     let cp=Math.pow(density,.42)*Math.pow(hpGrowth,.30)*Math.pow(damageGrowth,.28)*Math.pow(elite,.13)*Math.pow(attack,.20)*Math.pow(5/bossInterval,.12);
+    cp*=Math.pow(c.levelRate/2,.35)*(1+Math.log2(c.startLevel)/16);
     if(!c.shield)cp*=1.22;if(heal<=.5)cp*=1.13;if(heal<=0)cp*=1.13;if(c.oneHit)cp*=1.72;
+    if(c.rosterMode==='bossOnly')cp*=1+.12*c.bossLimit;
+    // Enemy filtering itself earns no bonus; boss-disabled runs receive less challenge credit.
+    else if(!c.bossEnabled)cp*=.85;
     cp=clamp(cp,.45,12);
     const reward=cp<1?(.72+.28*cp):clamp(1+.72*Math.log2(cp),1,3.5);
-    return {label:"CUSTOM",cp,reward,density,hpGrowth,damageGrowth,elite,attack,bossInterval,shield:!!c.shield,barrier:!!c.shield,heal,oneHit:!!c.oneHit};
+    return {...c,label:c.rosterMode==='bossOnly'?'CUSTOM / ALL BOSS':'CUSTOM',cp,reward,barrier:c.shield};
   }
-  function challenge(){return runConfig.difficulty==="custom"?customChallenge():DIFFICULTIES[runConfig.difficulty]||DIFFICULTIES.easy;}
+  function challenge(){return runConfig.difficulty==='custom'?customChallenge():DIFFICULTIES[runConfig.difficulty]||DIFFICULTIES.easy;}
+
   function challengeReward(){return challenge().reward*(runConfig.mode==="clear"?1.05:1);}
   function currentWaveSeconds(){return 13;}
   function finalWaveTarget(){return clamp(Number(runConfig.clearWave)||30,5,1000);}
@@ -3381,15 +3477,26 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     wave: +(storage.getItem("nf_wave") || 0)
   };
 
+
+  function researchLevel(value){
+    const n=Number(value);return Number.isFinite(n)?Math.min(Number.MAX_SAFE_INTEGER,Math.max(0,Math.floor(n))):0;
+  }
+  function researchNumber(n){return Number.isFinite(n)?n.toLocaleString('ja-JP',{maximumFractionDigits:2}):'—';}
+  function mobilityPercent(lv){return lv<=30?lv*.8:24+8*Math.log1p((lv-30)/10);}
+  function recoveryPercent(lv){return lv<=25?lv*.25:6.25+1.25*(Math.sqrt(1+(lv-25)/5)-1);}
   const META_STATS = {
-    power:    {name:"出力研究", icon:"✦", max:40, base:90, step:32, curve:2.4, unit:"%", value:lv=>lv*2.5, desc:lv=>`弾ダメージ +${(lv*2.5).toFixed(1)}%`},
-    hull:     {name:"耐久研究", icon:"⬡", max:40, base:85, step:30, curve:2.3, unit:"%", value:lv=>lv*3.0, desc:lv=>`最大HP +${(lv*3).toFixed(0)}%`},
-    mobility: {name:"機動研究", icon:"➤", max:30, base:105,step:36, curve:2.7, unit:"%", value:lv=>lv*.8, desc:lv=>`移動速度 +${(lv*.8).toFixed(1)}%`},
-    critical: {name:"照準研究", icon:"◇", max:25, base:120,step:40, curve:3.0, unit:"%", value:lv=>lv*.8, desc:lv=>`クリティカル率 +${(lv*.8).toFixed(1)}%`},
-    recovery: {name:"吸収研究", icon:"♥", max:25, base:135,step:44, curve:3.2, unit:"%", value:lv=>lv*.25,desc:lv=>`HP吸収 +${(lv*.25).toFixed(2)}%`},
-    magnet:   {name:"回収研究", icon:"◉", max:30, base:75, step:28, curve:2.1, unit:"%", value:lv=>lv*3, desc:lv=>`経験値回収範囲 +${lv*3}%`},
-    economy:  {name:"換金研究", icon:"CR",max:30, base:120,step:42, curve:3.0, unit:"%", value:lv=>lv*3, desc:lv=>`ラン終了CR +${lv*3}%`}
+    power:{name:'出力研究',icon:'✦',base:90,step:30,value:lv=>lv*5,desc:lv=>`本体弾ダメージ +${researchNumber(lv*5)}%`},
+    hull:{name:'耐久研究',icon:'⬡',base:85,step:28,value:lv=>lv*5,desc:lv=>`最大HP +${researchNumber(lv*5)}%`},
+    mobility:{name:'機動研究',icon:'➤',base:105,step:34,value:mobilityPercent,desc:lv=>`移動速度 +${researchNumber(mobilityPercent(lv))}%（30段以降は緩やかに継続）`},
+    critical:{name:'照準研究',icon:'◇',base:120,step:38,value:lv=>lv*2,desc:lv=>`会心率 +${researchNumber(lv*.8)}pt / 会心威力 +${researchNumber(lv*2)}%。確率100%超過分も威力へ`},
+    recovery:{name:'吸収研究',icon:'♥',base:135,step:42,value:recoveryPercent,desc:lv=>`HP吸収 +${researchNumber(recoveryPercent(lv))}pt（25段以降は緩やかに継続・回復効率補正あり）`},
+    magnet:{name:'回収研究',icon:'◉',base:75,step:26,value:lv=>lv*4,desc:lv=>`回収範囲 +${researchNumber(lv*4)}% / ランXP +${researchNumber(lv)}%。全域回収中もXP補正は有効`},
+    economy:{name:'換金研究',icon:'CR',base:120,step:40,value:lv=>lv*3,desc:lv=>`ラン終了CR +${researchNumber(lv*3)}%`},
+    rapid:{name:'連射研究',icon:'⌁',base:110,step:36,value:lv=>lv*2,desc:lv=>`本体連射速度 +${researchNumber(lv*2)}%。大量射撃は既存の威力集約で処理`},
+    active:{name:'スキル出力研究',icon:'⚡',base:110,step:36,value:lv=>lv*5,desc:lv=>`アクティブスキル出力 +${researchNumber(lv*5)}%`},
+    haste:{name:'スキル循環研究',icon:'◫',base:120,step:38,value:lv=>lv*2,desc:lv=>`スキル再使用効率 +${researchNumber(lv*2)}%。CD = 基礎CD ÷ (1 + 効率)`}
   };
+  function sanitizeResearchStats(raw){return Object.fromEntries(Object.keys(META_STATS).map(k=>[k,researchLevel(raw?.[k])]));}
 
   const MODULES = [
     {id:"pulse",rarity:"COMMON",icon:"✦",name:"パルス増幅器",desc:lv=>`弾ダメージ +${lv*4}%`,apply:(p,lv)=>p.damage*=1+lv*.04},
@@ -3618,7 +3725,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
 
   let forgeSelection={trigger:"on_kill",condition:"always",chance:"c25",effect:"heal",power:"p80"};
 
-  const defaultMeta = () => ({credits:0,data:0,playerLevel:1,playerXp:0,stats:{power:0,hull:0,mobility:0,critical:0,recovery:0,magnet:0,economy:0},modules:{},equipped:null,equippedGear:{core:null,armor:null,drive:null},pity:0,totalRuns:0,
+  const defaultMeta = () => ({credits:0,data:0,playerLevel:1,playerXp:0,stats:sanitizeResearchStats({}),modules:{},equipped:null,equippedGear:{core:null,armor:null,drive:null},pity:0,totalRuns:0,
     syntax:Object.fromEntries(STARTER_PARTS.map(id=>[id,1])),cards:[],equippedCards:[],achievements:{},records:{totalKills:0,totalBosses:0,clears:0,maxCombo:0,maxHit:0,highestCP:0,highestCPWave:0,longest:0,bestByDifficulty:{},waveByDifficulty:{},clearTimes:{},fractureWave:0}});
   function loadMeta(){
     try {
@@ -3631,7 +3738,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
       return {...d,...raw,
         playerLevel:Math.max(1,Math.floor(Number(raw.playerLevel)||1)),
         playerXp:Math.max(0,Number(raw.playerXp)||0), data:Math.max(0,Math.floor(Number(raw.data)||0)),
-        stats:{...d.stats,...(raw.stats||{})},modules:{...(raw.modules||{})},equippedGear,
+        stats:sanitizeResearchStats(raw.stats),modules:{...(raw.modules||{})},equippedGear,
         achievements:{...(raw.achievements||{})},records:{...d.records,...(raw.records||{}),bestByDifficulty:{...(raw.records?.bestByDifficulty||{})},waveByDifficulty:{...(raw.records?.waveByDifficulty||{})},clearTimes:{...(raw.records?.clearTimes||{})}},
         syntax:{...d.syntax,...(raw.syntax||{})},cards:Array.isArray(raw.cards)?raw.cards.map(normalizeCard):[],equippedCards:Array.isArray(raw.equippedCards)?raw.equippedCards.slice(0,3):[]};
     } catch { return defaultMeta(); }
@@ -3648,7 +3755,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
       app: SAVE_EXPORT_APP,
       formatVersion: SAVE_EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
-      gameVersion: "v28",
+      gameVersion: "v28.5",
       data: {
         high: Number(save.high)||0,
         wave: Number(save.wave)||0,
@@ -3686,7 +3793,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     for(const key of Object.keys(stats)){
       const def=META_STATS[key];
       const v=Number(raw.stats?.[key]);
-      stats[key]=Number.isFinite(v)?clamp(Math.floor(v),0,def?.max??99):0;
+      stats[key]=researchLevel(v);
     }
 
     const modules={};
@@ -3728,7 +3835,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
 
     return {
       ...d,
-      credits: clamp(Math.floor(Number(raw.credits)||0),0,999999999),
+      credits: researchLevel(raw.credits),
       data: clamp(Math.floor(Number(raw.data)||0),0,999999999),
       playerLevel: clamp(Math.floor(Number(raw.playerLevel)||1),1,99999999),
       playerXp: clamp(Number(raw.playerXp)||0,0,999999999999),
@@ -3856,29 +3963,61 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     }
     return gainedLevels;
   }
-  function statCost(key){
-    const d=META_STATS[key],lv=meta.stats[key]||0;
-    return Math.max(50,Math.round((d.base + d.step*lv + d.curve*lv*lv)/10)*10);
+
+  let researchBatch=1;
+  function statCost(key,lv=meta.stats[key]||0){
+    const d=META_STATS[key];return d?d.base+d.step*researchLevel(lv):Infinity;
+  }
+  function researchTotalCost(key,start,count){
+    if(!META_STATS[key]||count<0||!Number.isSafeInteger(count))return Infinity;
+    const d=META_STATS[key];return count*(d.base+d.step*start)+d.step*count*(count-1)/2;
+  }
+  function affordableResearchCount(key,credits=meta.credits,start=meta.stats[key]||0){
+    if(!META_STATS[key]||!Number.isFinite(credits)||credits<statCost(key,start))return 0;
+    // Closed-form arithmetic series + binary search. No per-level purchase loops.
+    let lo=0,hi=Math.min(Math.floor(credits/META_STATS[key].base),Number.MAX_SAFE_INTEGER-start);
+    while(lo<hi){const mid=lo+Math.ceil((hi-lo)/2);const total=researchTotalCost(key,start,mid);
+      if(Number.isSafeInteger(total)&&total<=credits)lo=mid;else hi=mid-1;
+    }
+    return lo;
+  }
+  function researchQuote(key,amount=researchBatch){
+    const lv=researchLevel(meta.stats[key]),count=amount==='max'?affordableResearchCount(key):Number(amount);
+    const cost=researchTotalCost(key,lv,count),next=lv+count;
+    return {lv,count,cost,next,valid:count>0&&Number.isSafeInteger(next)&&Number.isSafeInteger(cost)&&cost<=meta.credits};
+  }
+  function renderResearch(){
+    UI.metaStats.innerHTML='';
+    for(const [key,d] of Object.entries(META_STATS)){
+      const q=researchQuote(key),card=document.createElement('article');card.className='nf285-research-card';
+      card.dataset.research=key;
+      card.innerHTML=`<header><strong>${d.icon} ${d.name}</strong><small>${researchNumber(q.lv)} 段</small></header>
+        <div class="nf285-research-value">+${researchNumber(d.value(q.lv))}%</div>
+        <p>${d.desc(q.lv)}</p>
+        <div class="nf285-research-next">${q.count?`次：+${researchNumber(d.value(q.next))}% / ${researchNumber(q.count)}段`:'購入できるCRがありません'}</div>
+        <button type="button" ${q.valid?'':'disabled'} data-buy-research="${key}">${q.count?`${researchNumber(q.cost)} CR で ${researchNumber(q.count)}段研究`:'CR不足'}</button>`;
+      card.querySelector('button').onclick=()=>buyStat(key);
+      UI.metaStats.appendChild(card);
+    }
+    document.querySelectorAll('[data-research-batch]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.researchBatch===String(researchBatch))));
   }
   function applyMetaBonuses(p){
-    const base=playerLevelBase();
-    p.damage+=base.damage;
-    p.maxHp+=base.maxHp;
-    p.magnet+=base.magnet;
-    p.bulletSpeed+=base.bulletSpeed;
-    p.hp=p.maxHp;
-    const st=meta.stats;
-    p.damage*=1+(st.power||0)*.025;
-    p.maxHp*=1+(st.hull||0)*.03; p.hp=p.maxHp;
-    p.speed*=1+(st.mobility||0)*.008;
-    p.crit=Math.min(1,p.crit+(st.critical||0)*.008);
-    p.lifesteal+=(st.recovery||0)*.0025;
-    p.magnet*=1+(st.magnet||0)*.03;
-    for(const slot of ["core","armor","drive"]){
+    const base=playerLevelBase(),st=sanitizeResearchStats(meta.stats);
+    p.damage+=base.damage;p.maxHp+=base.maxHp;p.magnet+=base.magnet;p.bulletSpeed+=base.bulletSpeed;p.hp=p.maxHp;
+    p.damage*=1+st.power*.05;p.maxHp*=1+st.hull*.05;p.hp=p.maxHp;
+    p.speed*=1+mobilityPercent(st.mobility)/100;
+    p.lifesteal+=recoveryPercent(st.recovery)/100;
+    p.magnet*=1+st.magnet*.04;p.xpMultiplier*=1+st.magnet*.01;
+    p.fireRate*=1+st.rapid*.02;p.activePower*=1+st.active*.05;p.activeHaste+=st.haste*.02;
+    for(const slot of ['core','armor','drive']){
       const id=meta.equippedGear?.[slot],mod=MODULE_BY_ID[id],lv=meta.modules[id]||0;
-      if(mod&&lv>0) mod.apply(p,lv);
+      if(mod&&lv>0)mod.apply(p,lv);
     }
+    // Probability remains valid. Overflow never turns a paid rank into a dead upgrade.
+    const rawCrit=p.crit+st.critical*.008;
+    p.crit=Math.min(1,rawCrit);p.critMult*=1+st.critical*.02+Math.max(0,rawCrit-1);
   }
+
   function earnedCreditAmount(){
     // 1ランごとの進歩を感じやすくしつつ、スコアが主な収入源になる。
     const raw=Math.floor(score/48)+wave*18+Math.floor(kills/3)+bossesDefeated*120;
@@ -4013,13 +4152,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     const gearCount=Object.values(meta.equippedGear||{}).filter(Boolean).length;
     UI.equippedModuleText.textContent=`装備 ${gearCount}/3 / カード ${(meta.equippedCards||[]).length}/3`;
 
-    UI.metaStats.innerHTML="";
-    for(const [key,d] of Object.entries(META_STATS)){
-      const lv=meta.stats[key]||0,maxed=lv>=d.max,cost=statCost(key),next=Math.min(d.max,lv+1);
-      const card=document.createElement("div");card.className="rounded-2xl border border-white/[.07] bg-white/[.025] p-4";
-      card.innerHTML=`<div class="flex items-start justify-between gap-3"><div><div class="font-black text-sm">${d.icon} ${d.name}</div><div class="text-[11px] text-slate-500 mt-1">${d.desc(lv)}</div></div><div class="text-xs font-black text-cyan-200">${d.value(lv).toFixed(d.value(lv)%1?1:0)}%</div></div><div class="mt-2 text-[9px] text-slate-600">${maxed?'研究完了':`次: ${d.value(next).toFixed(d.value(next)%1?1:0)}%`}</div><button class="mt-3 w-full rounded-xl py-2.5 text-xs font-black border ${maxed?'border-white/5 text-slate-600':'border-cyan-300/15 bg-cyan-300/[.05] text-cyan-100 hover:bg-cyan-300/[.09]'}" ${maxed?'disabled':''}>${maxed?'MAX':`${cost.toLocaleString()} CR で研究`}</button>`;
-      card.querySelector("button").onclick=()=>buyStat(key);UI.metaStats.appendChild(card);
-    }
+    renderResearch();
 
     const gs=$("gearSlotsSummary");if(gs){gs.innerHTML="";for(const slot of ["core","armor","drive"]){const id=meta.equippedGear?.[slot],m=MODULE_BY_ID[id],lv=meta.modules[id]||0;const el=document.createElement("div");el.className="rounded-xl border border-white/[.07] bg-slate-950/30 p-3";el.innerHTML=`<div class="hud-label text-[8px] text-slate-500 font-black">${GEAR_SLOT_LABEL[slot]}</div><div class="mt-1 text-[10px] font-black ${m?'text-slate-200':'text-slate-600'}">${m?`${m.name} Lv.${lv}`:'EMPTY'}</div>`;gs.appendChild(el);}}
     UI.moduleCollection.innerHTML="";
@@ -4031,13 +4164,16 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     }
     renderForge();renderCards();renderSyntaxSummary();renderAchievements();updateGachaTypeUI();
   }
-  function buyStat(key){
-    const d=META_STATS[key],lv=meta.stats[key]||0;
-    if(lv>=d.max) return;
-    const cost=statCost(key);
-    if(meta.credits<cost){UI.gachaMessage.textContent="クレジットが不足しています。もう一度ランに挑戦しよう。";beep(100,.12,"square",.025,-20);return;}
-    meta.credits-=cost;meta.stats[key]=lv+1;saveMeta();beep(390,.07,"triangle",.03,260);
+
+  function buyStat(key,amount=researchBatch){
+    if(state!=='meta'||!META_STATS[key])return false;
+    const q=researchQuote(key,amount),notice=$('researchNotice');
+    if(!q.valid){if(notice)notice.textContent='CRが不足しているか、計算可能な数値範囲を超えています。';return false;}
+    meta.credits-=q.cost;meta.stats[key]=q.next;saveMeta();
+    if(notice)notice.textContent=`${META_STATS[key].name}を${researchNumber(q.count)}段強化。合計${researchNumber(q.cost)} CR使用。次のランから有効。`;
+    beep(390,.07,'triangle',.03,260);return true;
   }
+
   function rarityRoll(forceRare=false, forceEpic=false){
     const r=Math.random();
     if(forceEpic) return r<.18?"LEGENDARY":"EPIC";
@@ -4308,6 +4444,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
   let runSettled = false;
   let clearPending = false;
   let enemySerial = 0;
+  let bossSpawnSerial=0,bossPopulationTimer=0,finalBossEncounterStarted=false;
   let hazards = [];
   let abilityRewards = [];
   let activeSlots = [null,null,null];
@@ -4327,6 +4464,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
 
   function resetRunSystems(){
     runSettled=false; clearPending=false; enemySerial=0; hazards=[]; abilityRewards=[];
+    bossSpawnSerial=0;bossPopulationTimer=.6;finalBossEncounterStarted=false;
     activeSlots=[null,null,null]; selectedAbilityId=null; currentCardChoices=null;
     autoCardClock=0; statsClock=0; autoHistory=[]; cardCooldowns=Object.create(null);
     xpProcessing=false; projectileUpdating=false;
@@ -4365,12 +4503,17 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     if(challenge().oneHit || !challenge().barrier || player.barrierLock>0 || seconds<=0)return false;
     player.barrierTime=Math.max(player.barrierTime,seconds);return true;
   }
-  function enemyLevelForWave(w=wave){return 1+2*Math.max(0,w-1)+Math.floor(Math.max(0,w-1)/5);}
-  function enemyScaling(lv,boss=false){
-    const q=Math.max(0,lv-1),c=challenge();
-    return {hp:1+(boss?.095:.115)*q*c.hpGrowth+(boss?.0022:.0025)*q*q*c.hpGrowth,
-      damage:1+.10*Math.floor(q/2)*c.damageGrowth};
+
+  function enemyLevelForWave(w=wave,c=challenge()){
+    const n=Math.max(0,w-1),rate=c.levelRate??2,start=c.startLevel??1;
+    return start+Math.floor(rate*n+.012*Math.max(0,rate-2)*n*n)+Math.floor(n/5);
   }
+  function enemyScaling(lv,boss=false,c=challenge()){
+    const q=Math.max(0,lv-1),pressure=Math.max(0,(c.levelRate??2)-2)/4;
+    return {hp:1+((boss?.095:.115)*q+(boss?.0022:.0025)*q*q)*c.hpGrowth,
+      damage:1+(.10*Math.floor(q/2)+.0009*pressure*q*q)*c.damageGrowth};
+  }
+
   function refreshEnemyLevel(e){
     const lv=enemyLevelForWave();if(e.level===lv)return;
     const hpRatio=e.maxHp>0?clamp(e.hp/e.maxHp,0,1):1;
@@ -4894,6 +5037,8 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
   }
 
   function resetGame() {
+    runConfig=cleanRunConfig(runConfig);
+    const setupError=validateRunSetup();if(setupError){showInputNotice(setupError,3000);return false;}
     clearPhysicalMovement();
     cancelCombatInput();
     resetRunSystems();
@@ -4907,6 +5052,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     player = playerBase();
     applyMetaBonuses(player);
     applyModeRestrictions();
+    UI.runConfig.classList.add("hidden");
     generateWorld();
     updateCamera(0,true);
     syncDrones();
@@ -4948,6 +5094,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     meta.totalRuns = (meta.totalRuns||0) + 1;
     const levelsGained=awardPlayerXp(playerXpGain);
     updateRunRecords(reason);
+    if(runConfig.difficulty==='custom')meta.records.lastCustomSetup={version:'v28.5',config:JSON.parse(JSON.stringify(runConfig)),score:Math.floor(score),wave,enemyLevel:enemyLevelForWave()};
     const runLoot = grantRunLoot();
     const newAchievements=checkAchievements();
     storage.setItem("nf_meta_v1",JSON.stringify(meta));
@@ -5434,17 +5581,29 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     if(time-(player.lastShotAudio||-1)>.055){beep(255,.025,'square',.008,60);player.lastShotAudio=time;}
   }
 
+
+  function isBossOnly(){return runConfig.difficulty==='custom'&&runConfig.custom.rosterMode==='bossOnly';}
+  function activeBosses(){return enemies.filter(e=>e.boss&&!e._dead);}
+  function maxConcurrentBosses(){return isBossOnly()?cleanCustomConfig(runConfig.custom).bossLimit:1;}
+  function normalEnemyAllowed(type){
+    if(!CUSTOM_ENEMY_IDS.includes(type))return false;
+    if(runConfig.difficulty!=='custom')return true;
+    const c=runConfig.custom;return c.rosterMode!=='bossOnly'&&(c.rosterMode!=='selected'||c.enemyTypes.includes(type));
+  }
   function enemyTypeForWave(){
+    if(isBossOnly())return null;
+    if(runConfig.difficulty==='custom'&&runConfig.custom.rosterMode==='selected'){
+      const ids=runConfig.custom.enemyTypes.filter(id=>CUSTOM_ENEMY_IDS.includes(id));return ids.length?pick(ids):null;
+    }
     const lv=enemyLevelForWave();
     const table=[['chaser',32],['swift',16],['tank',lv>=3?11:0],['shooter',lv>=3?11:0],
       ['splitter',lv>=7?8:0],['charger',lv>=7?9:0],['orbiter',lv>=11?8:0],
       ['disruptor',lv>=5?8:0],['lancer',lv>=9?8:0],['bombardier',lv>=13?7:0],
       ['medic',lv>=9?6:0],['bulwark',lv>=13?6:0],['suppressor',lv>=17?7:0]];
-    const live=enemies.filter(e=>!e._dead);
-    const caps={disruptor:4,lancer:4,bombardier:4,medic:3,bulwark:3,suppressor:4};
+    const live=enemies.filter(e=>!e._dead),caps={disruptor:4,lancer:4,bombardier:4,medic:3,bulwark:3,suppressor:4};
     for(const t of table)if(caps[t[0]]&&live.filter(e=>e.type===t[0]).length>=caps[t[0]])t[1]=0;
     let r=Math.random()*table.reduce((sum,t)=>sum+t[1],0);
-    for(const [id,w] of table){r-=w;if(r<0)return id;}return 'chaser';
+    for(const [id,w] of table){r-=w;if(r<0)return id;}return null;
   }
 
   const SPAWN_SAFE_DISTANCE = 850;
@@ -5468,12 +5627,15 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
   }
 
   function spawnEnemy(type=enemyTypeForWave(),boss=false){
-    if(boss&&enemies.some(e=>!e._dead&&e.boss))return null;
+    if(boss&&activeBosses().length>=maxConcurrentBosses())return null;
+    if(!boss&&!normalEnemyAllowed(type))return null;
     if(!boss&&enemies.filter(e=>!e._dead).length>=PERF.maxEnemies)return null;
     const p=chooseSpawnPoint(boss),cfg=challenge();
     let d=ENEMY_TYPES[type]||ENEMY_TYPES.chaser,bossKind=null;
     if(boss){
-      bossKind=['warden','spinner','hunter'][bossesDefeated%3];
+      const allowed=runConfig.difficulty==='custom'?runConfig.custom.bossTypes:CUSTOM_BOSS_IDS;
+      if(!allowed.length)return null;
+      bossKind=allowed[bossSpawnSerial++%allowed.length];
       const defs={warden:{r:43,hp:1080,speed:40,damage:35,value:360,hue:330,shoot:true},
         spinner:{r:40,hp:1020,speed:43,damage:32,value:360,hue:275,shoot:true},
         hunter:{r:37,hp:970,speed:48,damage:34,value:360,hue:18,shoot:true}};
@@ -5489,16 +5651,52 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
       shootTimer:1.15,abilityTimer:rand(1.3,2.5),specialTimer:2.8,specialSequence:0,
       chargeTimer:rand(1.5,2.5),chargeTime:0,windup:0,chargeAngle:0,
       slow:0,slowPower:0,hitFlash:0,phase:rand(0,TAU),burnTime:0,burnDps:0,fractureStacks:0};
-    refreshEnemyLevel(e);enemies.push(e);return e;
+    refreshEnemyLevel(e);enemies.push(e);if(boss)bossAlive=true;return e;
   }
 
+
   function spawnBoss(){
-    if(bossAlive||enemies.some(e=>!e._dead&&e.boss))return false;
+    if(runSettled||clearPending||activeBosses().length>=maxConcurrentBosses())return false;
+    if(runConfig.difficulty==='custom'&&!isBossOnly()&&!runConfig.custom.bossEnabled&&!isFinalClearWave())return false;
+    const wasEmpty=activeBosses().length===0;
     const e=spawnEnemy('boss',true);if(!e)return false;
-    bossAlive=true;bossWarningTimer=1.35;
-    for(const b of bullets)if(b?.enemy)b._dead=true;
-    UI.bossWarning.classList.remove('hidden');
+    bossAlive=true;
+    // Additional bosses never clear another live boss's projectiles.
+    if(wasEmpty){bossWarningTimer=1.35;for(const b of bullets)if(b?.enemy)b._dead=true;UI.bossWarning.classList.remove('hidden');}
     emitCardTrigger('on_boss_spawn',{wave,enemy:e});beep(70,.35,'sawtooth',.035,30);return true;
+  }
+  function validateRunSetup(){
+    if(runConfig.difficulty!=='custom')return '';
+    const c=runConfig.custom;
+    if(c.rosterMode==='selected'&&!c.enemyTypes.length)return '出現させる通常敵を1種類以上選んでください。';
+    if((c.bossEnabled||c.rosterMode==='bossOnly'||runConfig.mode==='clear')&&!c.bossTypes.length)return 'ボスを1種類以上選んでください。';
+    return '';
+  }
+  function updateEncounterPopulation(dt){
+    bossAlive=activeBosses().length>0;
+    const cfg=challenge();
+    if(isBossOnly()){
+      // No trash enemies, summons or split children. Replace defeated bosses only during endless/nonfinal waves.
+      if(isFinalClearWave()){
+        const live=activeBosses();
+        if(live.length){for(const e of live)e.finalBoss=true;finalBossEncounterStarted=true;}
+        else if(!finalBossEncounterStarted&&!clearPending){if(spawnBoss())finalBossEncounterStarted=true;}
+        return;
+      }
+      bossPopulationTimer-=dt;
+      if(bossPopulationTimer<=0&&activeBosses().length<maxConcurrentBosses()){
+        spawnBoss();bossPopulationTimer=4/Math.sqrt(cfg.density);
+      }
+      return;
+    }
+    spawnTimer-=dt;
+    if(spawnTimer<=0&&bossWarningTimer<=0){
+      const regular=enemies.filter(e=>!e._dead&&!e.boss).length;
+      const cap=bossAlive?Math.round(7+cfg.density*2):Math.min(PERF.maxEnemies-2,Math.round((22+wave*2.1)*cfg.density));
+      const batch=bossAlive?1:Math.max(2,Math.round((2+Math.floor(wave/8))*cfg.density));
+      for(let i=0;i<batch&&regular+i<cap;i++)spawnEnemy();
+      spawnTimer=Math.max(.18,.53-Math.min(wave,24)*.012)/Math.sqrt(cfg.density)*(bossAlive?2:1);
+    }
   }
 
   function enemyShoot(e){
@@ -5691,11 +5889,11 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
       if(player.killHeal)healPlayer(player.maxHp*player.killHeal,'kill');
     }
     if(e.boss){
-      bossAlive=false;bossesDefeated++;score+=1800*combo;
+      bossAlive=activeBosses().length>0;bossesDefeated++;score+=1800*combo;
       queueAbilityReward();
       for(const b of bullets)if(b.enemy&&b.source===e)b._dead=true;
       dropGem(e.x,e.y,'boss',e.level);dropGem(e.x-20,e.y+12,'dense',e.level);dropGem(e.x+20,e.y+12,'dense',e.level);
-      if(e.finalBoss){
+      if(e.finalBoss&&activeBosses().length===0){
         const bossGem=gems.find(g=>g.kind==='boss'&&!g.collected);if(bossGem)collectGem(bossGem);
         clearPending=true;
       }
@@ -5738,10 +5936,10 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
       wave=targetWave;waveTimer=0;score+=260+wave*42;
       for(const e of enemies)if(!e._dead)refreshEnemyLevel(e);
       texts.push({x:player.x,y:player.y-100,text:`WAVE ${wave} / 敵 Lv.${enemyLevelForWave()}`,life:1.2,max:1.2,hue:190,size:21});
-      if((wave%(challenge().bossInterval||5)===0||isFinalClearWave())&&!bossAlive)spawnBoss();
+      if(!isBossOnly()&&(wave%(challenge().bossInterval||5)===0||isFinalClearWave())&&!bossAlive)spawnBoss();
       emitCardTrigger('on_wave',{wave});
     }
-    if(isFinalClearWave()&&!bossAlive&&!clearPending)spawnBoss();
+    if(!isBossOnly()&&isFinalClearWave()&&!bossAlive&&!clearPending)spawnBoss();
     bossWarningTimer=Math.max(0,bossWarningTimer-dt);if(bossWarningTimer<=0)UI.bossWarning.classList.add('hidden');
     if(inputMode!=='touch'&&mobileMove.active){
       for(const c of stickControllers)if(c.active())c.reset();
@@ -5763,15 +5961,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     }
     if(mouse.down&&player.shootTimer<=0)firePlayer();
     else if(!mouse.down)player.shootTimer=Math.max(0,player.shootTimer); // Idle time cannot stockpile shots.
-    // A larger minimum population and frequent batches build pressure earlier.
-    spawnTimer-=dt;
-    if(spawnTimer<=0&&bossWarningTimer<=0){
-      const c=challenge(),regular=enemies.filter(e=>!e._dead&&!e.boss).length;
-      const cap=bossAlive?Math.round(7+c.density*2):Math.min(PERF.maxEnemies-2,Math.round((22+wave*2.1)*c.density));
-      const batch=bossAlive?1:Math.max(2,Math.round((2+Math.floor(wave/8))*c.density));
-      for(let i=0;i<batch&&regular+i<cap;i++)spawnEnemy();
-      spawnTimer=Math.max(.18,.53-Math.min(wave,24)*.012)/Math.sqrt(c.density)*(bossAlive?2:1);
-    }
+    updateEncounterPopulation(dt);
     updateDrones(dt);
     updateProjectiles(dt);if(state!=='playing')return;
     if(clearPending){gameOver('clear');return;}
@@ -5796,7 +5986,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
     const bossName = boss?.bossKind === "spinner" ? "回転異常体" : boss?.bossKind === "hunter" ? "追跡異常体" : "防衛異常体";
     const cfg=challenge(),dmgPct=Math.round(enemyScaling(enemyLevelForWave()).damage*100),bi=cfg.bossInterval||5;
     UI.objectiveText.textContent=bossAlive
-      ? `${bossName}を撃破 / ${cfg.label} CP${cfg.cp.toFixed(1)}`
+      ? `${bossName}${activeBosses().length>1?` ほか / ボス${activeBosses().length}体`:""} / ${cfg.label} CP${cfg.cp.toFixed(1)}`
       : isFinalClearWave()?`FINAL WAVE / 最終Bossを撃破せよ`
       : wave%bi===bi-1
       ? `ボス反応接近 / 敵攻撃 ${dmgPct}%`
@@ -6318,20 +6508,75 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
   setupCardFilters();
 
 
-  function syncRunConfigInputs(){
-    document.querySelectorAll('[data-run-mode]').forEach(b=>b.classList.toggle('active',b.dataset.runMode===runConfig.mode));document.querySelectorAll('[data-difficulty]').forEach(b=>b.classList.toggle('active',b.dataset.difficulty===runConfig.difficulty));$("clearTargetRow").classList.toggle("hidden",runConfig.mode!=="clear");$("customSettingsPanel").classList.toggle("hidden",runConfig.difficulty!=="custom");$("clearWaveSelect").value=String(runConfig.clearWave);
-    const c=runConfig.custom;for(const [id,key] of [["customDensity","density"],["customHp","hpGrowth"],["customDamage","damageGrowth"],["customElite","elite"],["customAttack","attack"]])$(id).value=c[key];$("customBossInterval").value=String(c.bossInterval);$("customShield").checked=!!c.shield;$("customHeal").value=String(c.heal);$("customOneHit").checked=!!c.oneHit;updateRunConfigPreview();
+
+  const CUSTOM_SLIDERS=[['customDensity','density'],['customHp','hpGrowth'],['customDamage','damageGrowth'],['customElite','elite'],['customAttack','attack'],['customLevelRate','levelRate']];
+  function renderCustomEnemyInputs(){
+    $('customEnemyTypes').innerHTML=CUSTOM_ENEMY_IDS.map(id=>`<label><input type="checkbox" data-custom-enemy="${id}"/>${ENEMY_TYPES[id].name}</label>`).join('');
+    const names={warden:'防衛異常体',spinner:'回転異常体',hunter:'追跡異常体'};
+    $('customBossTypes').innerHTML=CUSTOM_BOSS_IDS.map(id=>`<label><input type="checkbox" data-custom-boss="${id}"/>${names[id]}</label>`).join('');
+    document.querySelectorAll('[data-custom-enemy],[data-custom-boss]').forEach(x=>x.addEventListener('change',updateRunConfigPreview));
   }
-  function readCustomInputs(){runConfig.custom={density:+$("customDensity").value,hpGrowth:+$("customHp").value,damageGrowth:+$("customDamage").value,elite:+$("customElite").value,attack:+$("customAttack").value,bossInterval:+$("customBossInterval").value,shield:$("customShield").checked,heal:+$("customHeal").value,oneHit:$("customOneHit").checked};}
-  function updateRunConfigPreview(){readCustomInputs();const c=challenge();$("customDensityValue").textContent=`${runConfig.custom.density.toFixed(1)}x`;$("customHpValue").textContent=`${runConfig.custom.hpGrowth.toFixed(1)}x`;$("customDamageValue").textContent=`${runConfig.custom.damageGrowth.toFixed(1)}x`;$("customEliteValue").textContent=`${runConfig.custom.elite.toFixed(1)}x`;$("customAttackValue").textContent=`${runConfig.custom.attack.toFixed(1)}x`;UI.runConfigCp.textContent=c.cp.toFixed(2);UI.runConfigReward.textContent=`×${challengeReward().toFixed(2)}`;UI.runConfigDifficultyLabel.textContent=c.label;$("runConfigDensity").textContent=`×${c.density.toFixed(2)}`;$("runConfigHp").textContent=`×${c.hpGrowth.toFixed(2)}`;$("runConfigDamage").textContent=`×${c.damageGrowth.toFixed(2)}`;$("runConfigAttack").textContent=`×${c.attack.toFixed(2)}`;UI.runConfigRules.innerHTML=`敵速度 <b class="text-emerald-200">常時×1.00</b><br>Boss ${c.bossInterval} Waveごと / Shield ${c.shield?'ON':'OFF'} / Heal ${Math.round(c.heal*100)}%${c.oneHit?' / <b class="text-amber-200">ONE HIT</b>':''}${runConfig.mode==='clear'?`<br>Final Wave ${finalWaveTarget()}`:'<br>Wave上限なし'}`;saveRunConfig();}
+  function syncRunConfigInputs(){
+    runConfig=cleanRunConfig(runConfig);
+    document.querySelectorAll('[data-run-mode]').forEach(b=>b.classList.toggle('active',b.dataset.runMode===runConfig.mode));
+    document.querySelectorAll('[data-difficulty]').forEach(b=>b.classList.toggle('active',b.dataset.difficulty===runConfig.difficulty));
+    $('clearTargetRow').classList.toggle('hidden',runConfig.mode!=='clear');$('customSettingsPanel').classList.toggle('hidden',runConfig.difficulty!=='custom');$('clearWaveSelect').value=String(runConfig.clearWave);
+    const c=runConfig.custom;for(const [id,key] of CUSTOM_SLIDERS)$(id).value=c[key];
+    $('customBossInterval').value=String(c.bossInterval);$('customShield').checked=c.shield;$('customHeal').value=String(c.heal);$('customOneHit').checked=c.oneHit;
+    $('customStartLevel').value=c.startLevel;$('customRosterMode').value=c.rosterMode;$('customBossEnabled').checked=c.bossEnabled;$('customBossLimit').value=String(c.bossLimit);
+    document.querySelectorAll('[data-custom-enemy]').forEach(x=>x.checked=c.enemyTypes.includes(x.dataset.customEnemy));
+    document.querySelectorAll('[data-custom-boss]').forEach(x=>x.checked=c.bossTypes.includes(x.dataset.customBoss));
+    updateRunConfigPreview(false);
+  }
+  function readCustomInputs(){
+    const c={...runConfig.custom};for(const [id,key] of CUSTOM_SLIDERS)c[key]=+$(id).value;
+    Object.assign(c,{bossInterval:+$('customBossInterval').value,shield:$('customShield').checked,heal:+$('customHeal').value,oneHit:$('customOneHit').checked,
+      startLevel:+$('customStartLevel').value,rosterMode:$('customRosterMode').value,bossLimit:+$('customBossLimit').value,bossEnabled:$('customBossEnabled').checked,
+      enemyTypes:[...document.querySelectorAll('[data-custom-enemy]:checked')].map(x=>x.dataset.customEnemy),bossTypes:[...document.querySelectorAll('[data-custom-boss]:checked')].map(x=>x.dataset.customBoss)});
+    runConfig.custom=cleanCustomConfig(c);
+  }
+  function updateRunConfigPreview(read=true){
+    if(read!==false)readCustomInputs();const c=challenge(),custom=runConfig.custom;
+    for(const [id,key] of CUSTOM_SLIDERS){const label=$(id+'Value');if(label)label.textContent=`${custom[key].toFixed(1)}${key==='levelRate'?' / Wave':'x'}`;}
+    $('customEnemyPanel').hidden=custom.rosterMode!=='selected';$('customBossLimitLabel').hidden=custom.rosterMode!=='bossOnly';
+    $('customBossEnabled').disabled=custom.rosterMode==='bossOnly';$('customBossInterval').disabled=custom.rosterMode==='bossOnly';
+    $('customBossNote').textContent=custom.rosterMode==='bossOnly'?'通常敵・支援召喚・分裂は出ません。撃破後に補充、最終Waveは残存ボス全滅でクリア。':'選んだボスが交代で出現。同時1体。定期ボスOFFでもCLEAR最終戦には出現。';
+    UI.runConfigCp.textContent=c.cp.toFixed(2);UI.runConfigReward.textContent=`×${challengeReward().toFixed(2)}`;UI.runConfigDifficultyLabel.textContent=c.label;
+    for(const [id,key] of [['runConfigDensity','density'],['runConfigHp','hpGrowth'],['runConfigDamage','damageGrowth'],['runConfigAttack','attack']])$(id).textContent=`×${c[key].toFixed(2)}`;
+    UI.runConfigRules.innerHTML=`移動速度 <b class="text-emerald-200">変化なし</b><br>開始敵Lv ${c.startLevel??1} / 成長 ${c.levelRate??2}<br>${isBossOnly()?`全敵ボス / 同時 ${maxConcurrentBosses()}体`:`定期ボス ${c.bossEnabled===false?'OFF':c.bossInterval+' Waveごと'}`}<br>Shield ${c.shield?'ON':'OFF'} / Heal ${Math.round(c.heal*100)}%${c.oneHit?' / ONE HIT':''}<br>${runConfig.mode==='clear'?'Final Wave '+finalWaveTarget():'ENDLESS'}<br>CP・報酬には既存の上限あり。敵種の選別だけでは報酬倍率を加算しません。`;
+    $('enemyGrowthPreview').innerHTML=`<strong>敵の成長予測（${isBossOnly()?'ボス':'通常敵'}基準）</strong><table><thead><tr><th>Wave</th><th>敵Lv</th><th>HP</th><th>火力</th></tr></thead><tbody>`+[1,10,20,50].map(w=>{const lv=enemyLevelForWave(w,c),v=enemyScaling(lv,isBossOnly(),c);return `<tr><td>${w}</td><td>${researchNumber(lv)}</td><td>×${researchNumber(v.hp)}</td><td>${c.oneHit?'即死':'×'+researchNumber(v.damage)}</td></tr>`;}).join('')+'</tbody></table>';
+    const error=validateRunSetup();$('runSetupError').textContent=error;$('runConfigStart').disabled=!!error;
+    saveRunConfig();
+  }
+  function applyCustomPreset(name){
+    const d=defaultRunConfig().custom;
+    const presets={
+      swarm:{density:3.2,hpGrowth:1.5,damageGrowth:1.3,elite:1.8,attack:1.2},
+      bullet:{density:1.8,hpGrowth:1.8,damageGrowth:2.2,elite:2.4,attack:3,bossInterval:4,heal:.5},
+      boss:{density:1.3,hpGrowth:3.4,damageGrowth:2.3,elite:1.8,attack:2.1,bossInterval:3,heal:.5},
+      onehit:{density:2.3,hpGrowth:2.5,damageGrowth:2.5,elite:2.8,attack:2.2,bossInterval:4,shield:false,heal:0,oneHit:true,levelRate:6},
+      allboss:{rosterMode:'bossOnly',bossLimit:2,density:1.5,hpGrowth:2,damageGrowth:2,levelRate:3},
+      maximum:{density:3.5,hpGrowth:8,damageGrowth:8,elite:4,attack:3,bossInterval:3,levelRate:12,shield:false,heal:0,startLevel:100}
+    };
+    if(!presets[name])return;
+    runConfig.difficulty='custom';runConfig.custom={...d,...presets[name]};syncRunConfigInputs();
+  }
   function openRunConfig(){state='config';cancelCombatInput();UI.start.classList.add('hidden');UI.runConfig.classList.remove('hidden');syncRunConfigInputs();focusPanel('runConfigScreen','runConfigStart');}
   function closeRunConfig(){UI.runConfig.classList.add('hidden');state='menu';UI.start.classList.remove('hidden');syncInputPresentation();$('startBtn').focus({preventScroll:true});}
-  document.querySelectorAll('[data-run-mode]').forEach(b=>b.addEventListener('click',()=>{runConfig.mode=b.dataset.runMode;syncRunConfigInputs()}));document.querySelectorAll('[data-difficulty]').forEach(b=>b.addEventListener('click',()=>{runConfig.difficulty=b.dataset.difficulty;syncRunConfigInputs()}));
-  for(const id of ["customDensity","customHp","customDamage","customElite","customAttack","customBossInterval","customShield","customHeal","customOneHit","clearWaveSelect"]){$(id)?.addEventListener('input',()=>{if(id==="clearWaveSelect")runConfig.clearWave=+$(id).value;updateRunConfigPreview()});$(id)?.addEventListener('change',()=>{if(id==="clearWaveSelect")runConfig.clearWave=+$(id).value;updateRunConfigPreview()});}
-  document.querySelectorAll('[data-custom-preset]').forEach(b=>b.addEventListener('click',()=>{const p=b.dataset.customPreset;if(p==='swarm')runConfig.custom={density:3.2,hpGrowth:1.5,damageGrowth:1.3,elite:1.8,attack:1.2,bossInterval:5,shield:true,heal:1,oneHit:false};if(p==='bullet')runConfig.custom={density:1.8,hpGrowth:1.8,damageGrowth:2.2,elite:2.4,attack:3,bossInterval:4,shield:true,heal:.5,oneHit:false};if(p==='boss')runConfig.custom={density:1.3,hpGrowth:3.4,damageGrowth:2.3,elite:1.8,attack:2.1,bossInterval:3,shield:true,heal:.5,oneHit:false};if(p==='onehit')runConfig.custom={density:2.3,hpGrowth:2.5,damageGrowth:2.5,elite:2.8,attack:2.2,bossInterval:4,shield:false,heal:0,oneHit:true};syncRunConfigInputs()}));
+  renderCustomEnemyInputs();
+  document.querySelectorAll('[data-run-mode]').forEach(b=>b.addEventListener('click',()=>{runConfig.mode=b.dataset.runMode;syncRunConfigInputs();}));
+  document.querySelectorAll('[data-difficulty]').forEach(b=>b.addEventListener('click',()=>{runConfig.difficulty=b.dataset.difficulty;syncRunConfigInputs();}));
+  for(const id of [...CUSTOM_SLIDERS.map(p=>p[0]),'customBossInterval','customShield','customHeal','customOneHit','customStartLevel','customRosterMode','customBossEnabled','customBossLimit','clearWaveSelect']){
+    $(id).addEventListener('input',()=>{if(id==='clearWaveSelect')runConfig.clearWave=+$(id).value;updateRunConfigPreview();});
+  }
+  $('customEnemyAll').onclick=()=>{runConfig.custom.enemyTypes=[...CUSTOM_ENEMY_IDS];syncRunConfigInputs();};
+  $('customEnemyNone').onclick=()=>{runConfig.custom.enemyTypes=[];syncRunConfigInputs();};
+  document.querySelectorAll('[data-custom-preset]').forEach(b=>b.addEventListener('click',()=>applyCustomPreset(b.dataset.customPreset)));
+  document.querySelectorAll('[data-research-batch]').forEach(b=>b.onclick=()=>{researchBatch=b.dataset.researchBatch==='max'?'max':Number(b.dataset.researchBatch);renderResearch();});
+
   // ---------- Buttons ----------
   $("startBtn").addEventListener("click", openRunConfig);
-  $("runConfigClose").addEventListener("click", closeRunConfig);$("runConfigCancel").addEventListener("click", closeRunConfig);$("runConfigStart").addEventListener("click",()=>{saveRunConfig();UI.runConfig.classList.add("hidden");resetGame();});
+  $("runConfigClose").addEventListener("click", closeRunConfig);$("runConfigCancel").addEventListener("click", closeRunConfig);$("runConfigStart").addEventListener("click",()=>{readCustomInputs();if(validateRunSetup()){updateRunConfigPreview(false);return;}saveRunConfig();UI.runConfig.classList.add("hidden");resetGame();});
   $("restartBtn").addEventListener("click", resetGame);
   $("pauseResumeBtn").addEventListener("click", ()=>setPause(false));
   $("pauseSettleBtn").addEventListener("click", ()=>gameOver("settle"));
@@ -6413,7 +6658,7 @@ body.nf-touch #xpHud.game-xp-hud {width:calc((100% - var(--nf-safe-left,0px) - v
   syncInputSettings();syncInputPresentation();
 
   addEventListener('resize',()=>{sceneDirty=true;});
-  $('gameBuildVersion').textContent='v28.4 · INPUT STATE FIX';
+  $('gameBuildVersion').textContent='v28.5 · ENDLESS RESEARCH / CUSTOM ROSTER';
   syncCombatHud();
 
 })();
