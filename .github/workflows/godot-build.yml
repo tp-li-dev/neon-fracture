@@ -39,8 +39,9 @@ jobs:
       - name: Android SDK and debug keystore
         if: matrix.name == 'android'
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "build-tools;35.0.1" "platforms;android-35" "cmdline-tools;latest"
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses >/dev/null || true
+          "$SDKM" "platform-tools" "build-tools;35.0.1" "platforms;android-35" "cmdline-tools;latest"
           keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$RUNNER_TEMP/debug.keystore" \
             -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deploy
           mkdir -p ~/.config/godot

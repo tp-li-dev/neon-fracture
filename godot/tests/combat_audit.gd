@@ -79,7 +79,9 @@ func _ready() -> void:
 	ok(not bl.crit and bl.damage == 10.0, "noCrit")
 	var bc = Combat.shoot(0, 0, 0.0, 10.0)
 	near(bc.damage, 20.0, "crit x2")
+	p.crit = 4.0  # drone crit chance is crit*.25 -> 1.0 (deterministic)
 	var dr = Combat.shoot(0, 0, 0.0, 10.0, {"drone": true})
+	p.crit = 2.0
 	near(dr.damage, 10.0 * (1.0 + (2.0 - 1.0) * .3), "drone crit mult")
 	ok(dr.noProc and dr.source == "drone", "drone flags")
 	ok(Combat.shoot(0, 0, 0.0, 0.0) == null and Combat.shoot(0, 0, 0.0, NAN) == null, "shoot rejects 0/NaN")
