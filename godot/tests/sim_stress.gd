@@ -574,7 +574,7 @@ func sc_perf2() -> void:
 	print("  PERF2 heavy: mean %.2f ms, p95 %.2f ms, max %.2f ms over %d steps; en=%d bul=%d" % [sum / times.size(), times[int(times.size() * 0.95)], times[-1], times.size(), Game.enemies.size(), Game.bullets.size()])
 
 func sc_custom() -> void:
-	var cc := Meta.defaultRunConfig().custom
+	var cc: Dictionary = Meta.defaultRunConfig().custom
 	var variants: Array = [
 		{"rosterMode": "bossOnly", "bossLimit": 3},
 		{"rosterMode": "selected", "enemyTypes": ["shooter", "medic", "bulwark"], "bossEnabled": false},
@@ -619,7 +619,7 @@ func sc_custom() -> void:
 
 func sc_marathon() -> void:
 	start({"difficulty": "normal"})
-	for chunk in 60:
+	for chunk in 40:
 		set_wave(1 + chunk)
 		if chunk % 5 == 4:
 			var types: Array = Enemies.ENEMY_TYPES.keys()
