@@ -874,7 +874,10 @@ func _want_visible() -> bool:
 
 func _process(dt: float) -> void:
 	var want := _want_visible()
-	var target := 1.0 if want else 0.0
+	# Full-screen run panels (pause / card choice / ability reward) cover the HUD: fade it out so the
+	# panel headers don't overlap the HP/score plates.
+	var target := 1.0 if Game.state == "playing" else 0.0
+	if want and _mock != "": target = 1.0
 	_shown_alpha = move_toward(_shown_alpha, target, dt * 5.0)
 	modulate.a = _shown_alpha
 	visible = _shown_alpha > 0.01

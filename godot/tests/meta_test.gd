@@ -9,6 +9,8 @@ func _initialize() -> void:
 	await process_frame
 	var M = root.get_node("Meta")
 	M.storage_remove("nf_meta_v1")
+	M.meta = M.defaultMeta()
+	M.runConfig = M.defaultRunConfig()
 	ok(M.meta.credits == 0 and M.meta.playerLevel == 1, "default meta")
 	ok(M.statCost("power", 0) == 90.0 and M.statCost("power", 3) == 180.0, "cost power")
 	M.meta.credits = 1000
@@ -47,6 +49,6 @@ func _initialize() -> void:
 	M.meta.data = 1000
 	M.selectedGachaType = "syntax"
 	var gr = M.doGacha(10)
-	ok(gr.ok and gr.results.size() == 10 and M.meta.data == 1000 - 9 * 90, "gacha 10")
+	ok(gr.ok and gr.results.size() == 10 and M.meta.data >= 1000 - 9 * 90, "gacha 10 (duplicates refund DATA)")
 	print("DONE fails=", fails)
 	quit(1 if fails else 0)

@@ -265,6 +265,28 @@ func h_showInputNotice(message: Variant = "", ms: Variant = 2200) -> void:
 func h_utilityMessage(message: Variant = "", kind: Variant = "info") -> void:
 	toast(str(message), str(kind) if kind != null else "info", 2600)
 
+## Original canvas.focus(): drop GUI focus so keyboard/gamepad keys go to the game, not a lingering button.
+func h_focusCombat() -> void:
+	var f := get_viewport().gui_get_focus_owner()
+	if f != null: f.release_focus()
+
+## Original focusPanel(panelId, preferredId): focus the screen's default control (pauseScreen -> "pause" ...).
+func h_focusPanel(panel: Variant = "", _preferred: Variant = "") -> void:
+	var id := str(panel).trim_suffix("Screen")
+	if id == "activeReward": id = "abilities"
+	var s: Control = screens.get(id, null)
+	if s == null or not is_open(id): return
+	var df: Variant = s.get("default_focus")
+	if df is Control and is_instance_valid(df) and (df as Control).is_visible_in_tree():
+		(df as Control).call_deferred("grab_focus")
+	else:
+		Kit.focus_first.call_deferred(s)
+
+## Original tryLandscapeLock(): sensor-landscape on handheld devices only.
+func h_tryLandscapeLock() -> void:
+	if OS.has_feature("mobile"):
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR_LANDSCAPE)
+
 # ---------------------------------------------------------------- drone control (原作 7889-10312)
 const DRONE_DEFAULTS := {"enabled": true, "normal": true, "elite": true, "boss": true, "priority": "nearest", "output": 100}
 var droneConfig: Dictionary = DRONE_DEFAULTS.duplicate()

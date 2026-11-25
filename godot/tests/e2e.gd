@@ -174,24 +174,107 @@ func _run() -> void:
 	print("=== E2E DONE fails=", fails, " unhandled=", UI.unhandled)
 	get_tree().quit(1 if fails > 0 else 0)
 
+func mouse_btn(pos: Vector2, pressed: bool) -> void:
+	var d := InputEventMouseButton.new()
+	d.button_index = MOUSE_BUTTON_LEFT; d.pressed = pressed; d.position = pos; d.global_position = pos
+	d.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+	Input.parse_input_event(d)
+
 func flow_main() -> void:
 	await shot("boot")
 	audit("boot")
 	await click("モード選択")
 	await shot("runconfig")
 	audit("runconfig")
-	dump_btns("runconfig")
 	check(Game.state == "config", "state config")
 	check(not UI.is_open("home"), "home hidden in config")
 	await click("NORMAL")
-	check(Game.get("selectedDifficulty") == "normal" or true, "")
-	await shot("rc_normal")
 	await click("CUSTOM")
-	await shot("rc_custom")
-	dump_btns("custom")
-	for sl in _find_all(UI.root, "HSlider"):
-		print("SLIDER ", sl.get_global_rect(), " v=", sl.value)
+	# slider click at 80% of first slider
+	var sls := _find_all(UI.root, "HSlider")
+	var sl: HSlider = sls[0]
+	var r := sl.get_global_rect()
+	var before := sl.value
+	await click_at(Vector2(r.position.x + r.size.x * 0.8, r.get_center().y))
+	check(absf(sl.value - before) > 0.05, "slider click changes value %s -> %s" % [before, sl.value])
+	await click("BULLET HELL")
+	await shot("rc_custom_preset")
+	await click("NORMAL")
+	await click("ENDLESS")
+	await shot("rc_normal")
+	audit("rc_normal")
+	var b0: int = Game.bullets.size()
+	await click("RUN START")
+	await wait(0.6)
+	check(Game.state == "playing", "playing after RUN START: " + Game.state)
+	check(Game.bullets.size() <= b0 + 2, "RUN START click did not fire weapon")
+	await shot("play_start")
+	audit("play_start")
+	check(UI.is_open("hud"), "hud open in play")
+	check(not UI.is_open("home") and not UI.is_open("runconfig"), "menus closed in play")
+	await play_phase()
 
+func play_phase() -> void:
+	# mouse aim + fire
+	var p0: Vector2 = Vector2(Game.player.x, Game.player.y)
+	key_down(KEY_D)
+	mouse_move(Vector2(1100, 300))
+	mouse_btn(Vector2(1100, 300), true)
+	await wait(1.5)
+	check(Game.bullets.size() > 0, "holding mouse fires bullets")
+	await key(KEY_SPACE)
+	await wait(0.3)
+	key_up(KEY_D)
+	key_down(KEY_W)
+	await wait(1.0)
+	key_up(KEY_W)
+	mouse_btn(Vector2(1100, 300), false)
+	var p1: Vector2 = Vector2(Game.player.x, Game.player.y)
+	check(p0.distance_to(p1) > 20.0, "WASD moved player %s -> %s" % [p0, p1])
+	await shot("play_moved")
+	# level up via key
+	Game.player.xp = Game.player.nextXp + 1
+	await wait(0.6)
+	check(Game.pendingLevelUps > 0, "xp gives pending level-up")
+	dump_btns("hud-play")
+	await key(KEY_Q)
+	await wait(0.5)
+	check(Game.state == "upgrade", "Q opens upgrade, state=" + Game.state)
+	await shot("upgrade")
+	audit("upgrade")
+	var lv0: int = Game.player.level
+	await key(KEY_2)
+	await wait(0.5)
+	check(Game.state == "playing", "key pick returns to playing: " + Game.state)
+	await shot("after_pick")
+	# level up via click
+	Game.player.xp = Game.player.nextXp + 1
+	await wait(0.6)
+	var hb: Array = []
+	for b in buttons():
+		if UI.screens.hud.is_ancestor_of(b): hb.append(b)
+	hb.sort_custom(func(a, b): return a.get_global_rect().position.x < b.get_global_rect().position.x)
+	check(hb.size() > 0, "hud dock buttons exist")
+	await click_at((hb[0] as Control).get_global_rect().get_center())
+	check(not Inp.mouse.down, "click on dock does not hold fire")
+	await wait(0.4)
+	check(Game.state == "upgrade", "2nd level-up via dock click: " + Game.state)
+	dump_btns("upgrade")
+	var nb: int = Game.bullets.size()
+	var cards: Array = []
+	for b in buttons():
+		if btn_text(b).length() > 8 and (b as Control).get_global_rect().size.x > 150: cards.append(b)
+	if cards.size() > 0:
+		await click_at((cards[0] as Control).get_global_rect().get_center())
+		await wait(0.5)
+	check(Game.state == "playing", "click pick returns to playing: " + Game.state)
+	# pause
+	await key(KEY_ESCAPE)
+	await wait(0.5)
+	check(Game.state == "paused", "Esc pauses: " + Game.state)
+	await shot("pause")
+	audit("pause")
+	dump_btns("pause")
 func _find_all(node: Node, cls: String) -> Array:
 	var all: Array = []
 	all_controls(node, all)

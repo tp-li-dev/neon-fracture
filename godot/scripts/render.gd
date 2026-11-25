@@ -143,7 +143,13 @@ func _closed(pts: PackedVector2Array) -> PackedVector2Array:
 
 func _poly(ci: CanvasItem, pts: PackedVector2Array, fill: Color, stroke: Color, w: float, glow: Color = Color(0, 0, 0, 0)) -> void:
 	if fill.a > 0.0:
-		ci.draw_colored_polygon(pts, fill)
+		var n: int = pts.size()
+		if n == 3 or n == 4:
+			# draw_primitive is ~30x cheaper than draw_colored_polygon (no triangulation); the quad is split on
+			# the 0-2 diagonal, which lies inside every quad used here (incl. the concave charger dart).
+			ci.draw_primitive(pts, PackedColorArray([fill, fill, fill] if n == 3 else [fill, fill, fill, fill]), PackedVector2Array())
+		else:
+			ci.draw_colored_polygon(pts, fill)
 	var cl := _closed(pts)
 	if _glow and glow.a > 0.0:
 		ci.draw_polyline(cl, glow, w + 5.0)
@@ -420,27 +426,31 @@ func drawReadableProjectiles(ci: CanvasItem) -> void:
 	for d in dots:
 		_fcirc(ci, d[0], d[1], cols[d[2]])
 
+const ENEMY_SYM := {"disruptor": "×", "lancer": "⇢", "medic": "+", "bulwark": "▣", "bombardier": "!", "suppressor": "↓"}
+
 func drawEnemyInfo(ci: CanvasItem, e: Dictionary) -> void:
 	if float(e.get("spawnDelay", 0)) > 0.0 or e.get("_dead", false):
 		return
-	var time: float = Game.time
-	var t: String = str(e.type)
-	var special: bool = t in ["disruptor", "lancer", "medic", "bulwark", "bombardier", "suppressor"]
+	var t: String = e.type
+	var sym = ENEMY_SYM.get(t)
+	var special: bool = sym != null
 	var boss: bool = e.get("boss", false)
 	var elite: bool = e.get("elite", false)
+	var ex: float = e.x
+	var ey: float = e.y
+	var er: float = e.r
 	if special:
-		var sym := {"disruptor": "×", "lancer": "⇢", "medic": "+", "bulwark": "▣", "bombardier": "!", "suppressor": "↓"}
-		_text(ci, sym[t], e.x, e.y + 5, 16, Color("#fff1e6"))
+		_text(ci, sym, ex, ey + 5, 16, Color("#fff1e6"))
 	if boss or elite or special:
-		_text(ci, "%s Lv.%s" % [Enemies.enemyName(e), str(e.level)], e.x, e.y - e.r - (25 if boss else 12), 16 if boss else 12, Color("#ffd49c") if boss else Color("#cfdae6"))
-	var ep := Vector2(e.x, e.y)
+		_text(ci, "%s Lv.%d" % [Enemies.enemyName(e), int(e.level)], ex, ey - er - (25 if boss else 12), 16 if boss else 12, Color("#ffd49c") if boss else Color("#cfdae6"))
+	var ep := Vector2(ex, ey)
 	if float(e.get("burnTime", 0)) > 0.0:
-		_circ(ci, ep, e.r + 4, Color("#ff944d"), 2.0)
-	if e.get("armored", false) or float(e.get("protectedUntil", 0)) > time:
-		_dash_circle(ci, ep, e.r + 7, 4.0, 4.0, Color("#7aaaff"), 1.5)
+		_circ(ci, ep, er + 4, Color("#ff944d"), 2.0)
+	if e.get("armored", false) or float(e.get("protectedUntil", 0)) > Game.time:
+		_dash_circle(ci, ep, er + 7, 4.0, 4.0, Color("#7aaaff"), 1.5)
 	if float(e.get("windup", 0)) > 0.0:
 		var ca: float = e.chargeAngle
-		_dashed(ci, ep, Vector2(e.x + cos(ca) * 165, e.y + sin(ca) * 165), Color("#ff9f6f"), 2.0, 7.0, 7.0)
+		_dashed(ci, ep, Vector2(ex + cos(ca) * 165, ey + sin(ca) * 165), Color("#ff9f6f"), 2.0, 7.0, 7.0)
 
 # ---------------------------------------------------------------- main render
 func draw(ci: CanvasItem) -> void:
