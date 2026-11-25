@@ -6,6 +6,20 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 run/main_scene="res://main.tscn"
 config/icon="res://icon.png"
 
+[autoload]
+
+U="*res://scripts/u.gd"
+Audio="*res://scripts/audio.gd"
+World="*res://scripts/world.gd"
+Inp="*res://scripts/inp.gd"
+Meta="*res://scripts/meta.gd"
+Cards="*res://scripts/cards.gd"
+Game="*res://scripts/game.gd"
+Enemies="*res://scripts/enemies.gd"
+Combat="*res://scripts/combat.gd"
+Render="*res://scripts/render.gd"
+UI="*res://scripts/ui.gd"
+
 [display]
 window/size/viewport_width=1600
 window/size/viewport_height=900
