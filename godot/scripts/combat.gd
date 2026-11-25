@@ -727,21 +727,36 @@ func updateLoot(dt: float) -> void:
 	Game.gems = Game.gems.filter(func(g): return not g.get("collected", false) and g.life > 0)
 
 func updateVisualEffects(dt: float) -> void:
+	# Single pass per array (update + drop expired) instead of update loop + filter(lambda): no per-element Callable calls.
 	var damp: float = pow(.18, dt)
+	var keep: Array = []
 	for p in Game.particles:
-		p.life -= dt
+		var life: float = p.life - dt
+		p.life = life
+		if life <= 0:
+			continue
 		p.x += p.vx * dt
 		p.y += p.vy * dt
 		p.vx *= damp
 		p.vy *= damp
-	Game.particles = _tail(Game.particles.filter(func(p): return p.life > 0), int(PERF.maxParticles))
+		keep.append(p)
+	Game.particles = _tail(keep, int(PERF.maxParticles))
+	keep = []
 	for r in Game.rings:
-		r.life -= dt
-	Game.rings = _tail(Game.rings.filter(func(r): return r.life > 0), int(PERF.maxRings))
+		var life: float = r.life - dt
+		r.life = life
+		if life > 0:
+			keep.append(r)
+	Game.rings = _tail(keep, int(PERF.maxRings))
+	keep = []
 	for t in Game.texts:
-		t.life -= dt
+		var life: float = t.life - dt
+		t.life = life
+		if life <= 0:
+			continue
 		t.y -= 24 * dt
-	Game.texts = _tail(Game.texts.filter(func(t): return t.life > 0), int(PERF.maxTexts))
+		keep.append(t)
+	Game.texts = _tail(keep, int(PERF.maxTexts))
 
 # ---------------------------------------------------------------- entities
 func sanitizeBullets() -> int:

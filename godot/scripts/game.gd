@@ -341,7 +341,8 @@ func updateRunSystems(dt: float) -> void:
 	for s in activeSlots:
 		if s != null:
 			s.remaining = maxf(0.0, s.remaining - dt)
-	_hook("updateSkillHolds")
+	if not Inp.heldSkills.is_empty():  # perf: was a UI.hook scan of every screen on every sim step (handler = Inp.updateSkillHolds)
+		Inp.updateSkillHolds()
 	for k in ["barrierLock", "barrierTime", "dashInvuln", "wounded", "playerOverdrive", "stasisTime"]:
 		player[k] = maxf(0.0, float(_getb(player, k, 0.0)) - dt)
 	if player.stasisTime > 0:

@@ -325,8 +325,8 @@ func updateEnemies(dt: float) -> void:
 			var follow: float = 1.0 - exp(-dt * (2.5 if e.boss else 4.2))
 			e.vx += (tx - e.vx) * follow
 			e.vy += (ty - e.vy) * follow
-		e.x = U.clamp(e.x + e.vx * dt, e.r, World.W - e.r)
-		e.y = U.clamp(e.y + e.vy * dt, e.r, World.H - e.r)
+		e.x = clampf(e.x + e.vx * dt, e.r, World.W - e.r)
+		e.y = clampf(e.y + e.vy * dt, e.r, World.H - e.r)
 		if not e.boss and distance > Game.ACTIVE_DESPAWN_DISTANCE:
 			e._dead = true
 			continue

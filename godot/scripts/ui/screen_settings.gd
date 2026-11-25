@@ -46,6 +46,7 @@ var _a_info: Label
 # input
 var _layout_cards: Dictionary = {}
 var _device_seg: Kit.Segmented
+var _quality_seg: Kit.Segmented
 var _key_summary: Label
 var _hold_tg: Kit.NeonToggle
 # developer
@@ -414,6 +415,14 @@ func _build_input(pi: VBoxContainer) -> void:
 		func(i): Inp.setInputDevice(["auto", "keyboard", "touch"][i]), Kit.EMERALD)
 	p.body.add_child(_device_seg)
 	p.body.add_child(_help("設定はこの端末に保存"))
+	p.body.add_child(Kit.spacer(Kit.S1))
+	p.body.add_child(Kit.label("描画品質", Kit.FS_SM, Kit.DIM))
+	_quality_seg = Kit.segmented(["自動（端末に合わせる）", "高品質", "軽量（モバイル向け）"], 0,
+		func(i):
+			if _sync: return
+			Game.set_perf_tier(["auto", "high", "mobile"][i]), Kit.EMERALD)
+	p.body.add_child(_quality_seg)
+	p.body.add_child(_help("軽量：ワールドを低解像度で描画し、発光・ラベル・粒子を減らします。UIは高解像度のまま。保存されます。"))
 	_key_summary = Kit.label("", Kit.FS_SM, Kit.CYAN.lightened(0.5), HORIZONTAL_ALIGNMENT_LEFT, true)
 	p.body.add_child(_key_summary)
 	var h := _panel("スキル長押し", Kit.CYAN)
@@ -435,6 +444,7 @@ func _sync_input() -> void:
 	_sync = true
 	for id in _layout_cards: (_layout_cards[id] as NfOptCard).selected = (Inp.inputPreferences.scheme == id)
 	_device_seg.set_index(["auto", "keyboard", "touch"].find(str(Inp.inputPreferences.device)))
+	if _quality_seg != null: _quality_seg.set_index(["auto", "high", "mobile"].find(Game.perfPref))
 	var k: Dictionary = Inp.currentKeys()
 	var skills: Array = []
 	for s in k.skills: skills.append(Inp.keyLabel(s))

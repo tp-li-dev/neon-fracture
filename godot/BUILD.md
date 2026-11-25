@@ -15,7 +15,7 @@
     godot --headless --path godot --export-release "Linux"            build/linux/neon-fracture.x86_64
     godot --headless --path godot --export-release "Windows Desktop"  build/windows/neon-fracture.exe
     godot --headless --path godot --export-release "macOS"            build/macos/neon-fracture.zip
-    godot --headless --path godot --export-debug   "Android"          build/android/neon-fracture-debug.apk
+    godot --headless --path godot --export-release "Android"          build/android/neon-fracture.apk   # RELEASE template (GDScript is much faster than debug)
     godot --headless --path godot --export-release "Web"              build/web/index.html
 
 `tests/ preview/ tools/ icons/ *.md` は各プリセットの除外フィルタで書き出しから外しています。Androidのアダプティブアイコンはエクスポータがpck外から直接APKへ取り込むため、`icons/*` を除外しても問題ありません。
@@ -30,12 +30,12 @@ Linuxは `binary_format/embed_pck=false` のため実行ファイルと同じ場
        keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore \
          -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deploy
        # ~/.local/share/godot/ もしくはエディタ設定の debug_keystore に指定
-3. リリース署名: 自前の keystore を作り、環境変数で渡す(コミット禁止)
+3. リリース署名(CIは debug.keystore を release 署名に流用): 環境変数で渡す(自前keystoreはコミット禁止)
 
        export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=/path/release.keystore
        export GODOT_ANDROID_KEYSTORE_RELEASE_USER=alias
        export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=...
-4. プリセット設定: パッケージ `dev.neonfracture.app`、横画面(sensor landscape)、没入モード、armeabi-v7a + arm64-v8a、minSdk/targetSdkはGodot 4.7既定値(空欄=既定)。
+4. プリセット設定: パッケージ `dev.neonfracture.app`、横画面(sensor landscape)、没入モード、arm64-v8a のみ(armeabi-v7a は外してAPK縮小)、minSdk/targetSdkはGodot 4.7既定値(空欄=既定)。
    Google Play(AAB)向けは Gradleビルド(`gradle_build/use_gradle_build=true`, `export_format=1`)に切り替え、エディタで「Androidビルドテンプレートをインストール」。
 5. 画面常時ONはゲーム側ではなくプロジェクト設定 `display/window/energy_saving/keep_screen_on`(既定true)で制御されます。
 
@@ -105,4 +105,9 @@ Androidはさらに `ProGuard/R8` 無効の標準ビルドでも、armeabi-v7a �
     xvfb-run -a ./neon-fracture.x86_64 --rendering-driver opengl3 --quit-after 240
 
 ## 5. CI
-`.github/workflows/godot-build.yml` がタグ(`v*`)/手動実行で Linux・Windows・macOS(zip)・Android(デバッグAPK、未署名リリース用ではない)をビルドし artifact を保存します。
+`.github/workflows/godot-build.yml` がタグ(`v*`)/手動実行で Linux・Windows・macOS(zip)・Android(**releaseテンプレート**、CIのdebug keystoreで署名した `neon-fracture.apk`。Play配布用ではない)をビルドし artifact を保存します。
+
+## 6. 描画品質ティア (`Game.perfTier` / `Game.PERF`)
+`Game.set_perf_tier("auto"|"high"|"mobile")`。auto はタッチ端末で `mobile`。設定画面「操作設定 > 描画品質」と `Meta.storage` `nf_perf_tier` に保存、環境変数 `NF_TIER=high|mobile`(+ `NF_TOUCH=1` でタッチ扱い)で上書き。
+mobile: ワールドを `PERF.worldScale`(0.7) の解像度で SubViewport に描画しUIは実解像度のまま重ねる / グロー二重線オフ / 敵ラベル(ボス以外)・ゾーン名・凡例オフ / 粒子・テキスト・リング上限削減 / 敵・弾上限はタッチ値(135/760)。
+プロファイル: `NF_TOUCH=1 NF_SCENARIO=perf3 godot --headless --path godot res://tests/sim_stress.tscn` (Game.update と Render.draw の ms を別々に出力)。

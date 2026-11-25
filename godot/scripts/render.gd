@@ -117,7 +117,8 @@ func _rgba(r: int, g: int, b: int, a: float) -> Color:
 
 # ---------------------------------------------------------------- primitive helpers
 func _xf(ci: CanvasItem, pos: Vector2 = Vector2.ZERO, rot: float = 0.0) -> void:
-	ci.draw_set_transform_matrix(_base * Transform2D(rot, pos))
+	# _base is always a pure translation (camera / shake), so this equals _base * Transform2D(rot, pos).
+	ci.draw_set_transform(_base.origin + pos, rot)
 
 func _segs(r: float) -> int:
 	return clampi(int(r * 0.8) + 12, 16, 56)
@@ -451,7 +452,9 @@ func drawReadableProjectiles(ci: CanvasItem) -> void:
 	var y0: float = cam.y - 35.0
 	var y1: float = cam.y + World.CAMERA_H + 35.0
 	var trails: Dictionary = {}
-	var dots: Array = []
+	var dot_p := PackedVector2Array()
+	var dot_r := PackedFloat32Array()
+	var dot_i := PackedInt32Array()
 	var xc := Color("#5b0039")
 	for b in Game.bullets:
 		if b == null or b.get("_dead", false):
@@ -495,14 +498,16 @@ func drawReadableProjectiles(ci: CanvasItem) -> void:
 			arr.append(Vector2(bx - b.vx / sp * 12.0, by - b.vy / sp * 12.0))
 			arr.append(bp)
 			trails[key] = arr
-			dots.append([bp, br, ci_idx])
+			dot_p.append(bp)
+			dot_r.append(br)
+			dot_i.append(ci_idx)
 	var cols: Array = [Color("#bca8fd"), Color("#fff2b0"), Color("#8deafa")]
 	for key in trails:
 		var idx: int = int(key) / 1000
 		var w: float = float(int(key) % 1000) / 10.0
 		ci.draw_multiline(trails[key], cols[idx], w)
-	for d in dots:
-		_fcirc(ci, d[0], d[1], cols[d[2]])
+	for di in dot_p.size():
+		_fcirc(ci, dot_p[di], dot_r[di], cols[dot_i[di]])
 
 const ENEMY_SYM := {"disruptor": "×", "lancer": "⇢", "medic": "+", "bulwark": "▣", "bombardier": "!", "suppressor": "↓"}
 
@@ -573,8 +578,13 @@ func draw(ci: CanvasItem) -> void:
 
 	# Enemies
 	var tele: float = Enemies.SPAWN_TELEGRAPH
+	var cull_x0: float = cam.x
+	var cull_x1: float = cam.x + World.CAMERA_W
+	var cull_y0: float = cam.y
+	var cull_y1: float = cam.y + World.CAMERA_H
 	for e in G.enemies:
-		if e.get("_dead", false) or not World.pointInCamera(e.x, e.y, e.r + 85):
+		var cpad: float = e.r + 85.0
+		if e.x < cull_x0 - cpad or e.x > cull_x1 + cpad or e.y < cull_y0 - cpad or e.y > cull_y1 + cpad or e.get("_dead", false):
 			continue
 		var eboss: bool = e.get("boss", false)
 		var sd: float = float(e.get("spawnDelay", 0))
@@ -716,16 +726,21 @@ func draw(ci: CanvasItem) -> void:
 		var d: float = sqrt(dx * dx + dy * dy)
 		if d > 1250.0 and not mapAdv and not (mapEsp and (e.get("boss", false) or e.get("elite", false))):
 			continue
-		var a: float = atan2(dy, dx)
+		var ca: float = dx / d if d > 0.0 else 1.0
+		var sa: float = dy / d if d > 0.0 else 0.0
 		var rx: float = cw / 2.0 - 34.0
 		var ry: float = ch / 2.0 - 34.0
-		var tt: float = 1.0 / maxf(absf(cos(a)) / rx, absf(sin(a)) / ry)
-		var ix: float = cw / 2.0 + cos(a) * tt
-		var iy: float = ch / 2.0 + sin(a) * tt
+		var tt: float = 1.0 / maxf(absf(ca) / rx, absf(sa) / ry)
+		var ix: float = cw / 2.0 + ca * tt
+		var iy: float = ch / 2.0 + sa * tt
 		var ac: Color = _rgba(251, 113, 133, .95) if e.get("boss", false) else _rgba(103, 232, 249, .9)
 		ac.a *= .85 if float(e.get("spawnDelay", 0)) > 0.0 else .32
-		_xf(ci, Vector2(ix, iy), a)
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(10, 0), Vector2(-7, -6), Vector2(-7, 6)]), ac)
+		# triangle (10,0) (-7,-6) (-7,6) rotated by the bearing, drawn as a primitive (no transform change, no triangulation)
+		ci.draw_primitive(PackedVector2Array([
+			Vector2(ix + ca * 10.0, iy + sa * 10.0),
+			Vector2(ix - ca * 7.0 + sa * 6.0, iy - sa * 7.0 - ca * 6.0),
+			Vector2(ix - ca * 7.0 - sa * 6.0, iy - sa * 7.0 + ca * 6.0)]),
+			PackedColorArray([ac, ac, ac]), PackedVector2Array())
 	_xf(ci)
 	# minimap
 	var mw := 174.0
