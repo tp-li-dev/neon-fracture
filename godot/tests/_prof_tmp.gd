@@ -22,12 +22,29 @@ func _ready():
 	for i in 40:
 		Game.hazards.append({"age": 0.5, "warn": 1.0, "duration": .2, "hit": false, "kind": "normal", "label": "x", "shape": "circle", "x": p.x + randf_range(-700,700), "y": p.y + randf_range(-400,400), "radius": 80.0})
 	World.camera.x = p.x - 800; World.camera.y = p.y - 450
+	print("PERF max ", Game.PERF.maxEnemies, " n ", Game.enemies.size())
+	var base: Array = Game.enemies.duplicate()
+	var k := 0
+	while Game.enemies.size() < 190:
+		var d: Dictionary = base[k % base.size()].duplicate()
+		d.x = p.x + randf_range(-780, 780); d.y = p.y + randf_range(-420, 420)
+		Game.enemies.append(d); k += 1
 	print("enemies ", Game.enemies.size())
 func _process(_d):
 	queue_redraw()
 func _draw():
 	var t0 := Time.get_ticks_usec()
 	Render.draw(self)
+	if n == 30:
+		Render._glow = false
+		for nm in ["drawBackground","drawReadableLoot","drawFriendlyEffects","drawHazards","drawReadableProjectiles"]:
+			var a := Time.get_ticks_usec()
+			Render.call(nm, self)
+			print(nm, " ", (Time.get_ticks_usec()-a)/1000.0)
+		var a2 := Time.get_ticks_usec()
+		for e in Game.enemies: Render.drawEnemyInfo(self, e)
+		print("enemyinfo ", (Time.get_ticks_usec()-a2)/1000.0)
+		Render._base = Transform2D.IDENTITY
 	var dt := Time.get_ticks_usec() - t0
 	n += 1
 	if n > 10:

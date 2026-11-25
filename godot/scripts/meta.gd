@@ -6,7 +6,7 @@ extends Node
 const GAME_VERSION := "v28.10"
 const SAVE_EXPORT_VERSION := 1
 const SAVE_EXPORT_APP := "NEON_FRACTURE"
-const MAX_SAFE := 9007199254740991.0
+const MAX_SAFE := float(9007199254740991)   # a float literal here would be parsed lossily (...990)
 const CARD_FIELDS := ["trigger", "condition", "chance", "effect", "power"]
 const GEAR_SLOTS := ["core", "armor", "drive"]
 
@@ -345,6 +345,15 @@ func researchNumber(n) -> String:
 	var neg := f < 0
 	# Intl rounds half-expand on the shortest decimal repr; nudge to match.
 	var s := "%.2f" % (floorf(absf(f) * 100.0 * (1.0 + 1e-12) + 0.5) / 100.0 if absf(f) < 1e12 else absf(f))
+	if absf(f) >= 1e15:   # Intl prints the shortest round-trip digits, zero padded
+		var af: float = absf(f)
+		var nd: int = ("%.0f" % af).length()
+		for prec in range(1, 18):
+			var scale: float = pow(10.0, float(nd - prec))
+			var m: float = roundf(af / scale)
+			if m * scale == af:
+				s = str(int(m)) + "0".repeat(maxi(0, nd - prec)) + ".00"
+				break
 	var parts := s.split(".")
 	var ip: String = parts[0]
 	var frac: String = parts[1].rstrip("0")
@@ -457,7 +466,7 @@ func ownedPlayerLevel(value) -> int: return maxi(1, researchLevel(value))
 func _growth_choice(value, mn: int, mx: int):
 	if value == null or (typeof(value) == TYPE_STRING and value == ""): return null
 	if not _is_num(value) or not _finite(float(value)): return null
-	return maxi(mn, mini(mx, int(floorf(float(value)))))
+	return maxi(mn, mini(mx, int(clampf(floorf(float(value)), -9.0e15, 9.0e15))))
 
 func sanitizeGrowthLimits(raw, level, stats) -> Dictionary:
 	var source := _dictv(raw)

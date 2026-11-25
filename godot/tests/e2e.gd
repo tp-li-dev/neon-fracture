@@ -35,11 +35,11 @@ func all_controls(node: Node, out: Array) -> void:
 		all_controls(c, out)
 
 func visible_ctrl(c: Control) -> bool:
-	var p: CanvasItem = c
+	var p: CanvasItem = c as CanvasItem
 	while p != null:
 		if p is CanvasItem and not p.visible: return false
 		if p is Control and (p as Control).modulate.a < 0.3: return false
-		p = p.get_parent() as CanvasItem if p.get_parent() is CanvasItem else null
+		p = (p.get_parent() as CanvasItem) if p.get_parent() is CanvasItem else null
 	return true
 
 func buttons() -> Array:
@@ -104,7 +104,7 @@ func click(sub: String, must: bool = true) -> bool:
 	if not vr.encloses(r.grow(-1.0)):
 		print("WARN: button partly offscreen: ", sub, " ", r, " vp=", vr)
 		# scroll into view if in ScrollContainer
-		var p := b.get_parent()
+		var p: Node = b.get_parent()
 		while p != null:
 			if p is ScrollContainer: (p as ScrollContainer).ensure_control_visible(b); await frames(3); break
 			p = p.get_parent()
@@ -158,7 +158,7 @@ func audit(tag: String) -> void:
 		var r: Rect2 = (b as Control).get_global_rect()
 		if r.size.x < 2 or r.size.y < 2: continue
 		# only flag if not inside a scroll container
-		var p := b.get_parent(); var in_scroll := false
+		var p: Node = b.get_parent(); var in_scroll := false
 		while p != null:
 			if p is ScrollContainer: in_scroll = true; break
 			p = p.get_parent()
@@ -176,4 +176,9 @@ func _run() -> void:
 func flow_main() -> void:
 	await shot("boot")
 	audit("boot")
-	dump_btns("home")
+	await click("モード選択")
+	await shot("runconfig")
+	audit("runconfig")
+	dump_btns("runconfig")
+	check(Game.state == "config", "state config")
+	check(not UI.is_open("home"), "home hidden in config")

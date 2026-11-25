@@ -319,37 +319,66 @@ func drawReadableLoot(ci: CanvasItem) -> void:
 		ci.draw_line(Vector2(g.x, g.y - s * .45), Vector2(g.x, g.y + s * .45), c2, 1.3)
 
 func drawReadableProjectiles(ci: CanvasItem) -> void:
+	# Perf: opaque strokes are drawn as stacked discs (stroke disc under fill disc == fill + centred stroke),
+	# and player-bullet trails are batched per (colour,width) into single multiline commands.
+	var cam: Dictionary = World.camera
+	var x0: float = cam.x - 35.0
+	var x1: float = cam.x + World.CAMERA_W + 35.0
+	var y0: float = cam.y - 35.0
+	var y1: float = cam.y + World.CAMERA_H + 35.0
+	var trails: Dictionary = {}
+	var dots: Array = []
+	var xc := Color("#5b0039")
 	for b in Game.bullets:
-		if b == null or b.get("_dead", false) or not World.pointInCamera(b.x, b.y, 35):
+		if b == null or b.get("_dead", false):
 			continue
-		var bp := Vector2(b.x, b.y)
+		var bx: float = b.x
+		var by: float = b.y
+		if bx < x0 or bx > x1 or by < y0 or by > y1:
+			continue
+		var bp := Vector2(bx, by)
+		var br: float = b.r
 		if b.get("enemy", false):
 			var ak: String = str(b.get("attackKind", ""))
-			var special: bool = ak == "break" or ak == "pierce"
 			var fill: Color = Color("#f65bc7") if ak == "break" else (Color("#ff986c") if ak == "wound" else Color("#ff6853"))
-			var stroke := Color("#fff1e5")
-			if special:
-				_xf(ci, bp, atan2(b.vy, b.vx))
-				var pts := PackedVector2Array([Vector2(b.r + 3, 0), Vector2(0, -b.r), Vector2(-b.r, 0), Vector2(0, b.r)])
-				_poly(ci, pts, fill, stroke, 1.5)
-				var xc := Color("#5b0039")
-				ci.draw_line(Vector2(-3, -3), Vector2(3, 3), xc, 1.5)
-				ci.draw_line(Vector2(-3, 3), Vector2(3, -3), xc, 1.5)
-				_xf(ci)
+			if ak == "break" or ak == "pierce":
+				var ang: float = atan2(b.vy, b.vx)
+				var cs: float = cos(ang)
+				var sn: float = sin(ang)
+				var pts := PackedVector2Array([
+					bp + Vector2(cs, sn) * (br + 3.0), bp + Vector2(sn, -cs) * br,
+					bp - Vector2(cs, sn) * br, bp + Vector2(-sn, cs) * br])
+				ci.draw_colored_polygon(pts, fill)
+				ci.draw_polyline(_closed(pts), Color("#fff1e5"), 1.5)
+				var ux := Vector2(cs, sn)
+				var uy := Vector2(-sn, cs)
+				ci.draw_multiline(PackedVector2Array([bp + ux * -3.0 + uy * -3.0, bp + ux * 3.0 + uy * 3.0,
+					bp + ux * -3.0 + uy * 3.0, bp + ux * 3.0 + uy * -3.0]), xc, 1.5)
 			else:
-				ci.draw_circle(bp, b.r + 1, fill)
-				_circ(ci, bp, b.r + 1, stroke, 1.5)
-				ci.draw_circle(bp, 2, Color("#511814"))
+				ci.draw_circle(bp, br + 1.75, Color("#fff1e5"))
+				ci.draw_circle(bp, br + 0.25, fill)
+				ci.draw_circle(bp, 2.0, Color("#511814"))
 		else:
-			var col: Color
-			if b.get("fromDrone", false): col = Color("#bca8fd")
-			elif b.get("source", "") == "active": col = Color("#fff2b0")
-			else: col = Color("#8deafa")
-			var lw: float = 2.0 if b.get("fromDrone", false) else maxf(2.0, b.r * .85)
+			var from_drone: bool = b.get("fromDrone", false)
+			var ci_idx: int = 0 if from_drone else (1 if b.get("source", "") is String and b.get("source", "") == "active" else 2)
+			var lw: float = 2.0 if from_drone else maxf(2.0, br * .85)
 			var sp: float = sqrt(b.vx * b.vx + b.vy * b.vy)
 			if sp == 0.0: sp = 1.0
-			ci.draw_line(Vector2(b.x - b.vx / sp * 12.0, b.y - b.vy / sp * 12.0), bp, col, lw)
-			ci.draw_circle(bp, b.r, col)
+			var key: int = ci_idx * 1000 + int(lw * 10.0)
+			if not trails.has(key):
+				trails[key] = PackedVector2Array()
+			var arr: PackedVector2Array = trails[key]
+			arr.append(Vector2(bx - b.vx / sp * 12.0, by - b.vy / sp * 12.0))
+			arr.append(bp)
+			trails[key] = arr
+			dots.append([bp, br, ci_idx])
+	var cols: Array = [Color("#bca8fd"), Color("#fff2b0"), Color("#8deafa")]
+	for key in trails:
+		var idx: int = int(key) / 1000
+		var w: float = float(int(key) % 1000) / 10.0
+		ci.draw_multiline(trails[key], cols[idx], w)
+	for d in dots:
+		ci.draw_circle(d[0], d[1], cols[d[2]])
 
 func drawEnemyInfo(ci: CanvasItem, e: Dictionary) -> void:
 	if float(e.get("spawnDelay", 0)) > 0.0 or e.get("_dead", false):
