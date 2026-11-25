@@ -2,6 +2,8 @@ name: godot-build
 on:
   push:
     tags: ["v*"]
+    branches: ["claude/**"]
+    paths: ["godot/**", ".github/workflows/godot-build.yml"]
   workflow_dispatch:
 
 env:

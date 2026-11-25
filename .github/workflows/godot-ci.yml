@@ -1,0 +1,73 @@
+name: godot-ci
+on:
+  push:
+    branches: ["**"]
+    paths: ["godot/**", ".github/workflows/godot-ci.yml", "tools/**"]
+  pull_request:
+    paths: ["godot/**"]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.1"
+  GODOT_URL: https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable
+
+concurrency:
+  group: godot-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: parse + unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: godot-cache
+        with:
+          path: ~/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux
+      - name: Install Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot-bin && cd ~/godot-bin
+          curl -fsSL -o g.zip "$GODOT_URL/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q g.zip && rm g.zip
+      - name: Add godot to PATH
+        run: |
+          sudo ln -sf ~/godot-bin/Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1 libasound2t64 >/dev/null
+          godot --version
+      - name: Import (fails on any script error)
+        run: |
+          godot --headless --path godot --import 2>&1 | tee import.log
+          ! grep -E "SCRIPT ERROR|Parse Error|Compile Error" import.log
+      - name: Unit tests
+        run: |
+          set -o pipefail
+          for t in combat_audit game_audit; do
+            godot --headless --path godot res://tests/$t.tscn 2>&1 | grep -v ALSA | tee t.log
+            ! grep -E "SCRIPT ERROR|FAIL" t.log
+          done
+          for t in meta_test runsave_test; do
+            godot --headless --path godot --script res://tests/$t.gd 2>&1 | grep -v ALSA | tee t.log
+            ! grep -E "SCRIPT ERROR|FAIL" t.log
+          done
+      - name: Sim stress (core scenarios)
+        run: |
+          NF_SCENARIO=enemies,bosses,elites,levelups,cards,actives,dash,death,clear \
+            godot --headless --path godot res://tests/sim_stress.tscn 2>&1 | grep -v ALSA | tee s.log
+          ! grep -E "SCRIPT ERROR|FAIL" s.log
+          grep -q "DONE fails=0" s.log
+      - name: E2E (real UI flow under xvfb)
+        run: |
+          mkdir -p /tmp/e2e
+          NF_E2E=/tmp/e2e NF_FLOW=main XDG_DATA_HOME=/tmp/e2e_home NF_HOOKLOG=1 \
+            xvfb-run -a -s "-screen 0 1600x900x24" godot --rendering-driver opengl3 --path godot --resolution 1600x900 2>&1 | grep -v ALSA | tee e.log
+          ! grep -E "SCRIPT ERROR|^ERROR" e.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: /tmp/e2e/
+          if-no-files-found: ignore
