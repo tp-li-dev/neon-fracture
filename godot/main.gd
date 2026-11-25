@@ -16,10 +16,14 @@ func _ready() -> void:
 		_demo()
 
 func _input(e: InputEvent) -> void:
+	# Pointer/touch presses over a UI panel or the HUD dock must not fire the weapon / move sticks.
+	if (e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed:
+		var pos: Vector2 = e.position
+		var hud = UI.screens.get("hud")
+		if UI.blocks_game_input() or UI.pointer_over_ui() or (hud != null and hud.pointer_over_hud(pos)):
+			return
 	if Inp.handle_event(e):
 		get_viewport().set_input_as_handled()
-	elif Game.state == "menu" and ((e is InputEventKey and e.pressed and e.keycode == KEY_SPACE) or (e is InputEventMouseButton and e.pressed)):
-		Game.resetGame()   # temporary start trigger until the menu UI (milestone 3)
 
 func _process(dt: float) -> void:
 	var vs := get_viewport_rect().size
