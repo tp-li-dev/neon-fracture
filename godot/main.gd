@@ -10,7 +10,12 @@ func _ready() -> void:
 	Render.font = sf
 	UI.load_drone_config()
 	World.generateWorld()
-	if OS.get_environment("NF_SCREEN") != "":
+	if OS.get_environment("NF_E2E") != "":
+		var drv: Script = load("res://tests/e2e.gd")
+		var d: Node = drv.new()
+		d.set("main", self)
+		add_child(d)
+	elif OS.get_environment("NF_SCREEN") != "":
 		_screen_shot()
 	elif OS.get_environment("NF_SHOT") != "":
 		_demo()

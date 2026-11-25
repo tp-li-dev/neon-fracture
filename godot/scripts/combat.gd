@@ -530,6 +530,7 @@ func _update_projectiles_inner(dt: float) -> void:
 	# instead of bullets x enemies. Semantics identical to the original linear scan (hits are sorted by t).
 	var grid: Dictionary = {}
 	var maxR: float = 0.0
+	var order: Dictionary = {}  # enemy id -> index in Game.enemies (tie-break to match the original linear scan order)
 	var any_player_bullet: bool = false
 	for b0 in frame:
 		if b0 != null and not b0.get("enemy", false):
@@ -822,18 +823,22 @@ func hitEnemy(e, b: Dictionary) -> void:
 		if b.get("crit", false):
 			Cards.emitCardTrigger("on_crit", {"enemy": e, "dealt": dealt, "bullet": b})
 			if randf() < player.chainChance:
-				chainLightning(e, dealt * player.chainDamage, int(player.chainTargets))
+				chainLightning(e, dealt * player.chainDamage, float(player.chainTargets))
 	if primary and b.get("crit", false) and Game.texts.size() < 20:
 		Game.texts.append({"x": e.x, "y": e.y - 18, "text": str(roundi(dealt)) + "!", "life": .45, "max": .45, "hue": 45, "size": 12})
 	if Game.particles.size() < PERF.maxParticles:
 		Game.particles.append({"x": b.x, "y": b.y, "vx": U.rand(-40, 40), "vy": U.rand(-40, 40), "life": .16, "max": .16, "size": 2, "hue": e.hue})
 
-func chainLightning(origin, damage: float, hops: int = 1) -> void:
+func chainLightning(origin, damage: float, hops: float = 1) -> void:
 	if origin == null:
 		return
 	var current = origin
 	var used: Dictionary = {origin.id: true}
-	for hop in mini(hops, Game.enemies.size()):
+	var hop: int = -1
+	while true:
+		hop += 1
+		if not (float(hop) < minf(hops, float(Game.enemies.size()))):
+			break
 		var target = null
 		var best: float = 200.0 * 200.0
 		for e in Game.enemies:

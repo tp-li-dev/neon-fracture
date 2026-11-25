@@ -234,6 +234,8 @@ func cleanCustomConfig(raw = null) -> Dictionary:
 	var c: Dictionary = d.duplicate(true)
 	if typeof(raw) == TYPE_DICTIONARY:
 		for k in raw: c[k] = raw[k]
+	for nk in ["density", "hpGrowth", "damageGrowth", "elite", "attack", "startLevel", "levelRate", "bossLimit", "heal"]:
+		if c.get(nk) == null: c[nk] = 0   # JSON null: Number(null)=0 (then clamped) in the original
 	var out: Dictionary = c.duplicate(true)
 	out.density = boundedNumber(c.density, d.density, .5, 3.5)
 	out.hpGrowth = boundedNumber(c.hpGrowth, 2.0, .5, 8.0)
@@ -341,7 +343,8 @@ func researchNumber(n) -> String:
 	var f := _num(n)
 	if not _finite(f): return "—"
 	var neg := f < 0
-	var s := "%.2f" % absf(f)
+	# Intl rounds half-expand on the shortest decimal repr; nudge to match.
+	var s := "%.2f" % (floorf(absf(f) * 100.0 * (1.0 + 1e-12) + 0.5) / 100.0 if absf(f) < 1e12 else absf(f))
 	var parts := s.split(".")
 	var ip: String = parts[0]
 	var frac: String = parts[1].rstrip("0")
@@ -1026,7 +1029,7 @@ func scoreRewardProfile(s = null) -> Dictionary:
 	if effective >= 300000: slots = 6; rank = "SS"
 	if effective >= 600000: slots = 8; rank = "SSS"
 	if effective >= 1000000: slots = 10
-	slots = mini(12, slots + mini(2, int(gm.bossesDefeated)) + mini(2, int(floorf(log(maxf(1.0, float(c.cp))) / log(2.0)))))
+	slots = mini(12, slots + mini(2, int(gm.bossesDefeated)) + mini(2, int(floorf(log(maxf(1.0, float(c.cp))) / log(2.0) + 1e-12))))
 	return {"factor": f, "effective": effective, "slots": slots, "rank": rank, "cp": c.cp, "reward": challengeReward(),
 		"gear": .12 + (.42 - .12) * f, "card": .10 + (.32 - .10) * f, "rarePlus": .22 + (.50 - .22) * f,
 		"epicPlus": .05 + (.20 - .05) * f, "legendary": .004 + (.055 - .004) * f}

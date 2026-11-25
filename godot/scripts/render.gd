@@ -60,9 +60,41 @@ func _dash_circle(ci: CanvasItem, c: Vector2, r: float, dash: float, gap: float,
 	if r <= 0.5: return
 	var step: float = dash + gap
 	var n: int = mini(80, maxi(1, int(TAU * r / step)))
+	# One multiline command instead of one draw_arc per dash.
+	var pts := PackedVector2Array()
 	for i in range(n):
 		var a0: float = float(i) * step / r
-		ci.draw_arc(c, r, a0, a0 + dash / r, 3, col, w)
+		var a1: float = a0 + dash / r
+		var am: float = (a0 + a1) * 0.5
+		var p0 := c + Vector2(cos(a0), sin(a0)) * r
+		var pm := c + Vector2(cos(am), sin(am)) * r
+		var p1 := c + Vector2(cos(a1), sin(a1)) * r
+		pts.append(p0); pts.append(pm); pts.append(pm); pts.append(p1)
+	ci.draw_multiline(pts, col, w)
+
+## Canvas setLineDash([dash, gap]) equivalent (draw_dashed_line uses equal gap).
+func _dashed(ci: CanvasItem, a: Vector2, b: Vector2, col: Color, w: float, dash: float, gap: float) -> void:
+	var d: Vector2 = b - a
+	var len: float = d.length()
+	if len < 0.01:
+		return
+	var dir: Vector2 = d / len
+	var step: float = dash + gap
+	var n: int = mini(200, int(ceil(len / step)))
+	var pts := PackedVector2Array()
+	for i in range(n):
+		var s0: float = float(i) * step
+		pts.append(a + dir * s0)
+		pts.append(a + dir * minf(len, s0 + dash))
+	ci.draw_multiline(pts, col, w)
+
+func _truthy(v) -> bool:
+	match typeof(v):
+		TYPE_NIL: return false
+		TYPE_BOOL: return v
+		TYPE_INT, TYPE_FLOAT: return v != 0
+		TYPE_STRING: return v != ""
+		_: return true
 
 func _closed(pts: PackedVector2Array) -> PackedVector2Array:
 	var o := pts.duplicate()
@@ -200,16 +232,15 @@ func drawFriendlyEffects(ci: CanvasItem) -> void:
 				var p2 := Vector2(h.x + cos(a) * h.length, h.y + sin(a) * h.length)
 				if ready:
 					var w: float = h.width * fade
-					if _glow: ci.draw_line(hp, p2, _ca(stroke, .25), w + 8.0)
 					ci.draw_line(hp, p2, stroke, maxf(1.0, w))
 					ci.draw_line(hp, p2, Color(245 / 255.0, 1, 1, fade), maxf(2.0, h.width * .22 * fade))
 				else:
-					ci.draw_dashed_line(hp, p2, stroke, 2.0, 5.0)
+					_dashed(ci, hp, p2, stroke, 2.0, 4.0, 12.0)
 			if not ready:
 				if p > 0.0:
 					ci.draw_arc(hp, 24, 0, TAU * p, 24, stroke, 3.0)
 				ci.draw_circle(hp, 5 + 10 * p, fill)
-				if h.get("slot", null) != null:
+				if _truthy(h.get("slot", null)):
 					_text(ci, "充填 %d%%" % roundi(p * 100.0), h.x, h.y - 36, 12, Color("#c7fbff"))
 		elif kind == "meteor" or kind == "well":
 			ci.draw_circle(hp, h.radius, fill)
@@ -267,10 +298,9 @@ func drawHazards(ci: CanvasItem) -> void:
 			var y2: float = h.y + sin(h.a) * h.length if h.shape == "shot" else h.y2
 			var w: float = float(h.get("width", 5)) if ready else 2.0
 			if ready:
-				if _glow: ci.draw_line(Vector2(h.x, h.y), Vector2(x2, y2), _ca(sc, .22), w + 6.0)
 				ci.draw_line(Vector2(h.x, h.y), Vector2(x2, y2), sc, w)
 			else:
-				ci.draw_dashed_line(Vector2(h.x, h.y), Vector2(x2, y2), sc, w, 8.0)
+				_dashed(ci, Vector2(h.x, h.y), Vector2(x2, y2), sc, w, 8.0, 7.0)
 		var lab: String = str(h.get("label", ""))
 		_text(ci, lab, h.x, h.y - (rad if rad != 0.0 else 30.0) - 14.0, 14, Color("#ffe2dc"))
 
@@ -341,7 +371,7 @@ func drawEnemyInfo(ci: CanvasItem, e: Dictionary) -> void:
 		_dash_circle(ci, ep, e.r + 7, 4.0, 4.0, Color("#7aaaff"), 1.5)
 	if float(e.get("windup", 0)) > 0.0:
 		var ca: float = e.chargeAngle
-		ci.draw_dashed_line(ep, Vector2(e.x + cos(ca) * 165, e.y + sin(ca) * 165), Color("#ff9f6f"), 2.0, 7.0)
+		_dashed(ci, ep, Vector2(e.x + cos(ca) * 165, e.y + sin(ca) * 165), Color("#ff9f6f"), 2.0, 7.0, 7.0)
 
 # ---------------------------------------------------------------- main render
 func draw(ci: CanvasItem) -> void:
@@ -484,8 +514,11 @@ func draw(ci: CanvasItem) -> void:
 		if player.invuln > 0 and sin(time * 40.0) > 0.0:
 			ga = .45
 		_xf(ci, pp, ang)
+		var glow_saved: bool = _glow
+		_glow = true
 		var pts := PackedVector2Array([Vector2(19, 0), Vector2(-9, -10), Vector2(-5, 0), Vector2(-9, 10)])
 		_poly(ci, pts, _rgba(34, 211, 238, .16 * ga), _rgba(165, 243, 252, .98 * ga), 2.0, _rgba(34, 211, 238, .22 * ga))
+		_glow = glow_saved
 		ci.draw_circle(Vector2(2, 0), 3.1, Color(1, 1, 1, .92 * ga))
 		if st == "playing" and (dxMove() != 0.0 or dyMove() != 0.0):
 			var tc := _rgba(34, 211, 238, .38 * ga)
@@ -494,8 +527,8 @@ func draw(ci: CanvasItem) -> void:
 		_xf(ci)
 		var aimD: float = sqrt((mouse.x - player.x) * (mouse.x - player.x) + (mouse.y - player.y) * (mouse.y - player.y))
 		if aimD > 30.0:
-			ci.draw_dashed_line(Vector2(player.x + cos(ang) * 24, player.y + sin(ang) * 24), Vector2(mouse.x, mouse.y),
-				_rgba(165, 243, 252, .75 * .22), 1.0, 5.0)
+			_dashed(ci, Vector2(player.x + cos(ang) * 24, player.y + sin(ang) * 24), Vector2(mouse.x, mouse.y),
+				_rgba(165, 243, 252, .75 * .22), 1.0, 3.0, 8.0)
 			_xf(ci, Vector2(mouse.x, mouse.y), time * .7)
 			var rc := _rgba(165, 243, 252, .8 * .78)
 			_circ(ci, Vector2.ZERO, 10, rc, 1.0)
@@ -514,6 +547,7 @@ func draw(ci: CanvasItem) -> void:
 		var a: float = U.clamp(t.life / t.max, 0, 1)
 		var col: Color = _ca(hexToHSLA(t.hue, a, 72), minf(1.0, a * 1.8))
 		var sz: int = int(t.get("size", 14))
+		if sz == 0: sz = 14
 		if _glow:
 			_text(ci, str(t.text), t.x + 1, t.y + 1, sz, Color(0, 0, 0, .35 * col.a), 1, true)
 		_text(ci, str(t.text), t.x, t.y, sz, col, 1, true)

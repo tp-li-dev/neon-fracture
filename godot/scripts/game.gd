@@ -675,7 +675,7 @@ func damagePlayer(amount: float, attack: Dictionary = {}) -> bool:
 		return false
 	if Meta.developerRun.active and Meta.developerRun.god:
 		return false
-	var kind: String = attack.get("kind", "normal") if attack.get("kind", "") != "" else "normal"
+	var kind: String = str(attack.get("kind", "normal")) if attack.get("kind", "") != "" and attack.get("kind", "") != null else "normal"
 	var cfg: Dictionary = Meta.challenge()
 	# Evasion and brief hit-recovery invulnerability are not the destructible barrier.
 	if player.dashInvuln > 0 or player.invuln > 0:
