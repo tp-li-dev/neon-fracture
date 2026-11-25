@@ -86,13 +86,19 @@ func dump_btns(tag: String = "") -> void:
 		s.append("%s@%d,%d" % [btn_text(b).replace("\n", " ").left(24), r.position.x, r.position.y])
 	print("BTNS[", tag, "] ", " | ".join(s))
 
-func mouse_move(pos: Vector2) -> void:
+## logical (canvas/UI) coords -> OS window coords (content-scale stretch), for Input.parse_input_event.
+func w(pos: Vector2) -> Vector2:
+	return get_window().get_final_transform() * pos
+
+func mouse_move(pos_l: Vector2) -> void:
+	var pos := w(pos_l)
 	var e := InputEventMouseMotion.new()
 	e.position = pos; e.global_position = pos
 	Input.parse_input_event(e)
 
-func click_at(pos: Vector2) -> void:
-	mouse_move(pos)
+func click_at(pos_l: Vector2) -> void:
+	mouse_move(pos_l)
+	var pos := w(pos_l)
 	await frames(2)
 	var d := InputEventMouseButton.new()
 	d.button_index = MOUSE_BUTTON_LEFT; d.pressed = true; d.position = pos; d.global_position = pos
@@ -143,12 +149,14 @@ func key_up(k: int) -> void:
 	u.keycode = k; u.physical_keycode = k; u.pressed = false
 	Input.parse_input_event(u)
 
-func touch(idx: int, pos: Vector2, pressed: bool) -> void:
+func touch(idx: int, pos_l: Vector2, pressed: bool) -> void:
+	var pos := w(pos_l)
 	var e := InputEventScreenTouch.new()
 	e.index = idx; e.position = pos; e.pressed = pressed
 	Input.parse_input_event(e)
 
-func drag(idx: int, pos: Vector2, rel: Vector2) -> void:
+func drag(idx: int, pos_l: Vector2, rel: Vector2) -> void:
+	var pos := w(pos_l)
 	var e := InputEventScreenDrag.new()
 	e.index = idx; e.position = pos; e.relative = rel
 	Input.parse_input_event(e)
@@ -183,13 +191,15 @@ func _run() -> void:
 	print("=== E2E DONE fails=", fails, " unhandled=", UI.unhandled)
 	get_tree().quit(1 if fails > 0 else 0)
 
-func mouse_btn(pos: Vector2, pressed: bool) -> void:
+func mouse_btn(pos_l: Vector2, pressed: bool) -> void:
+	var pos := w(pos_l)
 	var d := InputEventMouseButton.new()
 	d.button_index = MOUSE_BUTTON_LEFT; d.pressed = pressed; d.position = pos; d.global_position = pos
 	d.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
 	Input.parse_input_event(d)
 
 func flow_main() -> void:
+	print("WINDOW ", get_window().size, " vp=", get_viewport().get_visible_rect(), " ft=", get_window().get_final_transform())
 	await shot("boot")
 	audit("boot")
 	await click("モード選択")
@@ -570,6 +580,227 @@ func focus_walk(tag: String) -> void:
 			var r: Rect2 = (b as Control).get_global_rect()
 			missing.append("%s@%d,%d" % [btn_text(b).replace("\n", " ").left(16), r.position.x, r.position.y])
 	print("FOCUSWALK[", tag, "] reachable ", seen.size(), "/", want.size(), " missing: ", missing)
+
+func flow_aspect() -> void:
+	godmode = true
+	await shot("home")
+	audit("home")
+	await click("モード選択")
+	await click("CUSTOM")
+	await shot("rc_custom")
+	audit("rc_custom")
+	await click("NORMAL")
+	await click("RUN START")
+	await wait(0.6)
+	await shot("play")
+	audit("play")
+	Game.player.xp = Game.player.nextXp + 1
+	await wait(0.4)
+	await key(KEY_Q)
+	await wait(0.5)
+	await shot("upgrade")
+	audit("upgrade")
+	await key(KEY_1)
+	await wait(0.4)
+	await key(KEY_ESCAPE)
+	await wait(0.5)
+	await shot("pause")
+	audit("pause")
+	for tab in ["ドローン", "操作", "中断セーブ"]:
+		await click(tab)
+		await shot("pause_" + tab)
+		audit("pause_" + tab)
+	await click("ゲームに戻る")
+	await wait(0.4)
+	# F8 developer panel in-run
+	await key(KEY_F8)
+	await wait(0.5)
+	check(Game.state == "tools", "F8 opens tools in run: " + Game.state)
+	await shot("settings_run")
+	audit("settings_run")
+	await key(KEY_ESCAPE)
+	await wait(0.5)
+	check(Game.state == "playing", "Esc closes tools -> playing: " + Game.state)
+	godmode = false
+	Game.damagePlayer(9999.0)
+	await wait(1.5)
+	await shot("gameover")
+	audit("gameover")
+	await click("CRを使って強化")
+	await wait(0.5)
+	for t in ["成長調整", "強化", "工房", "保管庫", "装備", "解析", "実績", "セーブ"]:
+		await click(t)
+		await shot("meta_" + t)
+		audit("meta_" + t)
+
+## Phone landscape: touch sticks / buttons via InputEventScreenTouch.
+func flow_touch() -> void:
+	godmode = true
+	await shot("home")
+	# tap via touch events
+	var b := find_btn("モード選択")
+	await tap(b.get_global_rect().get_center())
+	await wait(0.5)
+	check(Game.state == "config", "touch tap opens config: " + Game.state)
+	b = find_btn("RUN START")
+	await tap(b.get_global_rect().get_center())
+	await wait(0.8)
+	check(Game.state == "playing", "touch tap RUN START: " + Game.state)
+	print("inputMode=", Inp.inputMode, " mobileControlsVisible=", Inp.mobileControlsVisible, " moveZone=", Inp.moveZone, " aimZone=", Inp.aimZone)
+	await shot("touch_play")
+	var p0 := Vector2(Game.player.x, Game.player.y)
+	var mc := Inp.moveZone.get_center()
+	var ac := Inp.aimZone.get_center()
+	touch(0, mc, true)
+	touch(1, ac, true)
+	await wait(0.2)
+	for i in 12:
+		drag(0, mc + Vector2(50, 0) * (i + 1) / 12.0 * 1.0, Vector2(4, 0))
+		drag(1, ac + Vector2(-40, -30) * (i + 1) / 12.0, Vector2(-3, -2))
+		await wait(0.1)
+	await shot("touch_sticks")
+	check(Inp.mobileMove.active and Inp.mobileAim.active, "both sticks active")
+	await wait(1.0)
+	var p1 := Vector2(Game.player.x, Game.player.y)
+	check(p0.distance_to(p1) > 20.0, "touch stick moved player %s -> %s" % [p0, p1])
+	check(Game.bullets.size() > 0, "aim stick fires")
+	touch(0, mc, false)
+	touch(1, ac, false)
+	await wait(0.3)
+	check(not Inp.mobileMove.active and not Inp.mobileAim.active, "sticks released")
+	# tap HUD pause button
+	var dk: Array = []
+	for bb in buttons():
+		if UI.screens.hud.is_ancestor_of(bb) and bb.get_global_rect().position.y > 700: dk.append(bb)
+	dk.sort_custom(func(a, c): return a.get_global_rect().position.x < c.get_global_rect().position.x)
+	var pb: Control = dk[3] if dk.size() > 3 else null
+	if pb == null:
+		dump_btns("touch hud")
+		check(false, "no pause dock button")
+	else:
+		await tap(pb.get_global_rect().get_center())
+		await wait(0.5)
+		check(Game.state == "paused", "tap pause: " + Game.state)
+		await shot("touch_pause")
+		audit("touch_pause")
+		await tap(find_btn("ゲームに戻る").get_global_rect().get_center())
+		await wait(0.4)
+		check(Game.state == "playing", "tap resume: " + Game.state)
+	# dash on dock
+	var db := find_btn("DASH")
+	if db != null:
+		await tap(db.get_global_rect().get_center())
+		await wait(0.2)
+	# level up via tap on dock card button
+	Game.player.xp = Game.player.nextXp + 1
+	await wait(0.4)
+	var hb: Array = []
+	for bb in buttons():
+		if UI.screens.hud.is_ancestor_of(bb): hb.append(bb)
+	hb.sort_custom(func(a, c): return a.get_global_rect().position.x < c.get_global_rect().position.x)
+	if hb.size() > 0:
+		await tap((hb[0] as Control).get_global_rect().get_center())
+		await wait(0.5)
+		check(Game.state == "upgrade", "tap card dock -> upgrade: " + Game.state)
+		await shot("touch_upgrade")
+		audit("touch_upgrade")
+		var cards: Array = []
+		for bb in buttons():
+			if btn_text(bb).contains("選択"): cards.append(bb)
+		if cards.size() > 0:
+			await tap((cards[0] as Control).get_global_rect().get_center())
+			await wait(0.5)
+			check(Game.state == "playing", "tap card pick -> playing: " + Game.state)
+	else:
+		check(false, "no hud buttons on touch")
+
+func flow_extra() -> void:
+	godmode = true
+	await click("モード選択")
+	await click("RUN START")
+	await wait(0.6)
+	check(Game.state == "playing", "playing")
+	var d0: bool = UI.droneConfig.enabled
+	await key(KEY_G)
+	await wait(0.3)
+	check(UI.droneConfig.enabled != d0, "G toggles drones")
+	await key(KEY_G)
+	# ability panel via E
+	await key(KEY_E)
+	await wait(0.5)
+	print("after E: state=", Game.state, " open=", UI.stack)
+	await shot("abilities")
+	audit("abilities")
+	dump_btns("abilities")
+	check(Game.state == "ability" and UI.is_open("abilities"), "E opens ability panel: " + Game.state)
+	await key(KEY_ESCAPE)
+	await wait(0.5)
+	check(Game.state == "playing" and not UI.is_open("abilities"), "Esc closes ability panel: " + Game.state)
+	# upgrade via 3
+	Game.player.xp = Game.player.nextXp + 1
+	await wait(0.4)
+	await key(KEY_Q)
+	await wait(0.4)
+	await key(KEY_3)
+	await wait(0.4)
+	check(Game.state == "playing", "key 3 pick: " + Game.state)
+	# Q opens, Q closes (toggle)
+	Game.player.xp = Game.player.nextXp + 1
+	await wait(0.3)
+	await key(KEY_Q)
+	await wait(0.3)
+	check(Game.state == "upgrade", "Q open")
+	await key(KEY_Q)
+	await wait(0.3)
+	check(Game.state == "playing", "Q toggles closed: " + Game.state)
+	# pause -> settings via F8 -> Esc returns to paused
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	await key(KEY_F8)
+	await wait(0.4)
+	check(Game.state == "tools", "F8 from pause")
+	await key(KEY_ESCAPE)
+	await wait(0.4)
+	check(Game.state == "paused" and UI.is_open("pause"), "Esc from tools back to paused: %s %s" % [Game.state, UI.stack])
+	# pause confirm dialogs: 集計せずホーム -> cancel via Esc
+	await click("集計せずホーム")
+	await wait(0.4)
+	print("confirm: modals=", UI.modals.size(), " pending=", Game.pausePendingAction)
+	await shot("pause_confirm")
+	dump_btns("pause confirm")
+	await key(KEY_ESCAPE)
+	await wait(0.4)
+	check(Game.state == "paused", "Esc cancels pause confirm, still paused: " + Game.state)
+	await click("集計せずホーム")
+	await wait(0.4)
+	var yb := find_btn("破棄して進む")
+	if yb != null: await click_at(yb.get_global_rect().get_center())
+	await wait(0.8)
+	check(Game.state == "menu" and UI.is_open("home") and not UI.is_open("pause"), "confirmed home: %s %s" % [Game.state, UI.stack])
+	await shot("home_after_abandon")
+	# restart from pause
+	await click("モード選択")
+	await click("RUN START")
+	await wait(0.6)
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	await click("最初からやり直す")
+	await wait(0.4)
+	dump_btns("restart confirm")
+	await shot("restart_confirm")
+	print("state=", Game.state, " modals=", UI.modals.size(), " pending=", Game.pausePendingAction)
+	var rb := find_btn("破棄して進む")
+	if rb == null: rb = find_btn("進む")
+	if rb != null: await click_at(rb.get_global_rect().get_center())
+	await wait(0.8)
+	check(Game.state == "playing" and not UI.is_open("pause") and UI.is_open("hud"), "restart -> playing: %s %s" % [Game.state, UI.stack])
+	await shot("restarted")
+
+func tap(pos_l: Vector2) -> void:
+	touch(0, pos_l, true)
+	await frames(3)
+	touch(0, pos_l, false)
+	await frames(3)
 
 func _find_all(node: Node, cls: String) -> Array:
 	var all: Array = []

@@ -1,20 +1,21 @@
 # 完全移植メモ (index.html -> Godot 4.7)
 
-方針: 原作JS(index.html 5257-10544行)を**変数名・関数名・構造を保ったまま**GDScriptへ機械的に翻訳する。
-- JSオブジェクト = Dictionary(同じキー名)。`p.damage` のドット記法で書く。
-- グローバル状態は autoload `G` (scripts/g.gd) に集約。定数テーブルは `scripts/defs.gd`。
-- 描画は `world.gd` の `_draw()`(原作の Render 節)。UIはコードで組むControl(`ui/*.gd`)。
-- セーブは `user://nf_meta_v1.json` 等(localStorageキーと同名)。Export/Importは原作と同じJSON形式を維持。
-- 数値・確率・文言は原作と同じ値を使う(コピーして変換)。
+状況: 全モジュール・全画面の移植と、実フローE2E・原作との突き合わせ監査まで完了。
+詳細は `AUDIT_*.md` / `INTEGRATION_LOG.md` / `BUILD.md` / `UI_GUIDE.md` を参照。
 
-## 原作の節 (行番号は index.html)
-| 行 | 内容 | 状況 |
+方針: 原作JSの変数名・関数名・構造を保って GDScript へ機械的に翻訳(JSオブジェクト=Dictionary)。
+データ表は `tools/extract-data.mjs` が index.html から `data/defs.json` へ抽出(数値の一致を保証)。
+所有範囲は `PORTING_INDEX.md`(`tools/make-index.mjs` で生成)。
+
+| 領域 | ファイル | 状況 |
 |---|---|---|
-| 5257-5500 | Diagnostics/storage/Sound/定数 | 未 |
-| 6087-6330 | 難易度/カスタム/研究(META_STATS)/MODULES | 未 |
-| 6265-6500 | カード構文/emitCardTrigger | 未 |
-| 6500-7250 | 成長制限/meta/セーブ/実績/Upgrades | 未 |
-| 7251-8660 | Entities(player/敵/ボス/弾) | 未(試作に敵6種のみ) |
-| 8660-9300 | Update/spawn/戦闘 | 未 |
-| 9300-9700 | Render | 未 |
-| 9700-10544 | UI/モバイル/PWA/中断再開 | 未 |
+| Game/Inp/Enemies/Combat/Cards/Meta/World/Render/Audio | scripts/*.gd | 完了・監査済 |
+| 中断セーブ(原作と同一JSフォーマット) | scripts/runsave.gd | 完了・往復テスト済 |
+| UI基盤・全画面・研究室タブ | scripts/ui.gd, scripts/ui/* | 完了・E2E済 |
+| 書き出し・CI | export_presets.cfg, ../.github/workflows/godot-build.yml | Linux/Web実測済、他OSは未実機 |
+
+## 未検証/既知の差
+- Android/iOS/Windows/macOS の実機書き出し・実機操作は未検証(サンドボックスにSDK/Xcodeなし)。
+- 標準テンプレートのLinuxバイナリは約70MB(pck 0.6MB)。軽量化はカスタムテンプレート(BUILD.md参照・未実施)。
+- 背景グラデ/ビネットは同心円近似。searchKey に NFKC 正規化なし。
+- ボス報酬フローのE2E、実ゲームパッド操作は未テスト。
