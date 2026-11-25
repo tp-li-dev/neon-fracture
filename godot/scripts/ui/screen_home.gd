@@ -388,8 +388,7 @@ func _refresh_resume() -> void:
 
 # ------------------------------------------------------------------ actions
 func _on_resume() -> void:
-	if Game.restoreSuspended():
-		UI.toast("中断セーブを復元しました。「ゲームに戻る」で再開します。", "ok", 3200)
+	Game.restoreSuspended()  # runsave emits the suspendMessage hook (-> toast) itself
 
 func _on_discard() -> void:
 	if not _discard_armed:

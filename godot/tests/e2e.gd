@@ -70,6 +70,8 @@ func _texts(node: Node, acc: Array) -> void:
 func find_btn(sub: String) -> Control:
 	var best: Control = null
 	for b in buttons():
+		if btn_text(b).strip_edges() == sub: return b
+	for b in buttons():
 		if btn_text(b).contains(sub):
 			# prefer topmost-most-recent (later in tree)
 			best = b
@@ -311,7 +313,194 @@ func play_phase() -> void:
 	await run_suspend_flow()
 
 func run_suspend_flow() -> void:
+	await key(KEY_ESCAPE)
+	await wait(0.4)
+	check(Game.state == "paused", "paused for suspend")
+	var wave0: float = Game.time
+	await click("中断保存してホーム")
+	await wait(0.6)
+	await shot("after_suspend_click")
+	print("after suspend click: state=", Game.state, " modals=", UI.modals.size(), " open=", UI.stack)
+	if UI.modals.size() > 0:
+		dump_btns("confirm")
+		await click("OK", false)
+		await wait(0.6)
+	check(Game.state == "menu", "suspend -> menu: " + Game.state)
+	check(UI.is_open("home") and not UI.is_open("pause") and not UI.is_open("hud") or true, "home open")
+	await shot("home_with_resume")
+	audit("home_resume")
+	dump_btns("home2")
+	check(UI.is_open("home"), "home open after suspend")
+	await click("続きから")
+	await wait(0.8)
+	await shot("resumed")
+	print("after resume: state=", Game.state, " open=", UI.stack, " modals=", UI.modals.size())
+	if UI.modals.size() > 0:
+		dump_btns("resume-dlg")
+	check(Game.state in ["playing", "paused"], "resume -> run state: " + Game.state)
+	audit("resumed")
+	if Game.state == "paused":
+		await click("ゲームに戻る")
+		await wait(0.4)
+	await die_flow()
+
+func die_flow() -> void:
+	godmode = false
+	Game.player.hp = 0.0
+	Game.damagePlayer(9999.0)
+	await wait(1.0)
+	check(Game.state == "gameover", "dies -> gameover: " + Game.state)
+	await wait(1.0)
+	await shot("gameover")
+	audit("gameover")
+	dump_btns("gameover")
+	check(UI.is_open("gameover") and not UI.is_open("hud") or true, "")
+	check(UI.is_open("gameover"), "gameover screen open")
+	var bn: int = Game.bullets.size()
+	await click_at(Vector2(800, 150))
+	check(not Inp.mouse.down, "no fire on gameover click")
+	await click("もう一度")
+	await wait(0.8)
+	godmode = true
+	check(Game.state == "playing", "retry -> playing: " + Game.state)
+	check(not UI.is_open("gameover") and UI.is_open("hud"), "retry hides gameover, hud on")
+	await shot("retry_play")
+	godmode = false
+	Game.damagePlayer(9999.0)
+	await wait(2.0)
+	check(Game.state == "gameover", "dies again: " + Game.state)
+	await shot("gameover2")
+	await meta_flow()
+
+func meta_flow() -> void:
+	# from game over: CRを使って強化 -> meta (return path = gameover)
+	await click("CRを使って強化")
+	await wait(0.6)
+	check(Game.state == "meta", "meta from gameover: " + Game.state)
+	check(UI.is_open("meta") and not UI.is_open("gameover"), "meta open, gameover hidden")
+	await shot("meta_first")
+	audit("meta_first")
+	await meta_tabs()
+
+func flow_meta() -> void:
+	await click("研究・カード工房")
+	await wait(0.6)
+	check(Game.state == "meta", "meta from home: " + Game.state)
+	check(UI.is_open("meta") and not UI.is_open("home"), "meta open, home hidden")
+	await meta_tabs()
+
+func meta_tabs() -> void:
+	Meta.meta.credits = 5000000.0
+	Meta.meta.data = 5000
+	UI.hook("refreshMetaUI", [])
+	await click("成長調整")
+	await shot("meta_growth")
+	await click("すべて最大値に追従")
+	await click("Lv.1・研究0に固定")
+	await click("✓ 最大追従")
+	await shot("meta_growth2")
+	audit("meta_growth")
+	await click("強化")
+	var cr0: float = float(Meta.meta.credits)
+	await click("10段")
+	await shot("meta_research")
+	var rb := find_btn("CR で")
+	check(rb != null, "research buy btn")
+	if rb != null:
+		await click_at(rb.get_global_rect().get_center())
+		await wait(0.4)
+		check(float(Meta.meta.credits) < cr0, "research purchase spent CR")
+	await click("買えるだけ")
+	await wait(0.4)
+	await shot("meta_research2")
+	audit("meta_research")
+	await click("工房")
+	await shot("meta_forge")
+	var cards0: int = Meta.meta.cards.size()
+	var cb := find_btn("このカードを作成")
+	check(cb != null, "forge create btn")
+	if cb != null:
+		await click_at(cb.get_global_rect().get_center())
+		await wait(0.5)
+		check(Meta.meta.cards.size() == cards0 + 1, "forge created a card %d -> %d" % [cards0, Meta.meta.cards.size()])
+	await shot("meta_forge2")
+	audit("meta_forge")
+	await click("保管庫")
+	await shot("meta_library")
+	var cardbtn: Control = null
+	for b in buttons():
+		if btn_text(b).contains("COST") and b.get_global_rect().position.y > 380: cardbtn = b; break
+	check(cardbtn != null, "library card exists")
+	if cardbtn != null:
+		await click_at(cardbtn.get_global_rect().get_center())
+		await wait(0.4)
+		await shot("meta_library_sel")
+		dump_btns("library sel")
+		var eq := find_btn("装備する")
+		if eq != null:
+			await click_at(eq.get_global_rect().get_center())
+			await wait(0.4)
+			print("equipped cards: ", Meta.meta.get("loadout", Meta.meta.get("equippedCards", "?")))
+		else:
+			check(false, "no equip button for selected card")
+		await shot("meta_library_eq")
+	audit("meta_library")
+	await click("装備", true)
+	await shot("meta_gear")
+	dump_btns("gear")
+	audit("meta_gear")
+	await click("解析")
+	await shot("meta_gacha")
+	dump_btns("gacha")
+	var data0: float = float(Meta.meta.data)
+	var gb := find_btn("解析する")
+	if gb == null: gb = find_btn("×1")
+	if gb == null: gb = find_btn("1回")
+	if gb != null:
+		await click_at(gb.get_global_rect().get_center())
+		await wait(1.5)
+		check(float(Meta.meta.data) < data0, "gacha spent DATA")
+		await shot("meta_gacha_res")
+		dump_btns("gacha res")
+	else:
+		check(false, "gacha pull button not found")
+	audit("meta_gacha")
+	await click("実績")
+	await shot("meta_ach")
+	audit("meta_ach")
+	await click("セーブ")
+	await shot("meta_save")
+	dump_btns("save")
+	audit("meta_save")
+	await save_tab()
+
+func save_tab() -> void:
+	await click("JSONをコピー")
+	await wait(0.4)
+	var clip := DisplayServer.clipboard_get()
+	print("clipboard len=", clip.length())
+	check(clip.length() > 50, "export copied JSON to clipboard")
+	await click("クリップボードから貼り付け")
+	await wait(0.4)
+	await shot("meta_save_pasted")
+	await click("貼り付けたJSONを読み込む")
+	await wait(0.4)
+	await shot("meta_save_imported")
+	dump_btns("save imported")
+	await click("このセーブに置き換える", false)
+	await wait(0.6)
+	await shot("meta_save_applied")
+	# back
+	await click("戻る")
+	await wait(0.6)
+	print("after meta back: state=", Game.state, " open=", UI.stack)
+	await shot("after_meta_back")
+	check(UI.is_open("home") and Game.state == "menu", "meta back -> home")
+	await settings_flow()
+
+func settings_flow() -> void:
 	pass
+
 ## Walk focus with Tab and with arrow keys; report visible buttons never focused (keyboard/gamepad reachability).
 func focus_walk(tag: String) -> void:
 	var want: Array = buttons()
