@@ -22,6 +22,7 @@ var _scroll: ScrollContainer
 var _res_wrap: Control
 var _tw: Tween
 var _busy := false
+var _empty: Label
 
 func build() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -107,6 +108,10 @@ func build() -> void:
 	_grid.add_theme_constant_override("h_separation", Kit.S2)
 	_grid.add_theme_constant_override("v_separation", Kit.S2)
 	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_empty = Kit.label("解析を実行すると、獲得した構文・カード・装備がここに表示されます。", Kit.FS_SM, Kit.MUTE, HORIZONTAL_ALIGNMENT_CENTER, true)
+	_empty.custom_minimum_size.y = 120
+	_empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	Kit.list_of(_scroll).add_child(_empty)
 	Kit.list_of(_scroll).add_child(_grid)
 	_scroll.resized.connect(func():
 		var cols := clampi(int(_scroll.size.x / 230.0), 1, 5)
@@ -136,6 +141,7 @@ func _set_msg(bb: String) -> void:
 
 func _show_empty() -> void:
 	for c in _grid.get_children(): c.queue_free()
+	if _empty != null: _empty.visible = true
 
 func _select(tid: String) -> void:
 	Meta.selectedGachaType = tid
@@ -180,6 +186,7 @@ func refresh() -> void:
 func show_results(results: Array) -> void:
 	if _root == null: return
 	_show_empty()
+	_empty.visible = false
 	_update_wallet()
 	if _tw and _tw.is_valid(): _tw.kill()
 	var refunds := 0

@@ -24,7 +24,7 @@ func _ready() -> void:
 	UI.load_drone_config()
 	World.generateWorld()
 	var want: String = OS.get_environment("NF_SCENARIO")
-	var all: Array = ["enemies", "bosses", "elites", "levelups", "modules", "gear", "cards", "drones", "actives", "dash", "death", "clear", "hardcore", "fracture", "perf", "perf2"]
+	var all: Array = ["enemies", "bosses", "elites", "levelups", "modules", "gear", "cards", "drones", "actives", "dash", "death", "clear", "hardcore", "fracture", "custom", "marathon", "perf", "perf2"]
 	var list: Array = all if want == "" else want.split(",")
 	for s in list:
 		print("=== scenario ", s)
@@ -572,3 +572,60 @@ func sc_perf2() -> void:
 	var sum := 0.0
 	for t in times: sum += t
 	print("  PERF2 heavy: mean %.2f ms, p95 %.2f ms, max %.2f ms over %d steps; en=%d bul=%d" % [sum / times.size(), times[int(times.size() * 0.95)], times[-1], times.size(), Game.enemies.size(), Game.bullets.size()])
+
+func sc_custom() -> void:
+	var cc := Meta.defaultRunConfig().custom
+	var variants: Array = [
+		{"rosterMode": "bossOnly", "bossLimit": 3},
+		{"rosterMode": "selected", "enemyTypes": ["shooter", "medic", "bulwark"], "bossEnabled": false},
+		{"rosterMode": "selected", "enemyTypes": ["suppressor", "lancer", "bombardier", "disruptor", "orbiter"], "bossInterval": 3, "bossLimit": 3},
+		{"rosterMode": "auto", "startLevel": 80, "levelRate": 12.0, "density": 3.5, "hpGrowth": 8.0, "damageGrowth": 8.0, "elite": 4.0, "attack": 3.0},
+		{"rosterMode": "auto", "shield": false, "heal": 0.0, "oneHit": false, "density": 0.5},
+	]
+	for v in variants:
+		var c: Dictionary = cc.duplicate(true)
+		c.merge(v, true)
+		start({"difficulty": "custom", "custom": c})
+		set_wave(10)
+		await run(25.0, "custom_" + str(v.get("rosterMode")))
+	# custom + clear mode with bossOnly final
+	var c2: Dictionary = cc.duplicate(true)
+	c2.rosterMode = "bossOnly"
+	start({"difficulty": "custom", "custom": c2, "mode": "clear", "clearWave": 5})
+	var steps := 0
+	for i in 20000:
+		if Game.state == "playing":
+			bot_step()
+			Game.update(DT)
+			steps += 1
+			if steps % 400 == 0 and Game.wave < 5:
+				set_wave(Game.wave + 1)
+			for e in Game.enemies:
+				if e.boss and Meta.isFinalClearWave():
+					e.hp = minf(e.hp, 20)
+		elif Game.state in ["upgrade", "ability", "paused"]:
+			handle_panels()
+		else:
+			break
+	print("  custom clear end state=", Game.state, " reason=", Game.runEndReason, " wave=", Game.wave)
+	# invalid setup is refused
+	var c3: Dictionary = cc.duplicate(true)
+	c3.rosterMode = "selected"
+	c3.enemyTypes = []
+	Meta.runConfig = Meta.cleanRunConfig({"difficulty": "custom", "custom": c3})
+	if Game.resetGame():
+		fail("resetGame should refuse empty roster")
+	start()
+
+func sc_marathon() -> void:
+	start({"difficulty": "normal"})
+	for chunk in 60:
+		set_wave(1 + chunk)
+		if chunk % 5 == 4:
+			var types: Array = Enemies.ENEMY_TYPES.keys()
+			for i in 20:
+				Enemies.spawnEnemy(types[randi() % types.size()])
+		await run(10.0, "marathon%d" % chunk)
+		if Game.state == "gameover":
+			print("  gameover in marathon at chunk ", chunk)
+			break

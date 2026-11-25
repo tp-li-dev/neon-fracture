@@ -36,9 +36,9 @@ class Ambient extends Control:
 		t += dt
 		queue_redraw()
 	func _glow(c: Vector2, r: float, col: Color) -> void:
-		for i in 14:
-			var k := float(i) / 13.0
-			draw_circle(c, r * (1.0 - k * 0.92), Color(col.r, col.g, col.b, col.a * 0.07))
+		for i in 40:
+			var k := float(i) / 39.0
+			draw_circle(c, r * (1.0 - k * 0.95), Color(col.r, col.g, col.b, col.a * 0.028))
 	func _draw() -> void:
 		var s := size
 		var p := 0.5 + 0.5 * sin(t * 0.8)
@@ -65,18 +65,13 @@ class TitleArt extends Control:
 	func _init(c: bool = false) -> void:
 		compact = c
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var fs := 56 if c else 104
-		custom_minimum_size = Vector2(0, fs * (1.0 if c else 1.85))
-		if c: custom_minimum_size.y = fs * 1.05
+		var fs := 84 if c else 104
+		custom_minimum_size = Vector2(0, fs * 1.85)
 	func _draw() -> void:
 		var f := Kit.font(true)
-		var fs := 56 if compact else 104
-		if compact:
-			var x := _line("NEON", Vector2(0, fs * 0.86), f, fs, false)
-			_line("FRACTURE", Vector2(x + 16, fs * 0.86), f, fs, true)
-		else:
-			_line("NEON", Vector2(0, fs * 0.82), f, fs, false)
-			_line("FRACTURE", Vector2(0, fs * 1.72), f, fs, true)
+		var fs := 84 if compact else 104
+		_line("NEON", Vector2(0, fs * 0.82), f, fs, false)
+		_line("FRACTURE", Vector2(0, fs * 1.72), f, fs, true)
 	func _line(txt: String, pos: Vector2, f: Font, fs: int, grad: bool) -> float:
 		var x := pos.x
 		var n := txt.length()
@@ -215,7 +210,7 @@ func _build_ui() -> void:
 	var vp := get_viewport_rect().size
 	var row: BoxContainer = HBoxContainer.new() if _wide else VBoxContainer.new()
 	row.add_theme_constant_override("separation", Kit.S5)
-	row.custom_minimum_size.x = minf(1280.0, vp.x - 40.0)
+	row.custom_minimum_size.x = minf(1440.0, vp.x - 40.0)
 	center.add_child(row)
 
 	# ---------------- main card
@@ -234,7 +229,7 @@ func _build_ui() -> void:
 	eb.add_child(Kit.label("ネオン・アリーナ・ローグライト", Kit.FS_XS, Kit.CYAN.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, false, true))
 	b.add_child(eb)
 	b.add_child(TitleArt.new(_compact))
-	if not _compact:
+	if true:
 		b.add_child(Kit.label("有限の巨大ネオンフィールドを駆け回り、押し寄せる敵を撃ち抜いて能力を組み替える。\n一瞬の判断とビルド構築を混ぜた、短時間で何度も遊べるアリーナ・ローグライト。", Kit.FS_MD, Kit.DIM, HORIZONTAL_ALIGNMENT_LEFT, true))
 
 	# action buttons
@@ -360,7 +355,7 @@ func _build_ui() -> void:
 	mo.add_child(mv)
 	mo.add_child(Kit.label("横画面", Kit.FS_XS, Kit.CYAN, HORIZONTAL_ALIGNMENT_RIGHT, false, true))
 	hb.add_child(mo)
-	if not _compact or not _wide:
+	if true:
 		var fl := PanelContainer.new()
 		fl.add_theme_stylebox_override("panel", Kit.box(Kit.with_a(Kit.CYAN, 0.06), Kit.with_a(Color.WHITE, 0.08), 1, 12))
 		var fv := Kit.vbox(4)

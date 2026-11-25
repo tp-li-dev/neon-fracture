@@ -212,7 +212,7 @@ func _build_ui() -> void:
 	var shell := Kit.panel(Kit.CYAN, Kit.S4 if _compact else Kit.S5)
 	shell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	shell.custom_minimum_size.x = minf(1380.0, vp.x - 24.0)
+	shell.custom_minimum_size.x = minf(1440.0, vp.x - 24.0)
 	content.add_child(shell)
 	var root := shell.body
 	root.add_theme_constant_override("separation", Kit.S3)
@@ -349,6 +349,9 @@ func _build_custom(col: VBoxContainer) -> void:
 	for s in SLIDERS:
 		if s[0] == "levelRate": continue
 		grid.add_child(_slider_row(s))
+	# toggles
+	_shield_tg = Kit.toggle(true, func(v): _set_custom("shield", v), Kit.CYAN)
+	grid.add_child(Kit.setting_row("Shield/Barrier有効", _shield_tg))
 	# boss interval
 	var iv := Kit.vbox(4)
 	iv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -363,9 +366,6 @@ func _build_custom(col: VBoxContainer) -> void:
 	_heal_seg = Kit.segmented(["100%", "50%", "OFF"], 0, func(i): _set_custom("heal", HEALS[i]), Kit.VIOLET)
 	hv.add_child(_heal_seg)
 	grid.add_child(hv)
-	# toggles
-	_shield_tg = Kit.toggle(true, func(v): _set_custom("shield", v), Kit.CYAN)
-	grid.add_child(Kit.setting_row("Shield/Barrier有効", _shield_tg))
 	_onehit_tg = Kit.toggle(false, func(v): _set_custom("oneHit", v), Kit.AMBER)
 	grid.add_child(Kit.setting_row("ONE HIT", _onehit_tg))
 
