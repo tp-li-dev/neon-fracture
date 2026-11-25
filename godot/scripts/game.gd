@@ -85,6 +85,7 @@ var pausePendingAction = null
 const FIXED_STEP: float = 1.0 / 60.0
 const MAX_FRAME_DT: float = 0.20
 const MAX_SIM_STEPS: int = 8
+var prof: Dictionary = {}
 var simAccumulator: float = 0.0
 
 
@@ -759,7 +760,9 @@ func update(dt: float) -> void:
 	player.dashReady = minf(1.0, player.dashReady + dt / player.dashCooldown)
 	if player.regen:
 		healPlayer(player.regen * dt, "regen")
+	var _t1=Time.get_ticks_usec()
 	updateRunSystems(dt)
+	prof['updateRunSystems']=prof.get('updateRunSystems',0)+Time.get_ticks_usec()-_t1
 	if clearPending:
 		gameOver("clear")
 		return
@@ -823,26 +826,42 @@ func update(dt: float) -> void:
 		Combat.firePlayer()
 	elif not Inp.mouse.down:
 		player.shootTimer = maxf(0.0, player.shootTimer)  # Idle time cannot stockpile shots.
+	var _t2=Time.get_ticks_usec()
 	Combat.updateFriendlySystems(dt)
+	prof['Combat.updateFriendlySystems']=prof.get('Combat.updateFriendlySystems',0)+Time.get_ticks_usec()-_t2
 	if clearPending:
 		gameOver("clear")
 		return
+	var _t3=Time.get_ticks_usec()
 	Enemies.updateEncounterPopulation(dt)
+	prof['Enemies.updateEncounterPopulation']=prof.get('Enemies.updateEncounterPopulation',0)+Time.get_ticks_usec()-_t3
+	var _t4=Time.get_ticks_usec()
 	Combat.updateDrones(dt)
+	prof['Combat.updateDrones']=prof.get('Combat.updateDrones',0)+Time.get_ticks_usec()-_t4
+	var _t5=Time.get_ticks_usec()
 	Combat.updateProjectiles(dt)
+	prof['Combat.updateProjectiles']=prof.get('Combat.updateProjectiles',0)+Time.get_ticks_usec()-_t5
 	if state != "playing":
 		return
 	if clearPending:
 		gameOver("clear")
 		return
+	var _t6=Time.get_ticks_usec()
 	Enemies.updateEnemies(dt)
+	prof['Enemies.updateEnemies']=prof.get('Enemies.updateEnemies',0)+Time.get_ticks_usec()-_t6
 	if state != "playing":
 		return
+	var _t7=Time.get_ticks_usec()
 	Enemies.updateHazards(dt)
+	prof['Enemies.updateHazards']=prof.get('Enemies.updateHazards',0)+Time.get_ticks_usec()-_t7
 	if state != "playing":
 		return
+	var _t8=Time.get_ticks_usec()
 	Combat.updateLoot(dt)
+	prof['Combat.updateLoot']=prof.get('Combat.updateLoot',0)+Time.get_ticks_usec()-_t8
+	var _t9=Time.get_ticks_usec()
 	Combat.updateVisualEffects(dt)
+	prof['Combat.updateVisualEffects']=prof.get('Combat.updateVisualEffects',0)+Time.get_ticks_usec()-_t9
 	if comboTimer > 0:
 		comboTimer -= dt
 	else:
