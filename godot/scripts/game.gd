@@ -939,3 +939,30 @@ func step_frame(real_dt: float) -> bool:
 		sceneDirty = false
 		lastRenderedState = state
 	return draw
+
+
+# ---------- Suspend/resume run save (delegates to scripts/runsave.gd; original 10360-10544) ----------
+const _RS = preload("res://scripts/runsave.gd")
+var pendingRunImport = null
+func encodeRunGraph(root): return _RS.encodeRunGraph(root)
+func decodeRunGraph(graph): return _RS.decodeRunGraph(graph)
+func settledRunIds() -> Array: return _RS.settledRunIds()
+func sessionAlreadySettled() -> bool: return _RS.sessionAlreadySettled()
+func markSessionSettled() -> void: _RS.markSessionSettled()
+func startRunSession() -> void: _RS.startRunSession()
+func clearRunSession() -> void: _RS.clearRunSession()
+func choiceDescriptor(c): return _RS.choiceDescriptor(c)
+func restoreRunChoice(c): return _RS.restoreRunChoice(c)
+func makeRunSave() -> Dictionary: return _RS.makeRunSave()
+func validateRunSave(raw) -> Dictionary: return _RS.validateRunSave(raw)
+func readSuspended() -> Dictionary: return _RS.readSuspended()
+func clearSuspended() -> void: _RS.clearSuspended()
+func syncResumeEntry() -> void: _RS.syncResumeEntry()
+func persistRunSave(payload) -> String: return _RS.persistRunSave(payload)
+func suspendRunToHome(force: bool = false) -> bool: return _RS.suspendRunToHome(force)
+func downloadRunSave() -> String: return _RS.downloadRunSave()
+func exportRunSave(path: String) -> String: return _RS.exportRunSave(path)
+func importRunSave(path: String) -> String: return _RS.importRunSave(path)
+func applyRunImport() -> String: return _RS.applyRunImport()
+func restoreSuspended(payload = null) -> bool: return _RS.restoreSuspended(payload)
+func resumeInfoText() -> String: return _RS.resumeInfoText()
