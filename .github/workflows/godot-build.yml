@@ -1,0 +1,64 @@
+name: godot-build
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.1"
+  GODOT_URL: https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { preset: "Linux",           out: "build/linux/neon-fracture.x86_64",       name: linux,   mode: release }
+          - { preset: "Windows Desktop", out: "build/windows/neon-fracture.exe",        name: windows, mode: release }
+          - { preset: "macOS",           out: "build/macos/neon-fracture.zip",          name: macos,   mode: release }
+          - { preset: "Android",         out: "build/android/neon-fracture-debug.apk",  name: android, mode: debug }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and export templates
+        run: |
+          mkdir -p "$RUNNER_TEMP/godot" ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          cd "$RUNNER_TEMP/godot"
+          curl -fsSL -o g.zip  "$GODOT_URL/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL -o t.tpz  "$GODOT_URL/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q g.zip && unzip -q t.tpz
+          cp -r templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+          sudo ln -sf "$PWD/Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          godot --version
+      - uses: actions/setup-java@v4
+        if: matrix.name == 'android'
+        with: { distribution: temurin, java-version: "17" }
+      - name: Android SDK and debug keystore
+        if: matrix.name == 'android'
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "build-tools;35.0.1" "platforms;android-35" "cmdline-tools;latest"
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$RUNNER_TEMP/debug.keystore" \
+            -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deploy
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.7.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/debug_keystore = "$RUNNER_TEMP/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+      - name: Import project
+        run: godot --headless --path godot --import || true
+      - name: Export
+        run: |
+          mkdir -p "$(dirname godot/${{ matrix.out }})"
+          godot --headless --path godot --export-${{ matrix.mode }} "${{ matrix.preset }}" "${{ matrix.out }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neon-fracture-${{ matrix.name }}
+          path: godot/build/${{ matrix.name }}/
+          if-no-files-found: error

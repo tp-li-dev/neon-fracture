@@ -1,21 +1,27 @@
-# NEON FRACTURE — Godot prototype
+# NEON FRACTURE — Godot 4.7 ネイティブ版
 
-HTML版(`../index.html`)は無改変のまま。これは Godot 4.4 (GL Compatibility) による
-ネイティブ版の戦闘コア試作です。Win / Mac / Linux / Android / iOS へ同一プロジェクトから書き出せます。
+HTML版(`../index.html`)は原作として無改変のまま残しています。この `godot/` は
+Godot 4.7 (GL Compatibility) による**フル移植版**です(以前の戦闘コア試作は本移植に置き換え済み)。
+Windows / macOS / Linux / Android / iOS(およびWeb)へ同一プロジェクトから書き出せます。
 
 ## 実行
-Godot 4.4 でこの `godot/` フォルダを開いて F5、または:
 
-    godot --path godot
+    godot --path godot            # 実行
+    godot --editor --path godot   # エディタで開く
 
-## 試作の内容
-- プレイヤー移動 / 自動連射 / ダッシュ(無敵付き)、画面揺れ・パーティクル
-- 敵6種(追跡/軽量/重装/射撃/分裂/突進)。HP・速度・ダメージ・XPは原作の値、ウェーブでスケール
-- XPオーブ → レベルアップで強化3択(8種)
-- ネオン調HUD・メニューはすべてコード描画(ノード・画像・Tailwind不要)。発光は二重ストロークの自前描画
-- 操作: PC = WASD / マウス照準(自動連射) / SPACE。モバイル = 左半分で移動スティック、右半分で照準スティック
-  (未操作時は最寄り敵へ自動照準)、DASHボタン。横画面固定
-- 開発用: `NF_SHOT=<dir>` を付けて起動すると自動プレイしてスクリーンショットを保存
+書き出し・テスト・サイズ最適化は [BUILD.md](BUILD.md) を参照。
 
-## 未実装(原作との差)
-ボス、カード構文/研究ラボ、残り7種の敵、モード選択、セーブ、サウンド、実機でのモバイル検証。
+## 構成
+- `main.tscn` / `main.gd` — エントリ。画面遷移とメインループ
+- `scripts/` — ゲームロジックのモジュール(autoload): `u`(ユーティリティ) `audio` `world` `inp`(入力) `meta`(永続成長・セーブ)
+  `cards` `game`(ラン状態) `enemies` `combat` `render`(コード描画) `ui` `runsave`(中断セーブ)
+- `scripts/ui/` — 画面: home / runconfig / hud / upgrade / pause / gameover / meta(各タブ) / settings / how ほか。共通部品は `kit.gd`, `nf_screen.gd`
+- `data/defs.json` — 原作 `index.html` から抽出したデータ表(同一の数値を使うため)
+- `../tools/` — 抽出スクリプト: `extract-data.mjs`(defs.json生成)、`make-index.mjs`(PORTING_INDEX.md生成)
+- `tests/` — ヘッドレス/E2Eテスト(sim_stress, combat_audit, game_audit, meta_test, runsave_test, e2e)
+- `preview/` — 画面確認用スクリーンショット(書き出しから除外)
+- `icons/` — Androidアダプティブアイコン素材
+- 設計資料: `CONTRACT.md` `PORTING.md` `PORTING_INDEX.md` `UI_GUIDE.md` `INTEGRATION_LOG.md`
+
+## 操作
+PC = WASD / マウス照準 / SPACE(ダッシュ)。モバイル = 左半分で移動スティック、右半分で照準、DASHボタン。横画面固定。

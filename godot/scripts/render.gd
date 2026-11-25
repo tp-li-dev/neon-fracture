@@ -24,6 +24,38 @@ const ACTIVE_DEFS := {
 func _ready() -> void:
 	if font == null:
 		font = ThemeDB.fallback_font
+	_disc_tex = _make_disc(64)
+
+# Cached textures: draw_circle costs ~5us and draw_arc ~3.6us per call, a textured rect ~0.2us
+# (and batches), so small discs / rings are drawn as modulated texture rects.
+var _disc_tex: Texture2D = null
+var _ring_tex: Dictionary = {}
+
+func _make_disc(sz: int) -> Texture2D:
+	var img := Image.create(sz, sz, false, Image.FORMAT_RGBA8)
+	var h: float = sz / 2.0
+	for y in range(sz):
+		for x in range(sz):
+			var d: float = Vector2(x + .5 - h, y + .5 - h).length()
+			img.set_pixel(x, y, Color(1, 1, 1, clampf(h - d, 0.0, 1.0)))
+	return ImageTexture.create_from_image(img)
+
+func _get_ring(q: int) -> Texture2D:
+	# q = inner/outer radius ratio in 1/64 steps
+	if _ring_tex.has(q):
+		return _ring_tex[q]
+	var sz: int = 128
+	var img := Image.create(sz, sz, false, Image.FORMAT_RGBA8)
+	var h: float = sz / 2.0
+	var inner: float = h * float(q) / 64.0
+	for y in range(sz):
+		for x in range(sz):
+			var d: float = Vector2(x + .5 - h, y + .5 - h).length()
+			var a: float = clampf(h - d, 0.0, 1.0) * clampf(d - inner + 0.5, 0.0, 1.0) if inner > 0.0 else clampf(h - d, 0.0, 1.0)
+			img.set_pixel(x, y, Color(1, 1, 1, a))
+	var t := ImageTexture.create_from_image(img)
+	_ring_tex[q] = t
+	return t
 
 # ---------------------------------------------------------------- color helpers
 func hsl(h: float, s: float, l: float, a: float = 1.0) -> Color:
@@ -51,10 +83,18 @@ func _segs(r: float) -> int:
 	return clampi(int(r * 0.8) + 12, 16, 56)
 
 func _circ(ci: CanvasItem, c: Vector2, r: float, col: Color, w: float) -> void:
-	ci.draw_arc(c, r, 0.0, TAU, _segs(r), col, w)
+	if r > 70.0 or r - w * 0.5 <= 0.0 or _disc_tex == null:
+		ci.draw_arc(c, r, 0.0, TAU, _segs(r), col, w)
+		return
+	var outer: float = r + w * 0.5
+	var q: int = clampi(roundi((r - w * 0.5) / outer * 64.0), 1, 63)
+	ci.draw_texture_rect(_get_ring(q), Rect2(c.x - outer, c.y - outer, outer * 2.0, outer * 2.0), false, col)
 
 func _fcirc(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
-	ci.draw_circle(c, r, col)
+	if r > 70.0 or _disc_tex == null:
+		ci.draw_circle(c, r, col)
+		return
+	ci.draw_texture_rect(_disc_tex, Rect2(c.x - r, c.y - r, r * 2.0, r * 2.0), false, col)
 
 func _dash_circle(ci: CanvasItem, c: Vector2, r: float, dash: float, gap: float, col: Color, w: float) -> void:
 	if r <= 0.5: return
@@ -151,7 +191,7 @@ func drawBackground(ci: CanvasItem) -> void:
 			col = _rgba(2, 4, 9, 1).lerp(_rgba(5, 8, 17, 1), (1.0 - t) / 0.42)
 		else:
 			col = _rgba(5, 8, 17, 1).lerp(_rgba(10, 15, 27, 1), 1.0 - t / 0.58)
-		ci.draw_circle(pc, 1050.0 * t, col)
+		_fcirc(ci, pc, 1050.0 * t, col)
 	# stars
 	var pts: Array = Game.stars
 	for st in pts:
@@ -185,7 +225,7 @@ func drawBackground(ci: CanvasItem) -> void:
 		_xf(ci, Vector2(z.x, z.y), time * .12 + z.phase)
 		var fc: Color = _ca(hexToHSLA(z.hue, .055 if ready else .025, 48), ga)
 		var sc: Color = _ca(hexToHSLA(z.hue, (.38 + .18 * pulse) if ready else .12, 64), ga)
-		ci.draw_circle(Vector2.ZERO, z.r, fc)
+		_fcirc(ci, Vector2.ZERO, z.r, fc)
 		_circ(ci, Vector2.ZERO, z.r, sc, 1.5)
 		_xf(ci, Vector2(z.x, z.y), time * .12 + z.phase - time * .30)
 		_dash_circle(ci, Vector2.ZERO, z.r * .72, 9.0, 13.0, sc, 1.5)
@@ -239,11 +279,11 @@ func drawFriendlyEffects(ci: CanvasItem) -> void:
 			if not ready:
 				if p > 0.0:
 					ci.draw_arc(hp, 24, 0, TAU * p, 24, stroke, 3.0)
-				ci.draw_circle(hp, 5 + 10 * p, fill)
+				_fcirc(ci, hp, 5 + 10 * p, fill)
 				if _truthy(h.get("slot", null)):
 					_text(ci, "充填 %d%%" % roundi(p * 100.0), h.x, h.y - 36, 12, Color("#c7fbff"))
 		elif kind == "meteor" or kind == "well":
-			ci.draw_circle(hp, h.radius, fill)
+			_fcirc(ci, hp, h.radius, fill)
 			if ready:
 				_circ(ci, hp, h.radius, stroke, 2.0)
 			else:
@@ -287,7 +327,7 @@ func drawHazards(ci: CanvasItem) -> void:
 		var rad: float = float(h.get("radius", 0.0))
 		if h.shape == "circle":
 			var c := Vector2(h.x, h.y)
-			ci.draw_circle(c, h.radius, fc)
+			_fcirc(ci, c, h.radius, fc)
 			if ready:
 				_circ(ci, c, h.radius, sc, lw)
 			else:
@@ -355,9 +395,9 @@ func drawReadableProjectiles(ci: CanvasItem) -> void:
 				ci.draw_multiline(PackedVector2Array([bp + ux * -3.0 + uy * -3.0, bp + ux * 3.0 + uy * 3.0,
 					bp + ux * -3.0 + uy * 3.0, bp + ux * 3.0 + uy * -3.0]), xc, 1.5)
 			else:
-				ci.draw_circle(bp, br + 1.75, Color("#fff1e5"))
-				ci.draw_circle(bp, br + 0.25, fill)
-				ci.draw_circle(bp, 2.0, Color("#511814"))
+				_fcirc(ci, bp, br + 1.75, Color("#fff1e5"))
+				_fcirc(ci, bp, br + 0.25, fill)
+				_fcirc(ci, bp, 2.0, Color("#511814"))
 		else:
 			var from_drone: bool = b.get("fromDrone", false)
 			var ci_idx: int = 0 if from_drone else (1 if b.get("source", "") is String and b.get("source", "") == "active" else 2)
@@ -378,7 +418,7 @@ func drawReadableProjectiles(ci: CanvasItem) -> void:
 		var w: float = float(int(key) % 1000) / 10.0
 		ci.draw_multiline(trails[key], cols[idx], w)
 	for d in dots:
-		ci.draw_circle(d[0], d[1], cols[d[2]])
+		_fcirc(ci, d[0], d[1], cols[d[2]])
 
 func drawEnemyInfo(ci: CanvasItem, e: Dictionary) -> void:
 	if float(e.get("spawnDelay", 0)) > 0.0 or e.get("_dead", false):
@@ -480,7 +520,7 @@ func draw(ci: CanvasItem) -> void:
 			_poly(ci, pts, fillc, strokec, lwid, glowc)
 			_xf(ci, ep, rot - time * .6)
 			_circ(ci, o, er * .48, strokec, lwid)
-			ci.draw_circle(o, er * .18, fillc)
+			_fcirc(ci, o, er * .18, fillc)
 		elif et == "tank":
 			var pts := PackedVector2Array()
 			for i in range(6):
@@ -498,10 +538,10 @@ func draw(ci: CanvasItem) -> void:
 		elif et == "orbiter":
 			if _glow: _circ(ci, o, er, glowc, lwid + 5.0)
 			_circ(ci, o, er, strokec, lwid)
-			ci.draw_circle(o, er * .42, fillc)
+			_fcirc(ci, o, er * .42, fillc)
 			ci.draw_line(Vector2(-er - 4, 0), Vector2(er + 4, 0), strokec, lwid)
 		else:
-			ci.draw_circle(o, er, fillc)
+			_fcirc(ci, o, er, fillc)
 			if _glow: _circ(ci, o, er, glowc, lwid + 5.0)
 			_circ(ci, o, er, strokec, lwid)
 			if et == "swift":
@@ -548,7 +588,7 @@ func draw(ci: CanvasItem) -> void:
 		var pts := PackedVector2Array([Vector2(19, 0), Vector2(-9, -10), Vector2(-5, 0), Vector2(-9, 10)])
 		_poly(ci, pts, _rgba(34, 211, 238, .16 * ga), _rgba(165, 243, 252, .98 * ga), 2.0, _rgba(34, 211, 238, .22 * ga))
 		_glow = glow_saved
-		ci.draw_circle(Vector2(2, 0), 3.1, Color(1, 1, 1, .92 * ga))
+		_fcirc(ci, Vector2(2, 0), 3.1, Color(1, 1, 1, .92 * ga))
 		if st == "playing" and (dxMove() != 0.0 or dyMove() != 0.0):
 			var tc := _rgba(34, 211, 238, .38 * ga)
 			ci.draw_line(Vector2(-9, -4), Vector2(-17 - U.rand(0, 10), -2), tc, 3.0)
@@ -628,12 +668,12 @@ func draw(ci: CanvasItem) -> void:
 		elif e.get("elite", false): mc = _rgba(216, 180, 254, .95)
 		else: mc = _rgba(103, 232, 249, .68)
 		var rr: float = 3.4 if eb else (2.2 if e.get("elite", false) else 1.25)
-		ci.draw_circle(Vector2(mx + e.x * sx, my + e.y * sy), rr, mc)
+		_fcirc(ci, Vector2(mx + e.x * sx, my + e.y * sy), rr, mc)
 	if mapAdv:
 		var gc := _rgba(74, 222, 128, .62)
 		for g in G.gems:
-			ci.draw_circle(Vector2(mx + g.x * sx, my + g.y * sy), 2.1 if g.get("kind", "") == "boss" else .85, gc)
-	ci.draw_circle(Vector2(mx + player.x * sx, my + player.y * sy), 2.8, _rgba(165, 243, 252, 1))
+			_fcirc(ci, Vector2(mx + g.x * sx, my + g.y * sy), 2.1 if g.get("kind", "") == "boss" else .85, gc)
+	_fcirc(ci, Vector2(mx + player.x * sx, my + player.y * sy), 2.8, _rgba(165, 243, 252, 1))
 	_text(ci, "» FLOW: 移動加速", mx, my - 17, 8, _rgba(103, 232, 249, .72), 0)
 	_text(ci, "◫ CHARGE: ダッシュ回復", mx + 72, my - 17, 8, _rgba(216, 180, 254, .72), 0)
 	_text(ci, "∞ LINK: コンボ延長", mx, my - 7, 8, _rgba(253, 230, 138, .72), 0)

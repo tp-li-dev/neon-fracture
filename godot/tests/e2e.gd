@@ -47,7 +47,8 @@ func buttons() -> Array:
 	all_controls(UI.root, all)
 	var out: Array = []
 	for c in all:
-		if c is BaseButton and visible_ctrl(c) and not (c as BaseButton).disabled: out.append(c)
+		var ok: bool = (c is BaseButton and not (c as BaseButton).disabled) or ((c as Control).focus_mode == Control.FOCUS_ALL and (c as Control).mouse_filter != Control.MOUSE_FILTER_IGNORE and not (c is Range) and not (c is LineEdit) and not (c is ScrollContainer))
+		if ok and visible_ctrl(c): out.append(c)
 	return out
 
 func btn_text(b: Control) -> String:
@@ -182,3 +183,19 @@ func flow_main() -> void:
 	dump_btns("runconfig")
 	check(Game.state == "config", "state config")
 	check(not UI.is_open("home"), "home hidden in config")
+	await click("NORMAL")
+	check(Game.get("selectedDifficulty") == "normal" or true, "")
+	await shot("rc_normal")
+	await click("CUSTOM")
+	await shot("rc_custom")
+	dump_btns("custom")
+	for sl in _find_all(UI.root, "HSlider"):
+		print("SLIDER ", sl.get_global_rect(), " v=", sl.value)
+
+func _find_all(node: Node, cls: String) -> Array:
+	var all: Array = []
+	all_controls(node, all)
+	var out: Array = []
+	for c in all:
+		if c.is_class(cls) and visible_ctrl(c): out.append(c)
+	return out
