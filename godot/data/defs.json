@@ -1,0 +1,1066 @@
+{
+ "difficulties": {
+  "easy": {
+   "label": "EASY",
+   "levelRate": 2,
+   "startLevel": 1,
+   "cp": 1,
+   "reward": 1,
+   "density": 1,
+   "hpGrowth": 1,
+   "damageGrowth": 1,
+   "elite": 1,
+   "attack": 1,
+   "bossInterval": 5,
+   "shield": true,
+   "barrier": true,
+   "heal": 1,
+   "oneHit": false
+  },
+  "normal": {
+   "label": "NORMAL",
+   "levelRate": 2.4,
+   "startLevel": 1,
+   "cp": 2,
+   "reward": 1.35,
+   "density": 1.5,
+   "hpGrowth": 1.45,
+   "damageGrowth": 1.4,
+   "elite": 1.65,
+   "attack": 1.35,
+   "bossInterval": 5,
+   "shield": true,
+   "barrier": true,
+   "heal": 1,
+   "oneHit": false
+  },
+  "hard": {
+   "label": "HARD",
+   "levelRate": 3.4,
+   "startLevel": 1,
+   "cp": 3.4,
+   "reward": 1.85,
+   "density": 2,
+   "hpGrowth": 2,
+   "damageGrowth": 1.9,
+   "elite": 2.35,
+   "attack": 1.75,
+   "bossInterval": 5,
+   "shield": true,
+   "barrier": true,
+   "heal": 0.85,
+   "oneHit": false
+  },
+  "hardcore": {
+   "label": "HARDCORE",
+   "levelRate": 4.8,
+   "startLevel": 1,
+   "cp": 5.2,
+   "reward": 2.45,
+   "density": 2.35,
+   "hpGrowth": 2.7,
+   "damageGrowth": 2.55,
+   "elite": 3,
+   "attack": 2.15,
+   "bossInterval": 4,
+   "shield": false,
+   "barrier": false,
+   "heal": 0.5,
+   "oneHit": false
+  },
+  "fracture": {
+   "label": "FRACTURE",
+   "levelRate": 6,
+   "startLevel": 1,
+   "cp": 7.2,
+   "reward": 3.2,
+   "density": 2.65,
+   "hpGrowth": 3.25,
+   "damageGrowth": 3,
+   "elite": 3.5,
+   "attack": 2.5,
+   "bossInterval": 4,
+   "shield": false,
+   "barrier": false,
+   "heal": 0,
+   "oneHit": true
+  }
+ },
+ "custom_enemy_ids": [
+  "chaser",
+  "swift",
+  "tank",
+  "shooter",
+  "splitter",
+  "charger",
+  "orbiter",
+  "disruptor",
+  "lancer",
+  "bombardier",
+  "medic",
+  "bulwark",
+  "suppressor"
+ ],
+ "custom_boss_ids": [
+  "warden",
+  "spinner",
+  "hunter"
+ ],
+ "meta_stats": {
+  "power": {
+   "name": "出力研究",
+   "icon": "✦",
+   "base": 90,
+   "step": 30
+  },
+  "hull": {
+   "name": "耐久研究",
+   "icon": "⬡",
+   "base": 85,
+   "step": 28
+  },
+  "mobility": {
+   "name": "機動研究",
+   "icon": "➤",
+   "base": 105,
+   "step": 34
+  },
+  "critical": {
+   "name": "照準研究",
+   "icon": "◇",
+   "base": 120,
+   "step": 38
+  },
+  "recovery": {
+   "name": "吸収研究",
+   "icon": "♥",
+   "base": 135,
+   "step": 42
+  },
+  "magnet": {
+   "name": "回収研究",
+   "icon": "◉",
+   "base": 75,
+   "step": 26
+  },
+  "economy": {
+   "name": "換金研究",
+   "icon": "CR",
+   "base": 120,
+   "step": 40
+  },
+  "rapid": {
+   "name": "連射研究",
+   "icon": "⌁",
+   "base": 110,
+   "step": 36
+  },
+  "active": {
+   "name": "スキル出力研究",
+   "icon": "⚡",
+   "base": 110,
+   "step": 36
+  },
+  "haste": {
+   "name": "スキル循環研究",
+   "icon": "◫",
+   "base": 120,
+   "step": 38
+  }
+ },
+ "modules": [
+  {
+   "id": "pulse",
+   "rarity": "COMMON",
+   "icon": "✦",
+   "name": "パルス増幅器"
+  },
+  {
+   "id": "shell",
+   "rarity": "COMMON",
+   "icon": "⬡",
+   "name": "補助装甲"
+  },
+  {
+   "id": "vector",
+   "rarity": "COMMON",
+   "icon": "➤",
+   "name": "ベクターノズル"
+  },
+  {
+   "id": "collector",
+   "rarity": "COMMON",
+   "icon": "◉",
+   "name": "コレクター"
+  },
+  {
+   "id": "rail",
+   "rarity": "RARE",
+   "icon": "⇢",
+   "name": "レールコア"
+  },
+  {
+   "id": "crimson",
+   "rarity": "RARE",
+   "icon": "♥",
+   "name": "クリムゾンセル"
+  },
+  {
+   "id": "reactor",
+   "rarity": "RARE",
+   "icon": "⌁",
+   "name": "マイクロリアクター"
+  },
+  {
+   "id": "fortune",
+   "rarity": "RARE",
+   "icon": "◆",
+   "name": "フォーチュン回路"
+  },
+  {
+   "id": "nova",
+   "rarity": "EPIC",
+   "icon": "✹",
+   "name": "ノヴァ・シード"
+  },
+  {
+   "id": "oracle",
+   "rarity": "EPIC",
+   "icon": "◈",
+   "name": "オラクル・コア"
+  },
+  {
+   "id": "dronecore",
+   "rarity": "EPIC",
+   "icon": "◎",
+   "name": "ドローン母核"
+  },
+  {
+   "id": "chronos",
+   "rarity": "LEGENDARY",
+   "icon": "◫",
+   "name": "クロノス・ドライブ"
+  },
+  {
+   "id": "sovereign",
+   "rarity": "LEGENDARY",
+   "icon": "♛",
+   "name": "ソヴリン・コア"
+  },
+  {
+   "id": "mirrorcore",
+   "rarity": "RARE",
+   "icon": "↗",
+   "name": "ミラー・コア"
+  },
+  {
+   "id": "seeker",
+   "rarity": "EPIC",
+   "icon": "⌖",
+   "name": "シーカー演算核"
+  },
+  {
+   "id": "prismcore",
+   "rarity": "LEGENDARY",
+   "icon": "✧",
+   "name": "プリズム・リアクター"
+  },
+  {
+   "id": "aegis",
+   "rarity": "RARE",
+   "icon": "⬢",
+   "name": "イージス・フレーム"
+  },
+  {
+   "id": "nanoframe",
+   "rarity": "EPIC",
+   "icon": "✚",
+   "name": "ナノリペア・フレーム"
+  },
+  {
+   "id": "voidskin",
+   "rarity": "LEGENDARY",
+   "icon": "◈",
+   "name": "ヴォイドスキン"
+  },
+  {
+   "id": "swarmdrive",
+   "rarity": "RARE",
+   "icon": "◎",
+   "name": "スウォーム・ドライブ"
+  },
+  {
+   "id": "phasecollector",
+   "rarity": "EPIC",
+   "icon": "◉",
+   "name": "位相コレクター"
+  },
+  {
+   "id": "swarmmind",
+   "rarity": "LEGENDARY",
+   "icon": "⌘",
+   "name": "SWARM MIND"
+  },
+  {
+   "id": "capacitor",
+   "rarity": "RARE",
+   "icon": "ϟ",
+   "name": "蓄光コンデンサ"
+  },
+  {
+   "id": "prism_lens",
+   "rarity": "EPIC",
+   "icon": "✧",
+   "name": "分光レンズ"
+  },
+  {
+   "id": "comet_core",
+   "rarity": "EPIC",
+   "icon": "☄",
+   "name": "彗星炉"
+  },
+  {
+   "id": "thunder_heart",
+   "rarity": "LEGENDARY",
+   "icon": "ϟ",
+   "name": "雷霆心臓"
+  },
+  {
+   "id": "reactive_plate",
+   "rarity": "RARE",
+   "icon": "✦",
+   "name": "反撃散弾装甲"
+  },
+  {
+   "id": "cryo_frame",
+   "rarity": "EPIC",
+   "icon": "❄",
+   "name": "凍結応答フレーム"
+  },
+  {
+   "id": "ember_shell",
+   "rarity": "EPIC",
+   "icon": "☀",
+   "name": "灼熱外殻"
+  },
+  {
+   "id": "bastion_frame",
+   "rarity": "LEGENDARY",
+   "icon": "⬢",
+   "name": "戦術防壁フレーム"
+  },
+  {
+   "id": "iondrive",
+   "rarity": "RARE",
+   "icon": "➤",
+   "name": "イオン残光ドライブ"
+  },
+  {
+   "id": "overclock_drive",
+   "rarity": "EPIC",
+   "icon": "◫",
+   "name": "充填加速ドライブ"
+  },
+  {
+   "id": "relay_drive",
+   "rarity": "RARE",
+   "icon": "⌖",
+   "name": "追撃リレードライブ"
+  },
+  {
+   "id": "orbital_drive",
+   "rarity": "LEGENDARY",
+   "icon": "✥",
+   "name": "衛星刃ドライブ"
+  }
+ ],
+ "module_slot": {
+  "pulse": "core",
+  "rail": "core",
+  "reactor": "core",
+  "nova": "core",
+  "oracle": "core",
+  "sovereign": "core",
+  "mirrorcore": "core",
+  "seeker": "core",
+  "prismcore": "core",
+  "shell": "armor",
+  "crimson": "armor",
+  "fortune": "armor",
+  "aegis": "armor",
+  "nanoframe": "armor",
+  "voidskin": "armor",
+  "vector": "drive",
+  "collector": "drive",
+  "dronecore": "drive",
+  "chronos": "drive",
+  "swarmdrive": "drive",
+  "phasecollector": "drive",
+  "swarmmind": "drive",
+  "capacitor": "core",
+  "prism_lens": "core",
+  "comet_core": "core",
+  "thunder_heart": "core",
+  "reactive_plate": "armor",
+  "cryo_frame": "armor",
+  "ember_shell": "armor",
+  "bastion_frame": "armor",
+  "iondrive": "drive",
+  "overclock_drive": "drive",
+  "relay_drive": "drive",
+  "orbital_drive": "drive"
+ },
+ "card_parts": {
+  "trigger": [
+   {
+    "id": "on_kill",
+    "text": "敵を倒した時",
+    "cost": 1,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "on_hit",
+    "text": "弾が命中した時",
+    "cost": 2,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "on_crit",
+    "text": "クリティカル時",
+    "cost": 2,
+    "rarity": "RARE"
+   },
+   {
+    "id": "on_dash",
+    "text": "ダッシュした時",
+    "cost": 1,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "on_damage",
+    "text": "ダメージを受けた時",
+    "cost": 0,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "on_wave",
+    "text": "ウェーブ開始時",
+    "cost": 0,
+    "rarity": "RARE"
+   },
+   {
+    "id": "on_shield_break",
+    "text": "シールドが破壊された時",
+    "cost": 1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "on_low_hp",
+    "text": "HPが35%を下回った時",
+    "cost": 1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "on_level",
+    "text": "レベルアップした時",
+    "cost": 1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "on_pickup",
+    "text": "経験値を回収した時",
+    "cost": 2,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "on_boss_spawn",
+    "text": "ボスが出現した時",
+    "cost": 0,
+    "rarity": "EPIC"
+   },
+   {
+    "id": "on_combo",
+    "text": "コンボが10撃破増えるたび",
+    "cost": 1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "on_pierce",
+    "text": "弾が敵を貫通した時",
+    "cost": 2,
+    "rarity": "EPIC"
+   },
+   {
+    "id": "on_active",
+    "text": "アクティブスキル使用時",
+    "cost": 1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "on_charge",
+    "text": "アクティブのチャージ発射時",
+    "cost": 1,
+    "rarity": "EPIC"
+   }
+  ],
+  "condition": [
+   {
+    "id": "always",
+    "text": "",
+    "cost": 0,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "hp35",
+    "text": "HPが35%以下なら",
+    "cost": -1,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "hp70",
+    "text": "HPが70%以上なら",
+    "cost": 0,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "elite",
+    "text": "対象がエリートなら",
+    "cost": -1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "boss",
+    "text": "対象がボスなら",
+    "cost": -2,
+    "rarity": "RARE"
+   },
+   {
+    "id": "combo8",
+    "text": "連続撃破が8以上なら",
+    "cost": -1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "shieldless",
+    "text": "シールドが無いなら",
+    "cost": -1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "nearby5",
+    "text": "周囲に敵が5体以上なら",
+    "cost": -2,
+    "rarity": "EPIC"
+   },
+   {
+    "id": "enemy_low",
+    "text": "対象HPが30%以下なら",
+    "cost": -1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "fullhp",
+    "text": "HPが90%以上なら",
+    "cost": -1,
+    "rarity": "RARE"
+   },
+   {
+    "id": "bossfight",
+    "text": "ボス戦中なら",
+    "cost": -1,
+    "rarity": "EPIC"
+   },
+   {
+    "id": "moving",
+    "text": "移動中なら",
+    "cost": 0,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "many_enemies",
+    "text": "生存敵が20体以上なら",
+    "cost": -2,
+    "rarity": "EPIC"
+   },
+   {
+    "id": "shielded",
+    "text": "シールドを持っているなら",
+    "cost": 0,
+    "rarity": "RARE"
+   },
+   {
+    "id": "dashready",
+    "text": "ダッシュが使用可能なら",
+    "cost": 0,
+    "rarity": "COMMON"
+   }
+  ],
+  "chance": [
+   {
+    "id": "c25",
+    "text": "25%の確率で",
+    "value": 0.25,
+    "cost": 0,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "c50",
+    "text": "50%の確率で",
+    "value": 0.5,
+    "cost": 1,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "c75",
+    "text": "75%の確率で",
+    "value": 0.75,
+    "cost": 2,
+    "rarity": "RARE"
+   },
+   {
+    "id": "c100",
+    "text": "確定で",
+    "value": 1,
+    "cost": 4,
+    "rarity": "EPIC"
+   }
+  ],
+  "effect": [
+   {
+    "id": "heal",
+    "text": "最大HPを基準に回復する",
+    "cost": 2,
+    "rarity": "COMMON",
+    "icon": "♥"
+   },
+   {
+    "id": "shield",
+    "text": "攻撃を複数回無効化するシールドを得る",
+    "cost": 3,
+    "rarity": "COMMON",
+    "icon": "⬡"
+   },
+   {
+    "id": "guard",
+    "text": "一定時間、受けるダメージを大きく軽減する",
+    "cost": 3,
+    "rarity": "RARE",
+    "icon": "▣"
+   },
+   {
+    "id": "reflect",
+    "text": "受けた攻撃を周囲の敵へ反射する",
+    "cost": 4,
+    "rarity": "RARE",
+    "icon": "↺"
+   },
+   {
+    "id": "explode",
+    "text": "周囲に爆発を起こす",
+    "cost": 3,
+    "rarity": "COMMON",
+    "icon": "✹"
+   },
+   {
+    "id": "lightning",
+    "text": "近くの敵へ雷撃を連鎖する",
+    "cost": 4,
+    "rarity": "RARE",
+    "icon": "ϟ"
+   },
+   {
+    "id": "frostnova",
+    "text": "周囲へ凍結波を放ち敵を強く減速する",
+    "cost": 4,
+    "rarity": "RARE",
+    "icon": "❄"
+   },
+   {
+    "id": "knockpulse",
+    "text": "衝撃波で周囲の敵を吹き飛ばす",
+    "cost": 3,
+    "rarity": "COMMON",
+    "icon": "◎"
+   },
+   {
+    "id": "radial",
+    "text": "全方向へ特殊弾を一斉射撃する",
+    "cost": 5,
+    "rarity": "EPIC",
+    "icon": "✦"
+   },
+   {
+    "id": "barrage",
+    "text": "最も近い敵へ追撃弾幕を放つ",
+    "cost": 5,
+    "rarity": "EPIC",
+    "icon": "⋰"
+   },
+   {
+    "id": "barrier",
+    "text": "短時間の完全無敵障壁を展開する",
+    "cost": 5,
+    "rarity": "EPIC",
+    "icon": "◇"
+   },
+   {
+    "id": "dashreset",
+    "text": "ダッシュを即時再使用可能にする",
+    "cost": 5,
+    "rarity": "EPIC",
+    "icon": "◫"
+   },
+   {
+    "id": "resonance",
+    "text": "共鳴経験値を直接獲得する",
+    "cost": 3,
+    "rarity": "RARE",
+    "icon": "◆"
+   },
+   {
+    "id": "ricochet",
+    "text": "壁と敵を反射する弾幕を放つ",
+    "cost": 6,
+    "rarity": "EPIC",
+    "icon": "↗"
+   },
+   {
+    "id": "homing",
+    "text": "敵を追尾する誘導弾を放つ",
+    "cost": 5,
+    "rarity": "EPIC",
+    "icon": "⌖"
+   },
+   {
+    "id": "droneboost",
+    "text": "ドローンを一時オーバークロックする",
+    "cost": 6,
+    "rarity": "EPIC",
+    "icon": "◎"
+   },
+   {
+    "id": "globalcollect",
+    "text": "マップ上の経験値を即時回収する",
+    "cost": 7,
+    "rarity": "LEGENDARY",
+    "icon": "◉"
+   },
+   {
+    "id": "bulletclear",
+    "text": "敵弾を消去して反撃弾へ変換する",
+    "cost": 7,
+    "rarity": "LEGENDARY",
+    "icon": "✧"
+   },
+   {
+    "id": "chargebeam",
+    "text": "チャージして貫通光線を放つ",
+    "cost": 5,
+    "rarity": "EPIC",
+    "icon": "⇢"
+   },
+   {
+    "id": "meteor",
+    "text": "近い敵の位置に予告付き彗星を落とす",
+    "cost": 5,
+    "rarity": "EPIC",
+    "icon": "☄"
+   },
+   {
+    "id": "arcgrid",
+    "text": "複数の敵を結ぶ連鎖雷を放つ",
+    "cost": 6,
+    "rarity": "LEGENDARY",
+    "icon": "ϟ"
+   },
+   {
+    "id": "orbitblade",
+    "text": "一時的な旋回刃を展開する",
+    "cost": 5,
+    "rarity": "EPIC",
+    "icon": "✥"
+   },
+   {
+    "id": "gravitywell",
+    "text": "近い敵の位置に重力井戸を作る",
+    "cost": 6,
+    "rarity": "LEGENDARY",
+    "icon": "◉"
+   },
+   {
+    "id": "nova_shard",
+    "text": "跳弾する光片を全方向へ放つ",
+    "cost": 3,
+    "rarity": "RARE",
+    "icon": "✦"
+   }
+  ],
+  "power": [
+   {
+    "id": "p80",
+    "text": "出力80%",
+    "value": 0.8,
+    "cost": 0,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "p120",
+    "text": "出力120%",
+    "value": 1.2,
+    "cost": 1,
+    "rarity": "COMMON"
+   },
+   {
+    "id": "p180",
+    "text": "出力180%",
+    "value": 1.8,
+    "cost": 3,
+    "rarity": "RARE"
+   },
+   {
+    "id": "p260",
+    "text": "出力260%",
+    "value": 2.6,
+    "cost": 5,
+    "rarity": "EPIC"
+   },
+   {
+    "id": "p360",
+    "text": "出力360%",
+    "value": 3.6,
+    "cost": 7,
+    "rarity": "LEGENDARY"
+   }
+  ]
+ },
+ "starter_parts": [
+  "on_kill",
+  "on_hit",
+  "on_dash",
+  "on_damage",
+  "always",
+  "hp35",
+  "c25",
+  "c50",
+  "heal",
+  "shield",
+  "explode",
+  "knockpulse",
+  "p80",
+  "p120"
+ ],
+ "achievements": [
+  {
+   "id": "first_run",
+   "name": "FIRST SIGNAL",
+   "desc": "1ランを正式集計する",
+   "reward": 60
+  },
+  {
+   "id": "kill_1k",
+   "name": "MASS DESTRUCTION I",
+   "desc": "累計1,000体撃破",
+   "reward": 120
+  },
+  {
+   "id": "kill_10k",
+   "name": "MASS DESTRUCTION II",
+   "desc": "累計10,000体撃破",
+   "reward": 260
+  },
+  {
+   "id": "boss_25",
+   "name": "GIANT SLAYER",
+   "desc": "Bossを累計25体撃破",
+   "reward": 220
+  },
+  {
+   "id": "wave_25",
+   "name": "DEEP SIGNAL",
+   "desc": "Wave 25へ到達",
+   "reward": 180
+  },
+  {
+   "id": "wave_50",
+   "name": "BEYOND THE GRID",
+   "desc": "Wave 50へ到達",
+   "reward": 420
+  },
+  {
+   "id": "level_25",
+   "name": "EVOLVED",
+   "desc": "Player Lv.25",
+   "reward": 160
+  },
+  {
+   "id": "level_100",
+   "name": "ASCENDANT",
+   "desc": "Player Lv.100",
+   "reward": 520
+  },
+  {
+   "id": "hard_clear",
+   "name": "HARD CLEAR",
+   "desc": "HARD以上でCLEAR RUNを完走",
+   "reward": 320
+  },
+  {
+   "id": "hardcore_clear",
+   "name": "NO AEGIS",
+   "desc": "HARDCOREでCLEAR RUNを完走",
+   "reward": 650
+  },
+  {
+   "id": "fracture_10",
+   "name": "ONE HIT. TEN WAVES.",
+   "desc": "FRACTUREでWave 10到達",
+   "reward": 480
+  },
+  {
+   "id": "cp5_wave20",
+   "name": "CHALLENGE ACCEPTED",
+   "desc": "CP 5以上でWave 20到達",
+   "reward": 420
+  },
+  {
+   "id": "cards_20",
+   "name": "LOGIC ARCHITECT",
+   "desc": "カードを20枚保有",
+   "reward": 200
+  },
+  {
+   "id": "legend_card",
+   "name": "GOLDEN SYNTAX",
+   "desc": "LEGENDARYカードを保有",
+   "reward": 360
+  }
+ ],
+ "enemy_types": {
+  "chaser": {
+   "name": "追跡機",
+   "r": 13,
+   "hp": 34,
+   "speed": 82,
+   "damage": 15,
+   "value": 9,
+   "hue": 350
+  },
+  "swift": {
+   "name": "軽量機",
+   "r": 9,
+   "hp": 22,
+   "speed": 132,
+   "damage": 11,
+   "value": 11,
+   "hue": 185
+  },
+  "tank": {
+   "name": "重装機",
+   "r": 20,
+   "hp": 112,
+   "speed": 48,
+   "damage": 24,
+   "value": 20,
+   "hue": 280
+  },
+  "shooter": {
+   "name": "射撃機",
+   "r": 14,
+   "hp": 55,
+   "speed": 62,
+   "damage": 15,
+   "value": 18,
+   "hue": 42,
+   "shoot": true
+  },
+  "splitter": {
+   "name": "分裂機",
+   "r": 16,
+   "hp": 72,
+   "speed": 68,
+   "damage": 16,
+   "value": 22,
+   "hue": 135,
+   "split": true
+  },
+  "charger": {
+   "name": "突進機",
+   "r": 12,
+   "hp": 52,
+   "speed": 70,
+   "damage": 23,
+   "value": 20,
+   "hue": 12,
+   "charge": true
+  },
+  "orbiter": {
+   "name": "周回機",
+   "r": 12,
+   "hp": 49,
+   "speed": 80,
+   "damage": 14,
+   "value": 20,
+   "hue": 215,
+   "shoot": true,
+   "orbit": true
+  },
+  "disruptor": {
+   "name": "封印機",
+   "r": 16,
+   "hp": 75,
+   "speed": 54,
+   "damage": 17,
+   "value": 26,
+   "hue": 320,
+   "shoot": true
+  },
+  "lancer": {
+   "name": "貫通狙撃機",
+   "r": 14,
+   "hp": 63,
+   "speed": 50,
+   "damage": 25,
+   "value": 28,
+   "hue": 15,
+   "shoot": true
+  },
+  "bombardier": {
+   "name": "砲撃機",
+   "r": 18,
+   "hp": 98,
+   "speed": 42,
+   "damage": 22,
+   "value": 27,
+   "hue": 30,
+   "shoot": true
+  },
+  "medic": {
+   "name": "修復機",
+   "r": 15,
+   "hp": 74,
+   "speed": 53,
+   "damage": 12,
+   "value": 26,
+   "hue": 155
+  },
+  "bulwark": {
+   "name": "護衛機",
+   "r": 23,
+   "hp": 152,
+   "speed": 40,
+   "damage": 26,
+   "value": 30,
+   "hue": 205
+  },
+  "suppressor": {
+   "name": "侵食機",
+   "r": 15,
+   "hp": 70,
+   "speed": 58,
+   "damage": 16,
+   "value": 25,
+   "hue": 335,
+   "shoot": true
+  }
+ }
+}
