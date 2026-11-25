@@ -80,7 +80,7 @@ func enemyAbilityTick(e: Dictionary, dt: float) -> void:
 		e.abilityTimer = 3.5
 		var n: int = 0
 		for ally in Game.enemies:
-			if ally == e or ally.get("_dead", false) or ally.spawnDelay > 0 or ally.boss or U.dist2(ally, e) > 300.0 * 300.0:
+			if is_same(ally, e) or ally.get("_dead", false) or ally.spawnDelay > 0 or ally.boss or U.dist2(ally, e) > 300.0 * 300.0:
 				continue
 			ally.hp = minf(ally.maxHp, ally.hp + ally.maxHp * 0.055)
 			ally.hitFlash = 0.06

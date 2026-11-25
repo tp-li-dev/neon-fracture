@@ -459,7 +459,7 @@ func resetGame() -> bool:
 	Enemies.syncDrones()
 	_hook("resetGameUI", [Inp.touchCapable])  # hide start/gameover/upgrade/pause/bossWarning/runConfig, show HUD
 	_hook("focusCombat")
-	_hook("startRunSession")
+	startRunSession()
 	_hook("syncDroneControls")
 	updateUI()
 	_snd("start")
@@ -469,7 +469,7 @@ func resetGame() -> bool:
 func gameOver(reason: String = "death") -> void:
 	if runSettled or not ["playing", "paused", "upgrade", "ability"].has(state):
 		return
-	if _hook("sessionAlreadySettled"):
+	if sessionAlreadySettled():
 		Inp.showInputNotice("集計済みのランです")
 		returnHome()
 		return
@@ -538,7 +538,7 @@ func gameOver(reason: String = "death") -> void:
 	}])
 	Inp.setMobileControls(false)
 	Meta.refreshMetaUI()
-	_hook("markSessionSettled")
+	markSessionSettled()
 	_snd("death" if reason == "death" else "result")
 
 
@@ -561,8 +561,8 @@ func returnHome() -> void:
 	Inp.setMobileControls(false)
 	_hook("showHome")  # hides pause/gameover/upgrade/meta/how/pauseConfirm/hud; shows start
 	Meta.refreshMetaUI()
-	_hook("syncResumeEntry")
-	_hook("clearRunSession")  # sessionId='' ; runLoadoutCards=[]
+	syncResumeEntry()
+	clearRunSession()  # sessionId='' ; runLoadoutCards=[]
 	last = U.now_ms()
 
 
@@ -625,7 +625,10 @@ func togglePause() -> void:
 func addXP(amount) -> void:
 	if not (amount is float or amount is int) or is_nan(amount) or is_inf(amount) or amount <= 0 or runSettled:
 		return
-	player.xp += amount * float(player.get("xpMultiplier", 1.0))
+	var xm: float = float(player.get("xpMultiplier", 1.0))
+	if xm == 0.0 or is_nan(xm):
+		xm = 1.0  # JS: (player.xpMultiplier||1)
+	player.xp += amount * xm
 	drainRunXp()
 	# No modal and no lost excess XP: levels accumulate as selection rights.
 
