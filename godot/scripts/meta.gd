@@ -224,6 +224,8 @@ func defaultRunConfig() -> Dictionary:
 		"enemyTypes": CUSTOM_ENEMY_IDS.duplicate(), "bossTypes": CUSTOM_BOSS_IDS.duplicate(), "bossEnabled": true, "bossLimit": 2}}
 
 func boundedNumber(v, fallback: float, mn: float, mx: float) -> float:
+	if v == null:
+		return fallback   # JS undefined -> NaN -> fallback
 	var n := _num(v)
 	return clampf(n, mn, mx) if _finite(n) else fallback
 

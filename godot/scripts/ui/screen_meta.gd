@@ -269,3 +269,7 @@ func h_libraryNotice(msg: Variant = "", _kind: Variant = "") -> void:
 
 func h_forgeNotice(msg: Variant = "", _kind: Variant = "") -> void:
 	_send_notice("forge", str(msg))
+
+## Hook used by the run-config screen ("成長の適用Lvを調整").
+func h_setMetaTab(id: Variant = "growth") -> void:
+	set_tab(str(id))

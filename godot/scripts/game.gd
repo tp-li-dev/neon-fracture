@@ -224,8 +224,8 @@ func resetRunSystems() -> void:
 	hazards = []
 	abilityRewards = []
 	bossSpawnSerial = 0
-	bossPopulationTimer = 0.6
-	finalBossEncounterStarted = false
+	Enemies.bossPopulationTimer = 0.6
+	Enemies.finalBossEncounterStarted = false
 	activeSlots = [null, null, null]
 	friendlyEffects = []
 	selectedAbilityId = null

@@ -20,7 +20,6 @@ var _discard_btn: Kit.NeonButton
 var _import_box: Control
 var _import_info: Label
 var _fd: FileDialog
-var _pending_import: Dictionary = {}
 var _discard_armed := false
 var _start_btn: Kit.NeonButton
 var _ambient: Control
@@ -124,7 +123,6 @@ func _on_resize() -> void:
 func on_open(_args: Dictionary = {}) -> void:
 	if Kit.is_compact() != _compact or (get_viewport_rect().size.x >= 1000.0) != _wide:
 		_rebuild()
-	_pending_import = {}
 	_import_box.visible = false
 	_refresh()
 
@@ -144,17 +142,9 @@ func h_showHome() -> void:
 func h_syncResumeEntry() -> void:
 	if _resume_btn != null: _refresh_resume()
 
-func h_startRunSession() -> void:
-	RunSave.start_session()
-
-func h_clearRunSession() -> void:
-	RunSave.clear_session()
-
-func h_markSessionSettled() -> void:
-	RunSave.mark_session_settled()
-
-func h_sessionAlreadySettled() -> bool:
-	return RunSave.session_already_settled()
+## Session hooks are owned by Game (runsave.gd); no handlers here on purpose.
+func h_suspendMessage(msg: Variant = "") -> void:
+	if str(msg) != "": UI.toast(str(msg), "info", 4200)
 
 func b_refreshMetaUI() -> void:
 	if _lv_lbl != null: _refresh()
@@ -269,7 +259,7 @@ func _build_ui() -> void:
 	ib.add_child(_import_info)
 	var ibr := Kit.hbox(Kit.S2)
 	ibr.add_child(Kit.button("中断枠に読み込む", "primary", _on_apply_import))
-	ibr.add_child(Kit.button("取消", "ghost", func(): _pending_import = {}; _import_box.visible = false))
+	ibr.add_child(Kit.button("取消", "ghost", func(): Game.pendingRunImport = null; _import_box.visible = false))
 	ib.add_child(ibr)
 	_import_box = ib
 	ib.visible = false
@@ -388,8 +378,8 @@ func _refresh() -> void:
 	_refresh_resume()
 
 func _refresh_resume() -> void:
-	var p := RunSave.read()
-	_resume_info.text = RunSave.summary_text(p)
+	var p: Dictionary = Game.readSuspended()
+	_resume_info.text = Game.resumeInfoText()
 	_resume_btn.disabled = p.is_empty()
 	_discard_btn.disabled = p.is_empty()
 	_resume_btn.text = "続きから再開" if not p.is_empty() else "続きから"
@@ -398,11 +388,8 @@ func _refresh_resume() -> void:
 
 # ------------------------------------------------------------------ actions
 func _on_resume() -> void:
-	var err := RunSave.restore()
-	if err != "":
-		Inp.showInputNotice("再開できません: " + err, 6500)
-		return
-	UI.toast("中断セーブを復元しました。「ゲームに戻る」で再開します。", "ok", 3200)
+	if Game.restoreSuspended():
+		UI.toast("中断セーブを復元しました。「ゲームに戻る」で再開します。", "ok", 3200)
 
 func _on_discard() -> void:
 	if not _discard_armed:
@@ -413,31 +400,24 @@ func _on_discard() -> void:
 				_discard_armed = false
 				_discard_btn.text = "破棄")
 		return
-	RunSave.clear()
+	Game.clearSuspended()
 	_discard_armed = false
 	_discard_btn.text = "破棄"
 	_refresh_resume()
 
 func _on_import_file(path: String) -> void:
-	var r := RunSave.read_file(path)
-	if r.has("error"):
-		Inp.showInputNotice("中断JSONを読み込めません: " + str(r.error), 6500)
+	var err: String = Game.importRunSave(path)
+	if err != "":
+		Inp.showInputNotice("中断JSONを読み込めません: " + err, 6500)
 		return
-	_pending_import = r.payload
-	var w: Variant = _pending_import.get("summary", {}).get("wave", "?")
+	var w: Variant = Game.pendingRunImport.get("summary", {}).get("wave", "?")
 	_import_info.text = "Wave %s の中断データを読み込みました。現在の中断枠を置き換えます。" % str(w)
 	_import_box.visible = true
 
 func _on_apply_import() -> void:
-	if _pending_import.is_empty(): return
-	var v := RunSave.validate(_pending_import)
-	if v.has("error"):
-		Inp.showInputNotice(str(v.error), 5000)
-		return
-	var err := RunSave.persist(_pending_import)
+	var err: String = Game.applyRunImport()
 	if err != "":
-		RunSave.memory = _pending_import
-		Inp.showInputNotice("永続保存できません。この起動中のみ再開できます。元のJSONを保持してください", 5000)
-	_pending_import = {}
+		Inp.showInputNotice(err, 5000)
+		return
 	_import_box.visible = false
 	_refresh_resume()
