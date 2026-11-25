@@ -1,4 +1,7 @@
 extends Node
+
+## Compatibility: other modules call Audio.Sound.play("name") as in the original.
+var Sound: Node = self
 ## Audio — port of createGameAudio / beep / Sound (原作 5449-5680).
 ## Sounds are procedural oscillator tones (sine/square/triangle/sawtooth with an
 ## exponential frequency slide, attack/hold/exponential-decay envelope, optional

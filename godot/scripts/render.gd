@@ -44,7 +44,7 @@ func _rgba(r: int, g: int, b: int, a: float) -> Color:
 	return Color(r / 255.0, g / 255.0, b / 255.0, a)
 
 # ---------------------------------------------------------------- primitive helpers
-func _set(ci: CanvasItem, pos: Vector2 = Vector2.ZERO, rot: float = 0.0) -> void:
+func _xf(ci: CanvasItem, pos: Vector2 = Vector2.ZERO, rot: float = 0.0) -> void:
 	ci.draw_set_transform_matrix(_base * Transform2D(rot, pos))
 
 func _segs(r: float) -> int:
@@ -106,7 +106,7 @@ func drawBackground(ci: CanvasItem) -> void:
 	var cy: float = cam.y
 	var p = Game.player
 	_base = Transform2D.IDENTITY
-	_set(ci)
+	_xf(ci)
 	ci.draw_rect(Rect2(cx - 4000, cy - 4000, World.CAMERA_W + 8000, World.CAMERA_H + 8000), Color("#020409"))
 	ci.draw_rect(Rect2(cx, cy, World.CAMERA_W, World.CAMERA_H), _rgba(2, 4, 9, 1))
 	# radial gradient approximated with concentric discs (back to front)
@@ -150,19 +150,19 @@ func drawBackground(ci: CanvasItem) -> void:
 		var ready: bool = z.cooldown <= 0.0
 		var pulse: float = .5 + sin(time * 2.2 + z.phase) * .5
 		var ga: float = .88 if ready else .28
-		_set(ci, Vector2(z.x, z.y), time * .12 + z.phase)
+		_xf(ci, Vector2(z.x, z.y), time * .12 + z.phase)
 		var fc: Color = _ca(hexToHSLA(z.hue, .055 if ready else .025, 48), ga)
 		var sc: Color = _ca(hexToHSLA(z.hue, (.38 + .18 * pulse) if ready else .12, 64), ga)
 		ci.draw_circle(Vector2.ZERO, z.r, fc)
 		_circ(ci, Vector2.ZERO, z.r, sc, 1.5)
-		_set(ci, Vector2(z.x, z.y), time * .12 + z.phase - time * .30)
+		_xf(ci, Vector2(z.x, z.y), time * .12 + z.phase - time * .30)
 		_dash_circle(ci, Vector2.ZERO, z.r * .72, 9.0, 13.0, sc, 1.5)
-		_set(ci, Vector2(z.x, z.y), time * .12 + z.phase - time * .30)
+		_xf(ci, Vector2(z.x, z.y), time * .12 + z.phase - time * .30)
 		var icon: String = "»" if z.type == "flow" else ("◫" if z.type == "charge" else "∞")
 		var nm: String = "FLOW" if z.type == "flow" else ("CHARGE" if z.type == "charge" else "LINK")
 		_text(ci, icon, 0, -6, 22, _ca(hexToHSLA(z.hue, .9, 72), .55 if ready else .16), 1, true)
 		_text(ci, nm, 0, 16, 9, _ca(hexToHSLA(z.hue, .9, 72), .72 if ready else .22), 1, true)
-	_set(ci)
+	_xf(ci)
 
 # ---------------------------------------------------------------- friendly effects / blades
 func drawBladeSet(ci: CanvasItem, points: Array, hue: float) -> void:
@@ -171,9 +171,9 @@ func drawBladeSet(ci: CanvasItem, points: Array, hue: float) -> void:
 	var fill: Color = hsl(hue, 90, 65, .18)
 	var shape := PackedVector2Array([Vector2(-15, 0), Vector2(0, -7), Vector2(15, 0), Vector2(0, 7)])
 	for b in points:
-		_set(ci, Vector2(b.x, b.y), time * 3.0)
+		_xf(ci, Vector2(b.x, b.y), time * 3.0)
 		_poly(ci, shape, fill, stroke, 2.0)
-	_set(ci)
+	_xf(ci)
 
 func drawFriendlyEffects(ci: CanvasItem) -> void:
 	var time: float = Game.time
@@ -299,13 +299,13 @@ func drawReadableProjectiles(ci: CanvasItem) -> void:
 			var fill: Color = Color("#f65bc7") if ak == "break" else (Color("#ff986c") if ak == "wound" else Color("#ff6853"))
 			var stroke := Color("#fff1e5")
 			if special:
-				_set(ci, bp, atan2(b.vy, b.vx))
+				_xf(ci, bp, atan2(b.vy, b.vx))
 				var pts := PackedVector2Array([Vector2(b.r + 3, 0), Vector2(0, -b.r), Vector2(-b.r, 0), Vector2(0, b.r)])
 				_poly(ci, pts, fill, stroke, 1.5)
 				var xc := Color("#5b0039")
 				ci.draw_line(Vector2(-3, -3), Vector2(3, 3), xc, 1.5)
 				ci.draw_line(Vector2(-3, 3), Vector2(3, -3), xc, 1.5)
-				_set(ci)
+				_xf(ci)
 			else:
 				ci.draw_circle(bp, b.r + 1, fill)
 				_circ(ci, bp, b.r + 1, stroke, 1.5)
@@ -358,7 +358,7 @@ func draw(ci: CanvasItem) -> void:
 	if G.state == "playing" and G.screenShake:
 		shake = Vector2(U.rand(-G.screenShake, G.screenShake), U.rand(-G.screenShake, G.screenShake))
 	_base = Transform2D(0.0, shake)
-	_set(ci)
+	_xf(ci)
 
 	drawReadableLoot(ci)
 	drawFriendlyEffects(ci)
@@ -409,7 +409,7 @@ func draw(ci: CanvasItem) -> void:
 		var er: float = e.r
 		var rot: float = time * (.25 if eboss else .55) + float(e.get("phase", 0)) * .15
 		var ep := Vector2(e.x, e.y)
-		_set(ci, ep, rot)
+		_xf(ci, ep, rot)
 		var et: String = str(e.type)
 		var o := Vector2.ZERO
 		if eboss:
@@ -419,7 +419,7 @@ func draw(ci: CanvasItem) -> void:
 				var rr: float = er * (1.0 if (i % 2) == 1 else .74)
 				pts.append(Vector2(cos(a) * rr, sin(a) * rr))
 			_poly(ci, pts, fillc, strokec, lwid, glowc)
-			_set(ci, ep, rot - time * .6)
+			_xf(ci, ep, rot - time * .6)
 			_circ(ci, o, er * .48, strokec, lwid)
 			ci.draw_circle(o, er * .18, fillc)
 		elif et == "tank":
@@ -429,7 +429,7 @@ func draw(ci: CanvasItem) -> void:
 				pts.append(Vector2(cos(a) * er, sin(a) * er))
 			_poly(ci, pts, fillc, strokec, lwid, glowc)
 		elif et == "shooter":
-			_set(ci, ep, rot + PI / 4.0)
+			_xf(ci, ep, rot + PI / 4.0)
 			var s: float = er * .72
 			_poly(ci, PackedVector2Array([Vector2(-s, -s), Vector2(s, -s), Vector2(s, s), Vector2(-s, s)]), fillc, strokec, lwid, glowc)
 		elif et == "splitter":
@@ -448,9 +448,9 @@ func draw(ci: CanvasItem) -> void:
 			if et == "swift":
 				ci.draw_line(Vector2(-er * .6, 0), Vector2(er * .65, 0), strokec, lwid)
 		if e.get("elite", false):
-			_set(ci, ep, rot - time * .9)
+			_xf(ci, ep, rot - time * .9)
 			_dash_circle(ci, o, er + 5, 3.0, 5.0, _rgba(251, 191, 36, .8), 1.2)
-		_set(ci)
+		_xf(ci)
 		drawEnemyInfo(ci, e)
 		if eboss or et == "tank":
 			var w: float = 110.0 if eboss else 36.0
@@ -467,10 +467,10 @@ func draw(ci: CanvasItem) -> void:
 		if not (is_finite(d.x) and is_finite(d.y)):
 			di += 1
 			continue
-		_set(ci, Vector2(d.x, d.y), time * 2.0 + di)
+		_xf(ci, Vector2(d.x, d.y), time * 2.0 + di)
 		_poly(ci, PackedVector2Array([Vector2(0, -7), Vector2(7, 5), Vector2(-7, 5)]),
 			_rgba(168, 85, 247, .18 * dmul), _rgba(216, 180, 254, .9 * dmul), 1.5, _rgba(168, 85, 247, .2 * dmul))
-		_set(ci)
+		_xf(ci)
 		ci.draw_line(Vector2(player.x, player.y), Vector2(d.x, d.y), _rgba(168, 85, 247, .08), 1.0)
 		di += 1
 
@@ -483,7 +483,7 @@ func draw(ci: CanvasItem) -> void:
 		var ga: float = 1.0
 		if player.invuln > 0 and sin(time * 40.0) > 0.0:
 			ga = .45
-		_set(ci, pp, ang)
+		_xf(ci, pp, ang)
 		var pts := PackedVector2Array([Vector2(19, 0), Vector2(-9, -10), Vector2(-5, 0), Vector2(-9, 10)])
 		_poly(ci, pts, _rgba(34, 211, 238, .16 * ga), _rgba(165, 243, 252, .98 * ga), 2.0, _rgba(34, 211, 238, .22 * ga))
 		ci.draw_circle(Vector2(2, 0), 3.1, Color(1, 1, 1, .92 * ga))
@@ -491,18 +491,18 @@ func draw(ci: CanvasItem) -> void:
 			var tc := _rgba(34, 211, 238, .38 * ga)
 			ci.draw_line(Vector2(-9, -4), Vector2(-17 - U.rand(0, 10), -2), tc, 3.0)
 			ci.draw_line(Vector2(-9, 4), Vector2(-17 - U.rand(0, 10), 2), tc, 3.0)
-		_set(ci)
+		_xf(ci)
 		var aimD: float = sqrt((mouse.x - player.x) * (mouse.x - player.x) + (mouse.y - player.y) * (mouse.y - player.y))
 		if aimD > 30.0:
 			ci.draw_dashed_line(Vector2(player.x + cos(ang) * 24, player.y + sin(ang) * 24), Vector2(mouse.x, mouse.y),
 				_rgba(165, 243, 252, .75 * .22), 1.0, 5.0)
-			_set(ci, Vector2(mouse.x, mouse.y), time * .7)
+			_xf(ci, Vector2(mouse.x, mouse.y), time * .7)
 			var rc := _rgba(165, 243, 252, .8 * .78)
 			_circ(ci, Vector2.ZERO, 10, rc, 1.0)
 			var rl := PackedVector2Array([Vector2(-15, 0), Vector2(-6, 0), Vector2(15, 0), Vector2(6, 0),
 				Vector2(0, -15), Vector2(0, -6), Vector2(0, 15), Vector2(0, 6)])
 			ci.draw_multiline(rl, rc, 1.0)
-			_set(ci)
+			_xf(ci)
 
 	# Particles
 	for p in G.particles:
@@ -520,7 +520,7 @@ func draw(ci: CanvasItem) -> void:
 
 	# ---- screen-space (camera-fixed) layer: offscreen warnings, minimap
 	_base = Transform2D(0.0, Vector2(cam.x, cam.y))
-	_set(ci)
+	_xf(ci)
 	var cw: float = World.CAMERA_W
 	var ch: float = World.CAMERA_H
 	var mapEsp: bool = bool(player.get("mapEsp", false))
@@ -541,9 +541,9 @@ func draw(ci: CanvasItem) -> void:
 		var iy: float = ch / 2.0 + sin(a) * tt
 		var ac: Color = _rgba(251, 113, 133, .95) if e.get("boss", false) else _rgba(103, 232, 249, .9)
 		ac.a *= .85 if float(e.get("spawnDelay", 0)) > 0.0 else .32
-		_set(ci, Vector2(ix, iy), a)
+		_xf(ci, Vector2(ix, iy), a)
 		ci.draw_colored_polygon(PackedVector2Array([Vector2(10, 0), Vector2(-7, -6), Vector2(-7, 6)]), ac)
-	_set(ci)
+	_xf(ci)
 	# minimap
 	var mw := 174.0
 	var mh := 98.0
@@ -592,4 +592,4 @@ func draw(ci: CanvasItem) -> void:
 		ci.draw_arc(vc, rr2 + bandw / 2.0, 0.0, TAU, 64, Color(0, 0, 0, .42 * tv), bandw + 1.0)
 		rr2 += bandw
 	_base = Transform2D.IDENTITY
-	_set(ci)
+	_xf(ci)
