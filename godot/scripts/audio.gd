@@ -44,7 +44,7 @@ const SOUNDS: Dictionary = {
 	"test": {"channel": "ui", "freq": 520.0, "duration": .42, "type": "sine", "gain": .12, "slide": 160.0, "gap": .45, "priority": 4},
 }
 
-var prefs: Dictionary = {}
+var prefs: Dictionary = DEFAULTS.duplicate()
 var scene: String = "menu"
 var gated: bool = false                 #原作 mutedByPage (background / pagehide)
 var counts: Dictionary = {"played": 0, "blocked": 0, "muted": 0, "rateLimited": 0, "limited": 0, "stolen": 0, "ended": 0, "errors": 0, "rebuilds": 0}
@@ -61,13 +61,19 @@ var _audition_serial: int = 0
 
 func _ready() -> void:
 	_load_prefs()
+	_init_pool()
+	for name in SOUNDS.keys():
+		_named_cache[name] = _render(SOUNDS[name])
+
+
+func _init_pool() -> void:
+	if not _pool.is_empty():
+		return
 	for i in MAX_VOICES:
 		var pl := AudioStreamPlayer.new()
 		pl.bus = &"Master"
 		add_child(pl)
 		_pool.append(pl)
-	for name in SOUNDS.keys():
-		_named_cache[name] = _render(SOUNDS[name])
 
 
 func _notification(what: int) -> void:

@@ -357,7 +357,7 @@ func _stick_update(obj: Dictionary, which: String, pos: Vector2) -> void:
 	obj.knobY = obj.originY + (dy / length * travel if length > 0.0 else 0.0)
 	_on_vector(which, obj.x, obj.y, mag)
 
-func _stick_for_pointer(index: int):
+func _stick_for_pointer(index: int) -> Variant:
 	if mobileMove.active and mobileMove.pointerId == index: return ["move", mobileMove]
 	if mobileAim.active and mobileAim.pointerId == index: return ["aim", mobileAim]
 	return null
