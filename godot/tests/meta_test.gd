@@ -5,7 +5,8 @@ func ok(c: bool, m: String) -> void:
 		fails += 1
 		print("FAIL: ", m)
 	else: print("ok: ", m)
-func _init() -> void:
+func _initialize() -> void:
+	await process_frame
 	var M = root.get_node("Meta")
 	M.storage_remove("nf_meta_v1")
 	ok(M.meta.credits == 0 and M.meta.playerLevel == 1, "default meta")

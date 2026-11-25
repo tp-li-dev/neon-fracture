@@ -782,7 +782,7 @@ func applyMetaBonuses(p: Dictionary, growth = null) -> void:
 func earnedCreditAmount() -> int:
 	if developerRun.active: return 0
 	var gm := _game()
-	var raw := floorf(gm.score / 48.0) + gm.wave * 18 + floorf(gm.kills / 3.0) + gm.bossesDefeated * 120
+	var raw: float = floorf(gm.score / 48.0) + gm.wave * 18 + floorf(gm.kills / 3.0) + gm.bossesDefeated * 120
 	var diff_bonus := 1.0 + (challengeReward() - 1.0) * .60
 	var g: Dictionary = runGrowth if runGrowth != null else resolveGrowthLimits()
 	var economy: float = float(g.stats.economy)
@@ -1118,3 +1118,7 @@ func openMeta(from: String = "menu") -> void:
 func closeMeta() -> void:
 	_game().state = metaReturnState
 	_ui_hook("closeMeta", [])
+
+## UI refresh (原作 7036): UI milestone renders it.
+func refreshMetaUI() -> void:
+	UI.hook("refreshMetaUI")
