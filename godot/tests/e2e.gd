@@ -304,16 +304,30 @@ func play_phase() -> void:
 	# keyboard focus navigation in pause
 	await key(KEY_ESCAPE)
 	await wait(0.4)
-	await key(KEY_DOWN)
-	await key(KEY_ENTER)
-	await wait(0.5)
-	await shot("pause_after_kbd")
-	print("state after kbd nav: ", Game.state, " open=", UI.stack, " modals=", UI.modals.size())
-	for m in UI.modals.duplicate():
-		await key(KEY_ESCAPE)
+	await focus_walk("pause")
+	check(Game.state == "paused", "still paused after focus walk: " + Game.state)
+	await key(KEY_ESCAPE)
 	await wait(0.3)
-	if Game.state != "paused":
-		print("state not paused after kbd; state=", Game.state)
+	await run_suspend_flow()
+
+func run_suspend_flow() -> void:
+	pass
+## Walk focus with Tab and with arrow keys; report visible buttons never focused (keyboard/gamepad reachability).
+func focus_walk(tag: String) -> void:
+	var want: Array = buttons()
+	var seen: Dictionary = {}
+	for k in [KEY_TAB, KEY_DOWN, KEY_RIGHT]:
+		for i in want.size() + 6:
+			await key(k, 0.01)
+			var f := get_viewport().gui_get_focus_owner()
+			if f != null: seen[f] = true
+	var missing: Array = []
+	for b in want:
+		if not seen.has(b) and not (b as Control).get_parent() is TabBar:
+			var r: Rect2 = (b as Control).get_global_rect()
+			missing.append("%s@%d,%d" % [btn_text(b).replace("\n", " ").left(16), r.position.x, r.position.y])
+	print("FOCUSWALK[", tag, "] reachable ", seen.size(), "/", want.size(), " missing: ", missing)
+
 func _find_all(node: Node, cls: String) -> Array:
 	var all: Array = []
 	all_controls(node, all)
