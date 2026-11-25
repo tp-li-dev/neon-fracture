@@ -71,6 +71,8 @@ func _load_defs() -> void:
 	MODULES = d.get("modules", [])
 	MODULE_BY_ID = {}
 	for m in MODULES:
+		var mid: String = m.id
+		m["apply"] = func(p, lv): module_apply(mid, p, lv)
 		MODULE_BY_ID[m.id] = m
 	MODULE_SLOT = d.get("module_slot", {})
 	CARD_PARTS = d.get("card_parts", {})

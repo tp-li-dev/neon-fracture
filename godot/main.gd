@@ -10,7 +10,9 @@ func _ready() -> void:
 	Render.font = sf
 	UI.load_drone_config()
 	World.generateWorld()
-	if OS.get_environment("NF_SHOT") != "":
+	if OS.get_environment("NF_SCREEN") != "":
+		_screen_shot()
+	elif OS.get_environment("NF_SHOT") != "":
 		_demo()
 
 func _input(e: InputEvent) -> void:
@@ -44,4 +46,15 @@ func _demo() -> void:
 		Game.wave += 1
 		get_viewport().get_texture().get_image().save_png(dir + "/b_play%d.png" % k)
 		print("t=", Game.time, " wave=", Game.wave, " enemies=", Game.enemies.size(), " bullets=", Game.bullets.size(), " state=", Game.state)
+	get_tree().quit()
+
+# Dev-only: NF_SCREEN=<id> [NF_SHOT=<dir>] [NF_COMPACT=1] opens UI screen <id>, saves <dir>/screen_<id>.png, quits.
+func _screen_shot() -> void:
+	var id := OS.get_environment("NF_SCREEN")
+	var dir := OS.get_environment("NF_SHOT") if OS.get_environment("NF_SHOT") != "" else "/tmp"
+	await get_tree().create_timer(0.8).timeout
+	UI.show_screen(id)
+	await get_tree().create_timer(1.2).timeout
+	get_viewport().get_texture().get_image().save_png(dir + "/screen_" + id + ".png")
+	print("NF_SCREEN ", id, " open=", UI.is_open(id))
 	get_tree().quit()
