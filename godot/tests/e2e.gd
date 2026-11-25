@@ -274,7 +274,41 @@ func play_phase() -> void:
 	check(Game.state == "paused", "Esc pauses: " + Game.state)
 	await shot("pause")
 	audit("pause")
-	dump_btns("pause")
+	check(not UI.is_open("upgrade") and not UI.is_open("home"), "only pause open on top of hud")
+	var f := get_viewport().gui_get_focus_owner()
+	check(f != null, "pause has keyboard focus owner")
+	for tab in ["ドローン", "操作", "中断セーブ", "ビルド"]:
+		await click(tab)
+		await shot("pause_" + tab)
+		audit("pause_" + tab)
+	# click inside pause must not fire the weapon
+	var nbul: int = Game.bullets.size()
+	await click_at(Vector2(900, 700))
+	check(not Inp.mouse.down, "click in paused UI does not hold fire")
+	# resume via button
+	await click("ゲームに戻る")
+	await wait(0.4)
+	check(Game.state == "playing", "resume btn -> playing: " + Game.state)
+	check(not UI.is_open("pause"), "pause closed")
+	await key(KEY_ESCAPE)
+	await wait(0.4)
+	check(Game.state == "paused", "Esc pauses again")
+	await key(KEY_ESCAPE)
+	await wait(0.4)
+	check(Game.state == "playing", "Esc resumes")
+	# keyboard focus navigation in pause
+	await key(KEY_ESCAPE)
+	await wait(0.4)
+	await key(KEY_DOWN)
+	await key(KEY_ENTER)
+	await wait(0.5)
+	await shot("pause_after_kbd")
+	print("state after kbd nav: ", Game.state, " open=", UI.stack, " modals=", UI.modals.size())
+	for m in UI.modals.duplicate():
+		await key(KEY_ESCAPE)
+	await wait(0.3)
+	if Game.state != "paused":
+		print("state not paused after kbd; state=", Game.state)
 func _find_all(node: Node, cls: String) -> Array:
 	var all: Array = []
 	all_controls(node, all)
