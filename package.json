@@ -1,0 +1,16 @@
+{
+  "name": "neon-fracture-native",
+  "version": "28.10.0",
+  "private": true,
+  "type": "module",
+  "description": "NEON FRACTURE desktop build (Bun). index.html stays the source of truth.",
+  "scripts": {
+    "dev": "bun native/desktop.ts",
+    "build:desktop": "bun native/build-desktop.ts",
+    "build:desktop:all": "bun native/build-desktop.ts --all"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.5",
+    "typescript": "^7.0.2"
+  }
+}
