@@ -13,8 +13,13 @@ func _ready() -> void:
 func frames(k: int = 3) -> void:
 	for i in k: await get_tree().process_frame
 
+var godmode: bool = true
 func wait(sec: float) -> void:
-	await get_tree().create_timer(sec).timeout
+	var t: float = 0.0
+	while t < sec:
+		if godmode and Game.state == "playing" and not Game.player.is_empty(): Game.player.hp = Game.player.maxHp
+		await get_tree().process_frame
+		t += get_process_delta_time()
 
 func shot(name: String) -> void:
 	await frames(2)
