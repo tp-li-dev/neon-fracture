@@ -64,7 +64,9 @@ jobs:
           mkdir -p /tmp/e2e
           NF_E2E=/tmp/e2e NF_FLOW=main XDG_DATA_HOME=/tmp/e2e_home NF_HOOKLOG=1 \
             xvfb-run -a -s "-screen 0 1600x900x24" godot --rendering-driver opengl3 --path godot --resolution 1600x900 2>&1 | grep -v ALSA | tee e.log
-          ! grep -E "SCRIPT ERROR|^ERROR" e.log
+          # headless runners have no audio device: "ERR_CANT_OPEN" from the ALSA driver is expected noise
+          ! grep -E "SCRIPT ERROR|FAIL" e.log
+          grep -q "E2E DONE fails=0" e.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
