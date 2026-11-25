@@ -590,7 +590,7 @@ func _update_projectiles_inner(dt: float) -> void:
 		hits.sort_custom(func(p, q): return p.t < q.t)
 		for hh in hits:
 			var e2 = hh.e
-			if _dead(e2) or b._dead:
+			if _dead(e2) or b.get("_dead", false):
 				continue
 			b.hitIds[e2.id] = true
 			b.lastHit = e2
