@@ -6,6 +6,7 @@ extends Node
 var font: Font = null          # main.gd may set this; falls back to ThemeDB.fallback_font
 var _base: Transform2D = Transform2D.IDENTITY
 var _glow: bool = true
+var _labels: bool = true       # false on the mobile perf tier: no name labels except bosses (see Game.PERF.labels)
 
 const ACTIVE_DEFS := {
 	"nova": {"name": "反転ノヴァ", "icon": "✹", "cd": 15, "desc": "周囲の敵を攻撃し、近くの敵弾を消去。", "base": 4.5},
@@ -25,6 +26,36 @@ func _ready() -> void:
 	if font == null:
 		font = ThemeDB.fallback_font
 	_disc_tex = _make_disc(64)
+	_bg_tex = _make_bg_tex()
+
+# Pre-baked backdrop (replaces 7 stacked full-screen discs per frame): same stepped radial colours, 1 quad.
+const BG_RADIUS := 1050.0
+const BG_TEXEL := 5.0
+var _bg_tex: Texture2D = null
+
+func _bg_color(t: float) -> Color:
+	if t > 0.58:
+		return _rgba(2, 4, 9, 1).lerp(_rgba(5, 8, 17, 1), (1.0 - t) / 0.42)
+	return _rgba(5, 8, 17, 1).lerp(_rgba(10, 15, 27, 1), 1.0 - t / 0.58)
+
+func _make_bg_tex() -> Texture2D:
+	var steps := 7
+	var n: int = int(BG_RADIUS * 2.0 / BG_TEXEL)
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var h: float = n / 2.0
+	var cols: Array = []
+	for i in range(steps):
+		cols.append(_bg_color(1.0 - float(i) / float(steps)))
+	for y in range(n):
+		for x in range(n):
+			var d: float = Vector2(x + .5 - h, y + .5 - h).length() * BG_TEXEL
+			if d >= BG_RADIUS:
+				continue
+			# innermost disc containing d wins (discs are drawn back to front): i = floor(steps * (1 - d/R)) clamped
+			var i: int = mini(steps - 1, int(float(steps) * (1.0 - d / BG_RADIUS)))
+			img.set_pixel(x, y, cols[i])
+	return ImageTexture.create_from_image(img)
 
 # Cached textures: draw_circle costs ~5us and draw_arc ~3.6us per call, a textured rect ~0.2us
 # (and batches), so small discs / rings are drawn as modulated texture rects.
@@ -66,8 +97,17 @@ func hsl(h: float, s: float, l: float, a: float = 1.0) -> Color:
 	var sv: float = 0.0 if v <= 0.0 else 2.0 * (1.0 - lf / v)
 	return Color.from_hsv(fposmod(h, 360.0) / 360.0, sv, v, a)
 
+var _hsl_cache: Dictionary = {}
+
 func hexToHSLA(h: float, a: float = .7, l: float = 60) -> Color:
-	return hsl(h, 95.0, l, a)
+	# hue/lightness are quantised to whole degrees / percent (cached): this is called per entity per frame.
+	var hi: int = posmod(roundi(h), 360)
+	var key: int = hi * 256 + int(l)
+	var c = _hsl_cache.get(key)
+	if c == null:
+		c = hsl(float(hi), 95.0, float(int(l)), 1.0)
+		_hsl_cache[key] = c
+	return Color(c.r, c.g, c.b, a)
 
 func _ca(c: Color, a: float) -> Color:
 	return Color(c.r, c.g, c.b, c.a * a)
@@ -141,6 +181,52 @@ func _closed(pts: PackedVector2Array) -> PackedVector2Array:
 	o.append(pts[0])
 	return o
 
+# Enemy outline cache: [points, closed points] per (shape, radius). Avoids rebuilding/duplicating arrays per enemy per frame.
+var _shape_cache: Dictionary = {}
+
+func _enemy_shape(kind: int, er: float) -> Array:
+	var key: int = kind * 1000000 + int(er * 100.0)
+	var sh = _shape_cache.get(key)
+	if sh != null:
+		return sh
+	var pts := PackedVector2Array()
+	match kind:
+		0:  # boss octagon
+			for i in range(8):
+				var a: float = float(i) / 8.0 * TAU
+				var rr: float = er * (1.0 if (i % 2) == 1 else .74)
+				pts.append(Vector2(cos(a) * rr, sin(a) * rr))
+		1:  # tank hexagon
+			for i in range(6):
+				var a: float = float(i) / 6.0 * TAU
+				pts.append(Vector2(cos(a) * er, sin(a) * er))
+		2:  # shooter square
+			var q: float = er * .72
+			pts = PackedVector2Array([Vector2(-q, -q), Vector2(q, -q), Vector2(q, q), Vector2(-q, q)])
+		3:  # splitter diamond
+			pts = PackedVector2Array([Vector2(0, -er), Vector2(er, 0), Vector2(0, er), Vector2(-er, 0)])
+		_:  # charger dart
+			pts = PackedVector2Array([Vector2(er, 0), Vector2(-er * .8, -er * .7), Vector2(-er * .45, 0), Vector2(-er * .8, er * .7)])
+	sh = [pts, _closed(pts)]
+	if _shape_cache.size() > 400:
+		_shape_cache.clear()
+	_shape_cache[key] = sh
+	return sh
+
+func _polyc(ci: CanvasItem, sh: Array, fill: Color, stroke: Color, w: float, glow: Color) -> void:
+	var pts: PackedVector2Array = sh[0]
+	if fill.a > 0.0:
+		var n: int = pts.size()
+		if n == 3 or n == 4:
+			ci.draw_primitive(pts, PackedColorArray([fill, fill, fill] if n == 3 else [fill, fill, fill, fill]), PackedVector2Array())
+		else:
+			ci.draw_colored_polygon(pts, fill)
+	var cl: PackedVector2Array = sh[1]
+	if _glow and glow.a > 0.0:
+		ci.draw_polyline(cl, glow, w + 5.0)
+	if stroke.a > 0.0:
+		ci.draw_polyline(cl, stroke, w)
+
 func _poly(ci: CanvasItem, pts: PackedVector2Array, fill: Color, stroke: Color, w: float, glow: Color = Color(0, 0, 0, 0)) -> void:
 	if fill.a > 0.0:
 		var n: int = pts.size()
@@ -186,18 +272,9 @@ func drawBackground(ci: CanvasItem) -> void:
 	_base = Transform2D.IDENTITY
 	_xf(ci)
 	ci.draw_rect(Rect2(cx - 4000, cy - 4000, World.CAMERA_W + 8000, World.CAMERA_H + 8000), Color("#020409"))
-	ci.draw_rect(Rect2(cx, cy, World.CAMERA_W, World.CAMERA_H), _rgba(2, 4, 9, 1))
-	# radial gradient approximated with concentric discs (back to front)
+	# radial gradient: 7 stepped concentric discs, pre-baked into one texture (1 quad instead of 7 full-screen blends)
 	var pc := Vector2(p.x, p.y)
-	var steps := 7
-	for i in range(steps):
-		var t: float = 1.0 - float(i) / float(steps)   # 1.0 -> 0.14
-		var col: Color
-		if t > 0.58:
-			col = _rgba(2, 4, 9, 1).lerp(_rgba(5, 8, 17, 1), (1.0 - t) / 0.42)
-		else:
-			col = _rgba(5, 8, 17, 1).lerp(_rgba(10, 15, 27, 1), 1.0 - t / 0.58)
-		_fcirc(ci, pc, 1050.0 * t, col)
+	ci.draw_texture_rect(_bg_tex, Rect2(pc.x - BG_RADIUS, pc.y - BG_RADIUS, BG_RADIUS * 2.0, BG_RADIUS * 2.0), false)
 	# stars
 	var pts: Array = Game.stars
 	for st in pts:
@@ -239,7 +316,8 @@ func drawBackground(ci: CanvasItem) -> void:
 		var icon: String = "»" if z.type == "flow" else ("◫" if z.type == "charge" else "∞")
 		var nm: String = "FLOW" if z.type == "flow" else ("CHARGE" if z.type == "charge" else "LINK")
 		_text(ci, icon, 0, -6, 22, _ca(hexToHSLA(z.hue, .9, 72), .55 if ready else .16), 1, true)
-		_text(ci, nm, 0, 16, 9, _ca(hexToHSLA(z.hue, .9, 72), .72 if ready else .22), 1, true)
+		if _labels:
+			_text(ci, nm, 0, 16, 9, _ca(hexToHSLA(z.hue, .9, 72), .72 if ready else .22), 1, true)
 	_xf(ci)
 
 # ---------------------------------------------------------------- friendly effects / blades
@@ -441,7 +519,7 @@ func drawEnemyInfo(ci: CanvasItem, e: Dictionary) -> void:
 	var er: float = e.r
 	if special:
 		_text(ci, sym, ex, ey + 5, 16, Color("#fff1e6"))
-	if boss or elite or special:
+	if boss or ((elite or special) and _labels):
 		_text(ci, "%s Lv.%d" % [Enemies.enemyName(e), int(e.level)], ex, ey - er - (25 if boss else 12), 16 if boss else 12, Color("#ffd49c") if boss else Color("#cfdae6"))
 	var ep := Vector2(ex, ey)
 	if float(e.get("burnTime", 0)) > 0.0:
@@ -461,7 +539,9 @@ func draw(ci: CanvasItem) -> void:
 	var time: float = G.time
 	var cam: Dictionary = World.camera
 	var heavy: bool = G.bossAlive or G.bullets.size() > 120 or G.enemies.size() > 25 or G.particles.size() > 140
-	_glow = not heavy
+	var perf: Dictionary = G.PERF
+	_glow = not heavy and bool(perf.glow)
+	_labels = bool(perf.labels)
 	drawBackground(ci)
 	var shake := Vector2.ZERO
 	if G.state == "playing" and G.screenShake:
@@ -522,29 +602,19 @@ func draw(ci: CanvasItem) -> void:
 		var et: String = str(e.type)
 		var o := Vector2.ZERO
 		if eboss:
-			var pts := PackedVector2Array()
-			for i in range(8):
-				var a: float = float(i) / 8.0 * TAU
-				var rr: float = er * (1.0 if (i % 2) == 1 else .74)
-				pts.append(Vector2(cos(a) * rr, sin(a) * rr))
-			_poly(ci, pts, fillc, strokec, lwid, glowc)
+			_polyc(ci, _enemy_shape(0, er), fillc, strokec, lwid, glowc)
 			_xf(ci, ep, rot - time * .6)
 			_circ(ci, o, er * .48, strokec, lwid)
 			_fcirc(ci, o, er * .18, fillc)
 		elif et == "tank":
-			var pts := PackedVector2Array()
-			for i in range(6):
-				var a: float = float(i) / 6.0 * TAU
-				pts.append(Vector2(cos(a) * er, sin(a) * er))
-			_poly(ci, pts, fillc, strokec, lwid, glowc)
+			_polyc(ci, _enemy_shape(1, er), fillc, strokec, lwid, glowc)
 		elif et == "shooter":
 			_xf(ci, ep, rot + PI / 4.0)
-			var s: float = er * .72
-			_poly(ci, PackedVector2Array([Vector2(-s, -s), Vector2(s, -s), Vector2(s, s), Vector2(-s, s)]), fillc, strokec, lwid, glowc)
+			_polyc(ci, _enemy_shape(2, er), fillc, strokec, lwid, glowc)
 		elif et == "splitter":
-			_poly(ci, PackedVector2Array([Vector2(0, -er), Vector2(er, 0), Vector2(0, er), Vector2(-er, 0)]), fillc, strokec, lwid, glowc)
+			_polyc(ci, _enemy_shape(3, er), fillc, strokec, lwid, glowc)
 		elif et == "charger":
-			_poly(ci, PackedVector2Array([Vector2(er, 0), Vector2(-er * .8, -er * .7), Vector2(-er * .45, 0), Vector2(-er * .8, er * .7)]), fillc, strokec, lwid, glowc)
+			_polyc(ci, _enemy_shape(4, er), fillc, strokec, lwid, glowc)
 		elif et == "orbiter":
 			if _glow: _circ(ci, o, er, glowc, lwid + 5.0)
 			_circ(ci, o, er, strokec, lwid)
@@ -684,9 +754,10 @@ func draw(ci: CanvasItem) -> void:
 		for g in G.gems:
 			_fcirc(ci, Vector2(mx + g.x * sx, my + g.y * sy), 2.1 if g.get("kind", "") == "boss" else .85, gc)
 	_fcirc(ci, Vector2(mx + player.x * sx, my + player.y * sy), 2.8, _rgba(165, 243, 252, 1))
-	_text(ci, "» FLOW: 移動加速", mx, my - 17, 8, _rgba(103, 232, 249, .72), 0)
-	_text(ci, "◫ CHARGE: ダッシュ回復", mx + 72, my - 17, 8, _rgba(216, 180, 254, .72), 0)
-	_text(ci, "∞ LINK: コンボ延長", mx, my - 7, 8, _rgba(253, 230, 138, .72), 0)
+	if _labels:
+		_text(ci, "» FLOW: 移動加速", mx, my - 17, 8, _rgba(103, 232, 249, .72), 0)
+		_text(ci, "◫ CHARGE: ダッシュ回復", mx + 72, my - 17, 8, _rgba(216, 180, 254, .72), 0)
+		_text(ci, "∞ LINK: コンボ延長", mx, my - 7, 8, _rgba(253, 230, 138, .72), 0)
 	if mapEsp:
 		_text(ci, "ESP: OMNISCIENCE" if mapAdv else "ESP: ACTIVE", mx + mw, my - 7, 8,
 			_rgba(253, 230, 138, .95) if mapAdv else _rgba(216, 180, 254, .88), 2)

@@ -48,3 +48,14 @@ Verified at 1600x900, 1440x900, 1200x900, 2100x900, 1000x560, 2400x1080 (NF_COMP
 ### Open / notes
 - Render draws the minimap + FLOW/CHARGE/LINK legend (world-space, fixed 16:9 camera) also under home/config panels; on non-16:9 it is not at the screen edge. Original did the same (cosmetic).
 - Dock buttons are custom-drawn (no Label), so they are only reachable by position in tests.
+
+## Real-device fixes (Android: HUD/pause/skills/dash invisible)
+1. ROOT CAUSE game.gd step_frame: `_hook("syncInputPresentation")` (UI hook = HUD refresh only) instead of `Inp.syncInputPresentation()`
+   (original loop() line 9502). `Inp.combatDockVisible`/`mobileControlsVisible` therefore only became true after a mouse press
+   (focusCombat) - never on a touch-only device, so the dock (cards/skill/auto/pause/drone, 3 skill slots, DASH) and the sticks stayed hidden.
+2. project.godot `pointing/emulate_mouse_from_touch=true` (was false): Slider/ScrollContainer-less custom controls ignore ScreenTouch; verified
+   HSlider does not react to touch with false. Inp ignores emulated mouse (device==EMULATION). Kit.toggle/rarity card/DashBtn no longer also
+   handle ScreenTouch (would double-fire with emulation).
+3. Touch HUD buttons enlarged (dock row 72, skill slots 84, dash 96 wide); Inp.layoutTouchZones honours Kit.safe_margins().
+4. Test hooks: NF_TOUCH=1 (force touch mode on desktop), NF_SAFE="l,t,r,b" (simulated cutout, window px). Flow:
+   `NF_TOUCH=1 NF_COMPACT=1 NF_SAFE=100,0,100,40 NF_E2E=/tmp/p NF_FLOW=phone godot --path . --resolution 2400x1080`

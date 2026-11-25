@@ -646,8 +646,8 @@ class NeonToggle extends Control:
 		_tw.tween_method(func(x: float): t = x; queue_redraw(), t, 1.0 if value else 0.0, 0.16)
 
 	func _gui_input(e: InputEvent) -> void:
+		# taps arrive as emulated mouse events (pointing/emulate_mouse_from_touch=true): handling ScreenTouch too would double-fire
 		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) \
-				or (e is InputEventScreenTouch and e.pressed) \
 				or e.is_action_pressed("ui_accept"):
 			value = not value
 			_anim()
@@ -810,8 +810,7 @@ class RarityCard extends PanelContainer:
 		queue_redraw()
 
 	func _gui_input(e: InputEvent) -> void:
-		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) \
-				or (e is InputEventScreenTouch and e.pressed) or e.is_action_pressed("ui_accept"):
+		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or e.is_action_pressed("ui_accept"):
 			accept_event()
 			pressed.emit()
 

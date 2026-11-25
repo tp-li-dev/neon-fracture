@@ -257,8 +257,7 @@ class DashBtn extends Control:
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 	func _gui_input(e: InputEvent) -> void:
-		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) \
-				or (e is InputEventScreenTouch and e.pressed) or e.is_action_pressed("ui_accept"):
+		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or e.is_action_pressed("ui_accept"):
 			pressed.emit()
 			accept_event()
 

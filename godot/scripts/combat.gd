@@ -526,11 +526,20 @@ func updateProjectiles(dt: float) -> void:
 
 func _update_projectiles_inner(dt: float) -> void:
 	var frame: Array = Game.bullets.duplicate()
+	var pl: Dictionary = Game.player
+	var plx: float = pl.x
+	var ply: float = pl.y
+	var plr: float = pl.r
+	var worldW: float = World.W
+	var worldH: float = World.H
 	# Perf: uniform grid over live (spawned) enemies so swept hit tests only visit nearby enemies
 	# instead of bullets x enemies. Semantics identical to the original linear scan (hits are sorted by t).
+	# `live` is the same set as a flat list (original array order) for the homing target search.
 	var grid: Dictionary = {}
+	var live: Array = []
+	var live_x := PackedFloat64Array()
+	var live_y := PackedFloat64Array()
 	var maxR: float = 0.0
-	var order: Dictionary = {}  # enemy id -> index in Game.enemies (tie-break to match the original linear scan order)
 	var any_player_bullet: bool = false
 	for b0 in frame:
 		if b0 != null and not b0.get("enemy", false):
@@ -540,9 +549,13 @@ func _update_projectiles_inner(dt: float) -> void:
 		for e0 in Game.enemies:
 			if e0.get("_dead", false) or e0.spawnDelay > 0:
 				continue
+			live.append(e0)
+			live_x.append(e0.x)
+			live_y.append(e0.y)
 			var key: int = int(floor(e0.x / 128.0)) * 4096 + int(floor(e0.y / 128.0))
-			if grid.has(key):
-				grid[key].append(e0)
+			var cell = grid.get(key)
+			if cell != null:
+				cell.append(e0)
 			else:
 				grid[key] = [e0]
 			if e0.r > maxR:
@@ -555,46 +568,83 @@ func _update_projectiles_inner(dt: float) -> void:
 		var is_enemy: bool = b.get("enemy", false)
 		if not is_enemy and b.homing > 0 and b.travelled >= b.homingActivationDist:
 			var t = b.homingTarget
-			if t == null or _dead(t) or t.spawnDelay > 0 or (b.fromDrone and not UI.droneTargetAllowed(t)) or b.hitIds.has(t.id) or U.dist2(t, b) > pow(b.homingRange * 1.25, 2):
-				t = null
+			var fromDrone: bool = b.fromDrone
+			if t != null:
+				var tdx: float = t.x - oldX
+				var tdy: float = t.y - oldY
+				var lim: float = b.homingRange * 1.25
+				if t.get("_dead", false) or t.spawnDelay > 0 or (fromDrone and not UI.droneTargetAllowed(t)) or b.hitIds.has(t.id) or tdx * tdx + tdy * tdy > lim * lim:
+					t = null
+			if t == null:
 				var best: float = b.homingRange * b.homingRange
-				for e in Game.enemies:
-					if _dead(e) or e.spawnDelay > 0 or (b.fromDrone and not UI.droneTargetAllowed(e)) or b.hitIds.has(e.id):
-						continue
-					var dd: float = U.dist2(e, b)
+				var hitIds: Dictionary = b.hitIds
+				# distance first on packed positions (enemies do not move inside this pass); the filters only
+				# matter for a candidate that would become the new best, so the result equals the original scan.
+				for li in live.size():
+					var ddx: float = live_x[li] - oldX
+					var ddy: float = live_y[li] - oldY
+					var dd: float = ddx * ddx + ddy * ddy
 					if dd < best:
+						var e = live[li]
+						if e.get("_dead", false) or (fromDrone and not UI.droneTargetAllowed(e)) or hitIds.has(e.id):
+							continue
 						best = dd
 						t = e
 				b.homingTarget = t
 			if t != null:
-				var speed: float = _hyp(b.vx, b.vy)
-				var distance: float = _hyp(t.x - b.x, t.y - b.y)
+				var vx0: float = b.vx
+				var vy0: float = b.vy
+				var speed: float = sqrt(vx0 * vx0 + vy0 * vy0)
+				var distance: float = sqrt((t.x - oldX) * (t.x - oldX) + (t.y - oldY) * (t.y - oldY))
 				var lead: float = minf(.4, distance / maxf(1.0, speed)) * float(_or(b.get("homingLead", 1), 1))
-				var a: float = atan2(t.y + float(t.get("vy", 0)) * lead - b.y, t.x + float(t.get("vx", 0)) * lead - b.x)
-				var now: float = atan2(b.vy, b.vx)
+				var a: float = atan2(t.y + float(t.get("vy", 0)) * lead - oldY, t.x + float(t.get("vx", 0)) * lead - oldX)
+				var now: float = atan2(vy0, vx0)
 				var delta: float = atan2(sin(a - now), cos(a - now))
 				var turn: float = (5.8 + 10.5 * b.homing) * float(_or(b.get("homingTurnBoost", 1), 1)) * dt
-				var nxt: float = now + U.clamp(delta, -turn, turn)
+				var nxt: float = now + clampf(delta, -turn, turn)
 				b.vx = cos(nxt) * speed
 				b.vy = sin(nxt) * speed
-		b.x += b.vx * dt
-		b.y += b.vy * dt
-		b.travelled = float(b.get("travelled", 0)) + _hyp(b.vx, b.vy) * dt
+		var bvx: float = b.vx
+		var bvy: float = b.vy
+		var nx: float = oldX + bvx * dt
+		var ny: float = oldY + bvy * dt
+		b.x = nx
+		b.y = ny
+		b.travelled = float(b.get("travelled", 0)) + sqrt(bvx * bvx + bvy * bvy) * dt
 		b.life -= dt
-		if not is_enemy and b.bounces > 0 and (b.x < 8 or b.x > W - 8 or b.y < 8 or b.y > H - 8):
-			if b.x < 8 or b.x > W - 8:
+		if not is_enemy and b.bounces > 0 and (nx < 8 or nx > worldW - 8 or ny < 8 or ny > worldH - 8):
+			if nx < 8 or nx > worldW - 8:
 				b.vx = -b.vx
-			if b.y < 8 or b.y > H - 8:
+			if ny < 8 or ny > worldH - 8:
 				b.vy = -b.vy
-			b.x = U.clamp(b.x, 8, W - 8)
-			b.y = U.clamp(b.y, 8, H - 8)
+			nx = clampf(nx, 8, worldW - 8)
+			ny = clampf(ny, 8, worldH - 8)
+			b.x = nx
+			b.y = ny
 			b.bounces -= 1
 			b.damage *= float(_or(b.get("bounceGain", 1), 1))
-		if b.life <= 0 or b.x < -90 or b.y < -90 or b.x > W + 90 or b.y > H + 90:
+		if b.life <= 0 or nx < -90 or ny < -90 or nx > worldW + 90 or ny > worldH + 90:
 			b._dead = true
 			continue
+		# Swept circle test (inlined Enemies.segmentCircleT); sx/sy/sa are the bullet's segment this step.
+		var sx: float = nx - oldX
+		var sy: float = ny - oldY
+		var sa: float = sx * sx + sy * sy
 		if is_enemy:
-			if Enemies.segmentCircleT(oldX, oldY, b.x, b.y, player.x, player.y, b.r + player.r) != INF:
+			var rr: float = b.r + plr
+			var fx: float = oldX - plx
+			var fy: float = oldY - ply
+			var c: float = fx * fx + fy * fy - rr * rr
+			var hitp: bool = false
+			if c <= 0:
+				hitp = true
+			elif sa >= 1e-12:
+				var bq: float = 2.0 * (fx * sx + fy * sy)
+				var disc: float = bq * bq - 4.0 * sa * c
+				if disc >= 0:
+					var tq: float = (-bq - sqrt(disc)) / (2.0 * sa)
+					hitp = tq >= 0.0 and tq <= 1.0
+			if hitp:
 				Game.damagePlayer(b.damage, {"kind": b.get("attackKind", "normal"), "enemy": b.get("source"), "lock": b.get("lock")})
 				b._dead = true
 				if Game.state != "playing":
@@ -602,20 +652,36 @@ func _update_projectiles_inner(dt: float) -> void:
 			continue
 		# Swept hit tests prevent high-speed bullets jumping through a small enemy.
 		var hits: Array = []
-		var pad: float = b.r + maxR
-		var gx0: int = int(floor((minf(oldX, b.x) - pad) / 128.0))
-		var gx1: int = int(floor((maxf(oldX, b.x) + pad) / 128.0))
-		var gy0: int = int(floor((minf(oldY, b.y) - pad) / 128.0))
-		var gy1: int = int(floor((maxf(oldY, b.y) + pad) / 128.0))
+		var br: float = b.r
+		var pad: float = br + maxR
+		var gx0: int = int(floor((minf(oldX, nx) - pad) / 128.0))
+		var gx1: int = int(floor((maxf(oldX, nx) + pad) / 128.0))
+		var gy0: int = int(floor((minf(oldY, ny) - pad) / 128.0))
+		var gy1: int = int(floor((maxf(oldY, ny) + pad) / 128.0))
+		var bHitIds: Dictionary = b.hitIds
+		var bFromDrone: bool = b.fromDrone
 		for gx in range(gx0, gx1 + 1):
 			for gy in range(gy0, gy1 + 1):
 				var cell = grid.get(gx * 4096 + gy)
 				if cell == null:
 					continue
 				for e in cell:
-					if e.get("_dead", false) or (b.fromDrone and not UI.droneTargetAllowed(e)) or b.hitIds.has(e.id):
+					if e.get("_dead", false) or (bFromDrone and not UI.droneTargetAllowed(e)) or bHitIds.has(e.id):
 						continue
-					var tt: float = Enemies.segmentCircleT(oldX, oldY, b.x, b.y, e.x, e.y, b.r + e.r)
+					var rr2: float = br + e.r
+					var fx2: float = oldX - e.x
+					var fy2: float = oldY - e.y
+					var c2: float = fx2 * fx2 + fy2 * fy2 - rr2 * rr2
+					var tt: float = INF
+					if c2 <= 0:
+						tt = 0.0
+					elif sa >= 1e-12:
+						var bq2: float = 2.0 * (fx2 * sx + fy2 * sy)
+						var disc2: float = bq2 * bq2 - 4.0 * sa * c2
+						if disc2 >= 0:
+							var tq2: float = (-bq2 - sqrt(disc2)) / (2.0 * sa)
+							if tq2 >= 0.0 and tq2 <= 1.0:
+								tt = tq2
 					if tt != INF:
 						hits.append({"e": e, "t": tt})
 		if hits.size() > 1:

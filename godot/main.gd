@@ -4,7 +4,71 @@ extends Node2D
 
 @onready var cam: Camera2D = $Camera
 
+# Optional low-resolution world pass (mobile perf tier): the world is drawn into a SubViewport at
+# Game.PERF.worldScale x the window's pixel size and shown through a TextureRect on a CanvasLayer BEHIND the UI
+# layer (10), so the UI stays crisp at native resolution. At scale 1.0 the world is drawn directly (original path).
+var _wv: SubViewport = null
+var _wv_layer: CanvasLayer = null
+var _wv_rect: TextureRect = null
+var _wv_cam: Camera2D = null
+var _wv_node: Node2D = null
+var _wv_scale: float = 1.0
+var _direct: bool = true
+
+func _setup_world_view() -> void:
+	_wv_layer = CanvasLayer.new()
+	_wv_layer.layer = -5
+	_wv_layer.name = "WorldLayer"
+	add_child(_wv_layer)
+	_wv = SubViewport.new()
+	_wv.name = "WorldViewport"
+	_wv.disable_3d = true
+	_wv.gui_disable_input = true
+	_wv.handle_input_locally = false
+	_wv.transparent_bg = false
+	_wv.size_2d_override_stretch = true
+	_wv.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	_wv.size = Vector2i(16, 16)
+	_wv_layer.add_child(_wv)
+	_wv_node = Node2D.new()
+	_wv_node.set_script(load("res://scripts/world_view.gd"))
+	_wv.add_child(_wv_node)
+	_wv_cam = Camera2D.new()
+	_wv.add_child(_wv_cam)
+	_wv_rect = TextureRect.new()
+	_wv_rect.name = "WorldTexture"
+	_wv_rect.texture = _wv.get_texture()
+	_wv_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wv_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_wv_rect.stretch_mode = TextureRect.STRETCH_SCALE
+	_wv_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_wv_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_wv_layer.add_child(_wv_rect)
+	Game.perf_tier_changed.connect(_update_world_view)
+	_update_world_view()
+
+func _update_world_view() -> void:
+	var sc: float = clampf(float(Game.PERF.get("worldScale", 1.0)), 0.4, 1.0)
+	var direct: bool = sc >= 0.99
+	if direct != _direct or absf(sc - _wv_scale) > 0.001 or _wv_rect.visible == direct:
+		_direct = direct
+		_wv_scale = sc
+		_wv_rect.visible = not direct
+		_wv.render_target_update_mode = SubViewport.UPDATE_DISABLED if direct else SubViewport.UPDATE_ALWAYS
+		queue_redraw()  # clears (or restores) the root-canvas world drawing
+	if direct:
+		return
+	var logical: Vector2 = get_viewport_rect().size
+	var px: Vector2 = Vector2(get_window().size)
+	var want := Vector2i(maxi(16, roundi(px.x * sc)), maxi(16, roundi(px.y * sc)))
+	if _wv.size != want:
+		_wv.size = want
+	var ov := Vector2i(roundi(logical.x), roundi(logical.y))
+	if _wv.size_2d_override != ov:
+		_wv.size_2d_override = ov
+
 func _ready() -> void:
+	_setup_world_view()
 	Render.font = NFFonts.regular()
 	UI.load_drone_config()
 	World.generateWorld()
@@ -34,10 +98,16 @@ func _process(dt: float) -> void:
 	Inp.set_view(vs, World.camera_center())
 	Game.step_frame(dt)
 	cam.position = World.camera_center()
-	queue_redraw()
+	if _direct:
+		queue_redraw()
+	else:
+		_update_world_view()
+		_wv_cam.position = cam.position
+		_wv_node.queue_redraw()
 
 func _draw() -> void:
-	Render.draw(self)
+	if _direct:
+		Render.draw(self)
 
 # Dev-only: NF_SHOT=<dir> auto-plays and saves screenshots.
 func _demo() -> void:

@@ -880,6 +880,28 @@ func flow_phone() -> void:
 		await frames(3)
 		vmin = minf(vmin, sl.value); vmax = maxf(vmax, sl.value)
 		check(vmax - vmin > 20.0, "PHONE slider reacts to touch drag %s..%s (start %s)" % [vmin, vmax, v0])
+	# Kit.toggle must flip exactly once per tap (ScreenTouch + emulated mouse must not double-fire)
+	var tgs: Array = []
+	for c in _find_all(UI.screens.settings, "Control"):
+		if c.has_signal("toggled") and "value" in c and not (c is BaseButton): tgs.append(c)
+	if tgs.is_empty():
+		await tap_ctrl(find_btn("操作設定"))
+		for c in _find_all(UI.screens.settings, "Control"):
+			if c.has_signal("toggled") and "value" in c and not (c is BaseButton): tgs.append(c)
+	check(tgs.size() > 0, "PHONE settings has toggles")
+	if tgs.size() > 0:
+		var tg: Control = tgs[0]
+		var tv0: bool = tg.value
+		var sp: Node = tg.get_parent()
+		while sp != null:
+			if sp is ScrollContainer: (sp as ScrollContainer).ensure_control_visible(tg); await frames(4); break
+			sp = sp.get_parent()
+		await tap(tg.get_global_rect().get_center())
+		await wait(0.3)
+		check(tg.value != tv0, "PHONE toggle flips exactly once on tap (was %s now %s)" % [tv0, tg.value])
+		await tap(tg.get_global_rect().get_center())
+		await wait(0.3)
+		check(tg.value == tv0, "PHONE toggle flips back on 2nd tap")
 	var cb := find_btn("戻る")
 	check(cb != null, "PHONE settings close button")
 	if cb != null:

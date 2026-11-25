@@ -49,7 +49,46 @@ var PERF: Dictionary = {
 	"maxRings": 48,
 	"hudFps": 12,
 	"maxEnemies": 190,
+	# Render-side quality knobs (see set_perf_tier): glow double-strokes, enemy name labels, world render scale.
+	"glow": true,
+	"labels": true,
+	"worldScale": 1.0,
 }
+
+## Quality tier: "high" (desktop) or "mobile". Preference "auto" resolves to mobile on touch devices.
+## Persisted via Meta.storage ("nf_perf_tier"); NF_TIER=high|mobile overrides it (tests / profiling).
+var perfTier: String = "high"
+var perfPref: String = "auto"
+signal perf_tier_changed
+
+func set_perf_tier(pref: String, persist: bool = true) -> void:
+	if not ["auto", "high", "mobile"].has(pref):
+		pref = "auto"
+	perfPref = pref
+	perfTier = ("mobile" if Inp.touchCapable else "high") if pref == "auto" else pref
+	var mob: bool = perfTier == "mobile"
+	if mob:
+		PERF.maxBullets = 760
+		PERF.maxPlayerBullets = 540
+		PERF.maxEnemyBullets = 150
+		PERF.maxParticles = 120
+		PERF.maxEnemies = 135
+		PERF.maxTexts = 32
+		PERF.maxRings = 32
+	else:
+		PERF.maxBullets = 1280
+		PERF.maxPlayerBullets = 980
+		PERF.maxEnemyBullets = 230
+		PERF.maxParticles = 260
+		PERF.maxEnemies = 190
+		PERF.maxTexts = 46
+		PERF.maxRings = 48
+	PERF.glow = not mob
+	PERF.labels = not mob
+	PERF.worldScale = 0.7 if mob else 1.0
+	if persist:
+		Meta.storage_set("nf_perf_tier", pref)
+	perf_tier_changed.emit()
 
 var save: Dictionary = {"high": 0, "wave": 0}
 
@@ -90,12 +129,9 @@ var simAccumulator: float = 0.0
 
 func _ready() -> void:
 	last = U.now_ms()
-	if Inp.touchCapable:
-		PERF.maxBullets = 760
-		PERF.maxPlayerBullets = 540
-		PERF.maxEnemyBullets = 150
-		PERF.maxParticles = 190
-		PERF.maxEnemies = 135
+	var tp = Meta.storage_get("nf_perf_tier")
+	var envt: String = OS.get_environment("NF_TIER")
+	set_perf_tier(envt if envt != "" else (str(tp) if tp != null and str(tp) != "" else "auto"), false)
 	var h = Meta.storage_get("nf_high")
 	var w = Meta.storage_get("nf_wave")
 	save.high = int(str(h)) if h != null and str(h) != "" else 0
