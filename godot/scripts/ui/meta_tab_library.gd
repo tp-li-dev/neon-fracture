@@ -291,6 +291,7 @@ func _refresh_detail() -> void:
 	_fill_detail(_detail_body)
 
 func _open_modal(id: String) -> void:
+	_sel = id
 	if _modal != null and is_instance_valid(_modal): UI.pop_modal(_modal)
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)

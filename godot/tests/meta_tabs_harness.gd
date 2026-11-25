@@ -37,6 +37,21 @@ func _ready() -> void:
 	if act == "dup" and id == "forge":
 		for k in M.CARD_FIELDS: Cards.forgeSelection[k] = M.meta.cards[0][k]
 		tab.call("_update_preview")
+	if act == "logic":
+		var lib := load("res://scripts/ui/meta_tab_library.gd").new()
+		add_child(lib); lib.build(); lib.refresh()
+		var c0: Dictionary = M.meta.cards[3]
+		lib._do_equip(c0.id, Callable()); print("equipped ", M.meta.equippedCards.size(), " notice ", lib._notice._l.text)
+		lib._do_equip(M.meta.cards[4].id, Callable()); print("full notice ", lib._notice._l.text)
+		lib._do_delete(M.meta.cards[1].id, Callable()); print("fav del notice ", lib._notice._l.text)
+		var forge := load("res://scripts/ui/meta_tab_forge.gd").new()
+		add_child(forge); forge.build(); forge.refresh()
+		forge._name_edit.text = "新カード"; Cards.forgeSelection.trigger = "on_hit"; Cards.forgeSelection.effect = "explode"; Cards.forgeSelection.power = "p120"; Cards.forgeSelection.chance = "c50"
+		var before: int = M.meta.cards.size()
+		forge._update_preview(); print("forge status ", forge._status._l.text)
+		forge._on_create(); print("cards ", before, "->", M.meta.cards.size(), " ", forge._notice._l.text, " | btn ", forge._create_btn.text)
+		var g := load("res://scripts/ui/meta_tab_gear.gd").new()
+		add_child(g); g.build(); g.refresh(); g._toggle("rail", "レール"); print("gear ", M.meta.equippedGear, g._notice._l.text)
 	await get_tree().create_timer(0.8).timeout
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(OS.get_environment("NF_SHOT"))

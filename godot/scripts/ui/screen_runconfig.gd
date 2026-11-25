@@ -490,7 +490,7 @@ func _build_summary(col: VBoxContainer) -> void:
 	var b := pnl.body
 	b.add_child(Kit.label("CHALLENGE POWER", Kit.FS_XS, Kit.CYAN, HORIZONTAL_ALIGNMENT_LEFT, false, true))
 	var cprow := Kit.hbox(Kit.S2)
-	_cp_lbl = Kit.label("1.00", Kit.FS_3XL, Kit.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false, true)
+	_cp_lbl = Kit.label("1.00", Kit.FS_2XL, Kit.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false, true)
 	cprow.add_child(_cp_lbl)
 	var unit := Kit.label("CP", Kit.FS_SM, Kit.MUTE)
 	unit.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -499,7 +499,7 @@ func _build_summary(col: VBoxContainer) -> void:
 	_diff_lbl = Kit.label("EASY", Kit.FS_MD, Kit.CYAN.lightened(0.5), HORIZONTAL_ALIGNMENT_LEFT, false, true)
 	b.add_child(_diff_lbl)
 	var sg := GridContainer.new()
-	sg.columns = 2
+	sg.columns = 3
 	sg.add_theme_constant_override("h_separation", Kit.S2)
 	sg.add_theme_constant_override("v_separation", Kit.S2)
 	sg.add_child(_stat_cell("Reward", "reward", Kit.AMBER))
@@ -649,15 +649,13 @@ func _update_preview() -> void:
 	var boss_line: String = ("全敵ボス / 同時 %d体" % Enemies.maxConcurrentBosses()) if boss_only \
 		else ("定期ボス %s" % ("OFF" if c.get("bossEnabled", true) == false else "%d Waveごと" % int(c.bossInterval)))
 	var lines := [
-		"移動速度 変化なし",
-		"開始敵Lv %s / 成長 %s" % [str(int(c.get("startLevel", 1))), _num_s(float(c.get("levelRate", 2)))],
-		boss_line,
-		"Shield %s / Heal %d%%%s" % ["ON" if c.shield else "OFF", roundi(float(c.heal) * 100.0), " / ONE HIT" if c.oneHit else ""],
+		"移動速度 変化なし　/　開始敵Lv %s / 成長 %s" % [str(int(c.get("startLevel", 1))), _num_s(float(c.get("levelRate", 2)))],
+		boss_line + "　/　Shield %s / Heal %d%%%s" % ["ON" if c.shield else "OFF", roundi(float(c.heal) * 100.0), " / ONE HIT" if c.oneHit else ""],
 		("Final Wave %s" % str(Meta.finalWaveTarget())) if rc.mode == "clear" else "ENDLESS",
 		"CP・報酬には既存の上限あり。敵種の選別だけでは報酬倍率を加算しません。",
 	]
 	for i in lines.size():
-		_rules_box.add_child(Kit.label(lines[i], Kit.FS_XS, Kit.EMERALD.lightened(0.3) if i == 0 else Kit.DIM, HORIZONTAL_ALIGNMENT_LEFT, true))
+		_rules_box.add_child(Kit.label(lines[i], Kit.FS_XS, Kit.DIM, HORIZONTAL_ALIGNMENT_LEFT, true))
 	# growth preview
 	_growth_title.text = "敵の成長予測（%s基準）" % ("ボス" if boss_only else "通常敵")
 	for ch in _growth_grid.get_children(): ch.queue_free()
@@ -683,7 +681,7 @@ func _num_s(f: float) -> String:
 func _on_growth_edit() -> void:
 	Meta.saveRunConfig()
 	Meta.openMeta("config")
-	UI.hook("openGrowthTab", ["config"])
+	UI.hook("setMetaTab", ["growth"])
 
 func _on_start() -> void:
 	Meta.runConfig = Meta.cleanRunConfig(Meta.runConfig)

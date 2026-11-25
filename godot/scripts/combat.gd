@@ -526,6 +526,26 @@ func updateProjectiles(dt: float) -> void:
 
 func _update_projectiles_inner(dt: float) -> void:
 	var frame: Array = Game.bullets.duplicate()
+	# Perf: uniform grid over live (spawned) enemies so swept hit tests only visit nearby enemies
+	# instead of bullets x enemies. Semantics identical to the original linear scan (hits are sorted by t).
+	var grid: Dictionary = {}
+	var maxR: float = 0.0
+	var any_player_bullet: bool = false
+	for b0 in frame:
+		if b0 != null and not b0.get("enemy", false):
+			any_player_bullet = true
+			break
+	if any_player_bullet:
+		for e0 in Game.enemies:
+			if e0.get("_dead", false) or e0.spawnDelay > 0:
+				continue
+			var key: int = int(floor(e0.x / 128.0)) * 4096 + int(floor(e0.y / 128.0))
+			if grid.has(key):
+				grid[key].append(e0)
+			else:
+				grid[key] = [e0]
+			if e0.r > maxR:
+				maxR = e0.r
 	for b in frame:
 		if b == null or b.get("_dead", false):
 			continue
@@ -581,13 +601,24 @@ func _update_projectiles_inner(dt: float) -> void:
 			continue
 		# Swept hit tests prevent high-speed bullets jumping through a small enemy.
 		var hits: Array = []
-		for e in Game.enemies:
-			if _dead(e) or e.spawnDelay > 0 or (b.fromDrone and not UI.droneTargetAllowed(e)) or b.hitIds.has(e.id):
-				continue
-			var tt: float = Enemies.segmentCircleT(oldX, oldY, b.x, b.y, e.x, e.y, b.r + e.r)
-			if tt != INF:
-				hits.append({"e": e, "t": tt})
-		hits.sort_custom(func(p, q): return p.t < q.t)
+		var pad: float = b.r + maxR
+		var gx0: int = int(floor((minf(oldX, b.x) - pad) / 128.0))
+		var gx1: int = int(floor((maxf(oldX, b.x) + pad) / 128.0))
+		var gy0: int = int(floor((minf(oldY, b.y) - pad) / 128.0))
+		var gy1: int = int(floor((maxf(oldY, b.y) + pad) / 128.0))
+		for gx in range(gx0, gx1 + 1):
+			for gy in range(gy0, gy1 + 1):
+				var cell = grid.get(gx * 4096 + gy)
+				if cell == null:
+					continue
+				for e in cell:
+					if e.get("_dead", false) or (b.fromDrone and not UI.droneTargetAllowed(e)) or b.hitIds.has(e.id):
+						continue
+					var tt: float = Enemies.segmentCircleT(oldX, oldY, b.x, b.y, e.x, e.y, b.r + e.r)
+					if tt != INF:
+						hits.append({"e": e, "t": tt})
+		if hits.size() > 1:
+			hits.sort_custom(func(p, q): return p.t < q.t)
 		for hh in hits:
 			var e2 = hh.e
 			if _dead(e2) or b.get("_dead", false):

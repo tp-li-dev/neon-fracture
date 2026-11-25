@@ -150,7 +150,7 @@ func _stat(parent: Control, label: String, col: Color) -> Label:
 
 # ---------------------------------------------------------------- messages
 func _say(kind: String, head: String, rest: String = "") -> void:
-	var col := {"ok": "#a7f3d0", "info": "#a5f3fc", "err": "#fecdd3"}.get(kind, "#cbd5e1")
+	var col: String = {"ok": "#a7f3d0", "info": "#a5f3fc", "err": "#fecdd3"}.get(kind, "#cbd5e1")
 	_msg.text = "[color=%s][b]%s[/b][/color] %s" % [col, head, rest]
 
 func _stamp() -> String:

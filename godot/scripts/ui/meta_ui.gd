@@ -188,6 +188,7 @@ class Tile extends PanelContainer:
 	func _init(r: String, icon: String, title: String, sub: String, desc: String, foot: String, badge: String = "") -> void:
 		rarity = r if Kit.RARITY.has(r) else "COMMON"
 		col = Kit.rarity_color(rarity)
+		size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		focus_mode = Control.FOCUS_ALL
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		custom_minimum_size = Vector2(200, 168 if Kit.is_compact() else 148)
@@ -291,7 +292,8 @@ static func scroll_grid(cols_min_w: int = 220) -> Array:
 	sc.add_child(g)
 	sc.resized.connect(func():
 		var w := sc.size.x - 14.0
-		var n := maxi(1, int((w + Kit.S3) / (cols_min_w + Kit.S3)))
+		var mw := cols_min_w * (1.15 if Kit.is_compact() else 1.0)
+		var n := maxi(1, int((w + Kit.S3) / (mw + Kit.S3)))
 		if g.columns != n: g.columns = n)
 	return [sc, g]
 

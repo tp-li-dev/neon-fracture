@@ -88,11 +88,9 @@ class SlotBtn extends Control:
 		idx = i
 		custom_minimum_size = Vector2(60, Kit.btn_h() + 12)
 		mouse_filter = Control.MOUSE_FILTER_STOP
-		focus_mode = Control.FOCUS_ALL
+		focus_mode = Control.FOCUS_NONE
 		mouse_entered.connect(func(): _hover = true; queue_redraw())
 		mouse_exited.connect(func(): _hover = false; queue_redraw())
-		focus_entered.connect(queue_redraw)
-		focus_exited.connect(queue_redraw)
 
 	func _process(dt: float) -> void:
 		if charging:
@@ -115,10 +113,6 @@ class SlotBtn extends Control:
 			tok = "mouse"; down = e.pressed; up = not e.pressed
 		elif e is InputEventScreenTouch:
 			tok = "t%d" % e.index; down = e.pressed; up = not e.pressed
-		elif e.is_action_pressed("ui_accept"):
-			Inp.beginSkillHold(idx, "ui:%d:key" % idx)
-			Inp.endSkillHold("ui:%d:key" % idx)
-			accept_event(); return
 		elif (e is InputEventMouseMotion or e is InputEventScreenDrag) and _ptr != "":
 			var p: Vector2 = e.position
 			if p.x < -18 or p.y < -18 or p.x > size.x + 18 or p.y > size.y + 18:
@@ -202,6 +196,7 @@ class DockBtn extends Kit.NeonButton:
 		key_text = key
 		text = ""
 		custom_minimum_size.y = Kit.btn_h()
+		focus_mode = Control.FOCUS_NONE
 		set_tone(Kit.CYAN, false, false)
 
 	func set_tone(c: Color, is_lit: bool, is_dim: bool) -> void:
@@ -258,10 +253,8 @@ class DashBtn extends Control:
 	func _init() -> void:
 		custom_minimum_size = Vector2(76, Kit.btn_h() + 12)
 		mouse_filter = Control.MOUSE_FILTER_STOP
-		focus_mode = Control.FOCUS_ALL
+		focus_mode = Control.FOCUS_NONE
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		focus_entered.connect(queue_redraw)
-		focus_exited.connect(queue_redraw)
 
 	func _gui_input(e: InputEvent) -> void:
 		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) \
@@ -332,7 +325,7 @@ class StickLayer extends Control:
 			var held: bool = o.active
 			if held:
 				draw_style_box(Kit.box(Kit.with_a(col, 0.025), Color(0, 0, 0, 0), 0, 18), r)
-			_dashed_rect(r, Kit.with_a(col, 0.34 if held else 0.16))
+			_dashed_rect(r, Kit.with_a(col, 0.40 if held else 0.26))
 			var ts := f.get_string_size(z[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 12)
 			if not held:
 				draw_string(f, Vector2(r.position.x + (r.size.x - ts.x) * 0.5, r.end.y - 10), z[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Kit.with_a(col, 0.55))
@@ -439,7 +432,7 @@ class RunStatusPanel extends Kit.GlassPanel:
 		var gear: int = (p.get("gearEffects", {}) as Dictionary).size()
 		var chg := 0
 		for s in Game.activeSlots:
-			if s != null and s.get("charging") != null and s.get("charging") != false: chg += 1
+			if s != null and s.get("charging") is Dictionary: chg += 1
 		details.runAttackInfo.text = "チャージ効率 +%d%% / ビーム威力 ×%.2f / 装備パッシブ %d系統 / 充填中 %d枠" % [
 			roundi(float(p.get("chargeEfficiency", 0)) * 100.0), float(p.get("beamPower", 1.0)), gear, chg]
 		var t: Dictionary = Game.runDamageTotals
@@ -865,6 +858,10 @@ func _refresh_keys() -> void:
 	_b_abil.tooltip_text = "スキル獲得・強化 [%s] / %d回保留" % [Inp.keyLabel(str(k.rewards)), Game.abilityRewards.size()]
 
 # ============================================================== lifecycle
+## HUD never grabs focus (Space/Enter must stay gameplay keys, not ui_accept on a dock button).
+func _grab_default_focus() -> void:
+	pass
+
 func on_open(_args: Dictionary = {}) -> void:
 	visible = true
 	_apply_layout()
@@ -1050,7 +1047,7 @@ func _refresh_dock() -> void:
 		else:
 			var def: Dictionary = Combat.ACTIVE_DEFS[slot.id]
 			var ch = slot.get("charging")
-			var is_ch: bool = ch != null and ch != false
+			var is_ch: bool = ch is Dictionary
 			sb.has_slot = true
 			sb.charging = is_ch
 			sb.can_use = float(slot.remaining) <= 0.0 and not is_ch
@@ -1094,6 +1091,14 @@ func _refresh_boss() -> void:
 	_boss_box.custom_minimum_size.x = _center.custom_minimum_size.x
 
 # ============================================================== helpers for other screens
+## True when screen position `pos` (UI root px) is over a clickable HUD control. main.gd/Inp should NOT
+## start shooting / sticks for a press there (Godot runs _input before GUI, so handled events never reach buttons).
+func pointer_over_hud(pos: Vector2) -> bool:
+	if not visible or _dock == null or not _dock.is_visible_in_tree(): return false
+	for c in [_b_cards, _b_abil, _b_auto, _b_pause, _b_drone, _dash] + _slots:
+		if (c as Control).get_global_rect().grow(4.0).has_point(pos): return true
+	return false
+
 func build_drone_panel() -> Control:
 	return DronePanel.new()
 

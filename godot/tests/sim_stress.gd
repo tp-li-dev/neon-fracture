@@ -568,7 +568,6 @@ func sc_perf2() -> void:
 		sample_coverage()
 		if i % 60 == 0:
 			check_invariants("perf2")
-	print(Game.prof)
 	times.sort()
 	var sum := 0.0
 	for t in times: sum += t
