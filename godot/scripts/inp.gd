@@ -64,7 +64,7 @@ const _SPECIAL_CODES := {
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	touchCapable = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	touchCapable = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios") or OS.get_environment("NF_TOUCH") == "1"
 	stickControllers = [
 		{"reset": Callable(self, "_reset_move"), "active": Callable(self, "_move_active")},
 		{"reset": Callable(self, "_reset_aim"), "active": Callable(self, "_aim_active")},
@@ -82,7 +82,7 @@ func _load_preferences() -> void:
 		"scheme": p.get("scheme") if KEY_LAYOUTS.has(p.get("scheme", "")) else "menus",
 		"device": p.get("device") if ["auto", "keyboard", "touch"].has(p.get("device", "")) else "auto",
 	}
-	var coarse: bool = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	var coarse: bool = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios") or OS.get_environment("NF_TOUCH") == "1"
 	inputMode = "touch" if inputPreferences.device == "touch" else ("keyboard" if inputPreferences.device == "keyboard" else ("touch" if coarse else "keyboard"))
 	inputPresentationState = ""
 
@@ -292,10 +292,12 @@ func layoutTouchZones() -> void:
 	var bottom: float = h - radius - 10.0
 	var left_end: float = w / 2.0 - 8.0
 	var right_start: float = w / 2.0 + 8.0
-	var mx: float = radius + 10.0
+	var sm: Dictionary = Kit.safe_margins()   # display cutout / gesture-bar insets (logical px)
+	var mx: float = radius + 10.0 + maxf(0.0, sm.l - 8.0)
 	var mr: float = left_end - 14.0
 	var ax: float = right_start + 14.0
-	var ar: float = w - radius - 10.0
+	var ar: float = w - radius - 10.0 - maxf(0.0, sm.r - 8.0)
+	bottom -= maxf(0.0, sm.b - 8.0)
 	moveZone = Rect2(mx, top, maxf(12.0, mr - mx), maxf(12.0, bottom - top))
 	aimZone = Rect2(ax, top, maxf(12.0, ar - ax), maxf(12.0, bottom - top))
 

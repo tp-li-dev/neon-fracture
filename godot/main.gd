@@ -5,9 +5,7 @@ extends Node2D
 @onready var cam: Camera2D = $Camera
 
 func _ready() -> void:
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", "WenQuanYi Zen Hei", "sans-serif"])
-	Render.font = sf
+	Render.font = NFFonts.regular()
 	UI.load_drone_config()
 	World.generateWorld()
 	if OS.get_environment("NF_E2E") != "":

@@ -837,14 +837,15 @@ func _apply_layout() -> void:
 	_center.custom_minimum_size.x = maxf(xw, 220.0)
 	for s in _slots:
 		(s as SlotBtn).touch_layout = touch
-		(s as SlotBtn).custom_minimum_size.y = Kit.btn_h() + (6 if touch else 12)
+		(s as SlotBtn).custom_minimum_size.y = (84 if touch else Kit.btn_h() + 12)   # touch: >= ~7 mm thumb target on a 1080p phone
 	_b_pause.label_text = "Ⅱ" if touch else "Ⅱ  Esc 停止"
 	for b in [_b_cards, _b_abil]:
 		(b as DockBtn).key_text = "" if touch else ("Q" if b == _b_cards else "E")
 	_refresh_keys()
 	for b in [_b_cards, _b_abil, _b_auto, _b_pause, _b_drone]:
-		(b as DockBtn).custom_minimum_size.y = Kit.btn_h()
+		(b as DockBtn).custom_minimum_size.y = 72 if touch else Kit.btn_h()
 		(b as DockBtn).queue_redraw()
+	_dash.custom_minimum_size.x = 96.0 if touch else 76.0
 	_last_layout = vs
 
 func _refresh_keys() -> void:

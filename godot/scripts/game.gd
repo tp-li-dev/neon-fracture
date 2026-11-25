@@ -916,7 +916,7 @@ func updateUI() -> void:
 ## Call from main.gd _process(delta). Returns true when the scene should be (re)drawn this frame.
 func step_frame(real_dt: float) -> bool:
 	var now: float = U.now_ms()
-	_hook("syncInputPresentation")
+	Inp.syncInputPresentation()   # original loop(): Inp owns it (was mis-routed to a UI hook -> dock/sticks stayed hidden until a mouse press)
 	var actualFrameDt: float = maxf(0.0, real_dt)
 	var frameDt: float = minf(MAX_FRAME_DT, actualFrameDt)
 	last = now

@@ -13,18 +13,26 @@ var stats: Dictionary = {}
 
 var render: bool = OS.get_environment("NF_RENDER") != ""
 
+var draw_us: int = 0
+var draw_n: int = 0
+var draw_max_us: int = 0
+var force_draw: bool = false
+
 func _draw() -> void:
-	if render and Game.state != "menu":
+	if (render or force_draw) and Game.state != "menu":
+		var t0 := Time.get_ticks_usec()
 		Render.draw(self)
+		var dt_us: int = Time.get_ticks_usec() - t0
+		draw_us += dt_us
+		draw_n += 1
+		draw_max_us = maxi(draw_max_us, dt_us)
 
 func _ready() -> void:
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["sans-serif"])
-	Render.font = sf
+	Render.font = NFFonts.regular()
 	UI.load_drone_config()
 	World.generateWorld()
 	var want: String = OS.get_environment("NF_SCENARIO")
-	var all: Array = ["enemies", "bosses", "elites", "levelups", "modules", "gear", "cards", "drones", "actives", "dash", "death", "clear", "hardcore", "fracture", "custom", "marathon", "perf", "perf2"]
+	var all: Array = ["enemies", "bosses", "elites", "levelups", "modules", "gear", "cards", "drones", "actives", "dash", "death", "clear", "hardcore", "fracture", "custom", "marathon", "perf", "perf2", "perf3"]
 	var list: Array = all if want == "" else want.split(",")
 	for s in list:
 		print("=== scenario ", s)
@@ -629,3 +637,52 @@ func sc_marathon() -> void:
 		if Game.state == "gameover":
 			print("  gameover in marathon at chunk ", chunk)
 			break
+
+func sc_perf3() -> void:
+	# Mobile-like load profile: run with NF_TOUCH=1 (touch caps: 135 enemies / 760 bullets) or NF_TIER=mobile|high.
+	# Reports Game.update and Render.draw (GDScript command-build time) separately, mean / p95 / max in ms.
+	force_draw = true
+	start()
+	for m in Cards.MODULES:
+		Cards.module_apply(m.id, Game.player, 10)
+	Game.player.maxHp = 1e9
+	Game.player.hp = 1e9
+	Game.player.droneCount = 8
+	Enemies.syncDrones()
+	set_wave(25)
+	var types: Array = Enemies.ENEMY_TYPES.keys()
+	var times: Array = []
+	var dtimes: Array = []
+	var cap: int = int(Game.PERF.maxEnemies)
+	for i in 900:
+		if Game.state != "playing":
+			handle_panels()
+			continue
+		while Game.enemies.size() < cap:
+			var e = Enemies.spawnEnemy(types[randi() % types.size()])
+			if e == null: break
+			e.spawnDelay = 0.0
+			e.hp = 1e9
+			e.maxHp = 1e9
+		bot_step()
+		var t0 := Time.get_ticks_usec()
+		Game.update(DT)
+		times.append(float(Time.get_ticks_usec() - t0) / 1000.0)
+		if i % 3 == 0:
+			draw_us = 0
+			draw_n = 0
+			queue_redraw()
+			await get_tree().process_frame
+			if draw_n > 0:
+				dtimes.append(float(draw_us) / 1000.0)
+	times.sort()
+	dtimes.sort()
+	var sum := 0.0
+	for t in times: sum += t
+	var dsum := 0.0
+	for t in dtimes: dsum += t
+	print("  PERF3 tier=%s caps(en=%d bul=%d part=%d)" % [Game.get("perfTier"), Game.PERF.maxEnemies, Game.PERF.maxBullets, Game.PERF.maxParticles])
+	print("  PERF3 update: mean %.2f p95 %.2f max %.2f ms (%d steps); en=%d bul=%d part=%d" % [sum / times.size(), times[int(times.size() * 0.95)], times[-1], times.size(), Game.enemies.size(), Game.bullets.size(), Game.particles.size()])
+	if dtimes.size() > 0:
+		print("  PERF3 draw  : mean %.2f p95 %.2f max %.2f ms (%d frames)" % [dsum / dtimes.size(), dtimes[int(dtimes.size() * 0.95)], dtimes[-1], dtimes.size()])
+	force_draw = false

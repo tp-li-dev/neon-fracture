@@ -20,7 +20,7 @@ jobs:
           - { preset: "Linux",           out: "build/linux/neon-fracture.x86_64",       name: linux,   mode: release }
           - { preset: "Windows Desktop", out: "build/windows/neon-fracture.exe",        name: windows, mode: release }
           - { preset: "macOS",           out: "build/macos/neon-fracture.zip",          name: macos,   mode: release }
-          - { preset: "Android",         out: "build/android/neon-fracture-debug.apk",  name: android, mode: debug }
+          - { preset: "Android",         out: "build/android/neon-fracture.apk",        name: android, mode: release }
     steps:
       - uses: actions/checkout@v4
       - name: Install Godot and export templates
@@ -57,6 +57,11 @@ jobs:
       - name: Import project
         run: godot --headless --path godot --import || true
       - name: Export
+        env:
+          # Android RELEASE export (release template: much faster GDScript than debug), signed with the CI debug keystore.
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ runner.temp }}/debug.keystore
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: android
         run: |
           mkdir -p "$(dirname godot/${{ matrix.out }})"
           godot --headless --path godot --export-${{ matrix.mode }} "${{ matrix.preset }}" "${{ matrix.out }}"

@@ -48,8 +48,6 @@ const FS_3XL := 48
 const FONT_NAMES := ["Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", "WenQuanYi Zen Hei", "sans-serif"]
 
 static var _theme: Theme
-static var _font: SystemFont
-static var _font_bold: SystemFont
 static var _tex_cache: Dictionary = {}
 
 # ------------------------------------------------------------------ responsive
@@ -88,6 +86,11 @@ static func safe_margins() -> Dictionary:
 	var k := Vector2(vis.x / win.x, vis.y / win.y)
 	var safe := Rect2(DisplayServer.get_display_safe_area())
 	var wpos := Vector2(DisplayServer.window_get_position())
+	var nf_safe := OS.get_environment("NF_SAFE")   # test: "l,t,r,b" window-pixel insets (simulated cutout)
+	if nf_safe != "":
+		var v := nf_safe.split_floats(",")
+		if v.size() == 4:
+			safe = Rect2(wpos + Vector2(v[0], v[1]), win - Vector2(v[0] + v[2], v[1] + v[3]))
 	if safe.size.x <= 0 or safe.size.y <= 0: return m
 	var l := maxf(0.0, safe.position.x - wpos.x)
 	var t := maxf(0.0, safe.position.y - wpos.y)
@@ -145,16 +148,8 @@ static func with_a(c: Color, a: float) -> Color:
 	return Color(c.r, c.g, c.b, a)
 
 # ------------------------------------------------------------------ fonts / theme
-static func font(bold: bool = false) -> SystemFont:
-	if _font == null:
-		_font = SystemFont.new()
-		_font.font_names = PackedStringArray(FONT_NAMES)
-		_font.antialiasing = TextServer.FONT_ANTIALIASING_GRAY
-		_font_bold = SystemFont.new()
-		_font_bold.font_names = PackedStringArray(FONT_NAMES)
-		_font_bold.font_weight = 700
-		_font_bold.antialiasing = TextServer.FONT_ANTIALIASING_GRAY
-	return _font_bold if bold else _font
+static func font(bold: bool = false) -> Font:
+	return NFFonts.bold() if bold else NFFonts.regular()
 
 static func box(fill: Color, border: Color = Color(0, 0, 0, 0), bw: int = 0, radius: int = 6,
 		shadow: Color = Color(0, 0, 0, 0), shadow_size: int = 0) -> StyleBoxFlat:

@@ -809,3 +809,156 @@ func _find_all(node: Node, cls: String) -> Array:
 	for c in all:
 		if c.is_class(cls) and visible_ctrl(c): out.append(c)
 	return out
+
+## Phone flow: ONLY InputEventScreenTouch / ScreenDrag. Run with NF_TOUCH=1 NF_COMPACT=1 (+ NF_SAFE="l,t,r,b" window px for a simulated cutout)
+## at --resolution 2400x1080 / 2340x1080 ... Asserts key buttons are inside the safe area, big enough, not overlapping, and tappable.
+func safe_rect() -> Rect2:
+	var m: Dictionary = Kit.safe_margins()
+	var vr := get_viewport().get_visible_rect()
+	return Rect2(vr.position + Vector2(m.l, m.t), vr.size - Vector2(m.l + m.r, m.t + m.b)).grow(1.0)
+
+func in_safe(c: Control, tag: String, min_h: float = 0.0) -> void:
+	var r := c.get_global_rect()
+	var sr := safe_rect()
+	check(sr.encloses(r), "PHONE %s outside safe area: %s safe=%s" % [tag, str(r), str(sr)])
+	if min_h > 0.0: check(r.size.y >= min_h and r.size.x >= min_h, "PHONE %s too small %s" % [tag, str(r.size)])
+
+func phone_hud_check() -> Array:
+	var hud = UI.screens.hud
+	var ctrls: Array = [["cards", hud._b_cards], ["skill", hud._b_abil], ["auto", hud._b_auto], ["pause", hud._b_pause], ["drone", hud._b_drone], ["dash", hud._dash]]
+	for i in hud._slots.size(): ctrls.append(["slot%d" % i, hud._slots[i]])
+	for c in ctrls:
+		var b: Control = c[1]
+		check(b.is_visible_in_tree(), "PHONE hud %s not visible" % c[0])
+		in_safe(b, "hud " + c[0], 60.0)
+	for i in ctrls.size():
+		for j in range(i + 1, ctrls.size()):
+			var a: Rect2 = (ctrls[i][1] as Control).get_global_rect()
+			var bb: Rect2 = (ctrls[j][1] as Control).get_global_rect()
+			check(not a.grow(-1).intersects(bb.grow(-1)), "PHONE hud %s overlaps %s" % [ctrls[i][0], ctrls[j][0]])
+	# touch-stick zones: the dock must not cover the stick origin rows' outer thirds
+	var dock: Rect2 = hud._dock.get_global_rect()
+	var sr := safe_rect()
+	in_safe(hud._dock, "dock")
+	check(Inp.moveZone.position.x >= sr.position.x and Inp.aimZone.end.x <= sr.end.x + 1.0, "PHONE stick zones inside safe area %s %s" % [str(Inp.moveZone), str(Inp.aimZone)])
+	print("PHONE dock=", dock, " moveZone=", Inp.moveZone, " aimZone=", Inp.aimZone, " safe=", sr, " vp=", get_viewport().get_visible_rect().size)
+	return ctrls
+
+func tap_ctrl(c: Control) -> void:
+	await tap(c.get_global_rect().get_center())
+	await wait(0.4)
+
+func flow_phone() -> void:
+	godmode = true
+	check(Inp.touchCapable and Inp.inputMode == "touch", "PHONE touch mode on")
+	await shot("home")
+	audit("home")
+	for t in ["モード選択", "遊び方を見る", "研究・カード工房", "音声・設定"]:
+		var b := find_btn(t)
+		check(b != null, "PHONE home button " + t)
+		if b != null: in_safe(b, "home " + t, 40.0)
+	# --- settings via touch (+ slider drag via touch)
+	await tap_ctrl(find_btn("音声・設定"))
+	check(Game.state == "tools" and UI.is_open("settings"), "PHONE tap settings opens: %s %s" % [Game.state, UI.stack])
+	await shot("settings")
+	audit("settings")
+	var sls: Array = _find_all(UI.screens.settings, "HSlider")
+	check(sls.size() > 0, "PHONE settings has sliders")
+	if sls.size() > 0:
+		var sl: HSlider = sls[0]
+		var v0 := sl.value
+		var rr := sl.get_global_rect()
+		touch(0, rr.position + Vector2(rr.size.x * 0.1, rr.size.y * 0.5), true)
+		await frames(3)
+		var vmin := 1e9
+		var vmax := -1e9
+		for k in 8:
+			vmin = minf(vmin, sl.value); vmax = maxf(vmax, sl.value)
+			drag(0, rr.position + Vector2(rr.size.x * (0.1 + 0.1 * k), rr.size.y * 0.5), Vector2(rr.size.x * 0.1, 0))
+			await frames(2)
+		touch(0, rr.position + Vector2(rr.size.x * 0.9, rr.size.y * 0.5), false)
+		await frames(3)
+		vmin = minf(vmin, sl.value); vmax = maxf(vmax, sl.value)
+		check(vmax - vmin > 20.0, "PHONE slider reacts to touch drag %s..%s (start %s)" % [vmin, vmax, v0])
+	var cb := find_btn("戻る")
+	check(cb != null, "PHONE settings close button")
+	if cb != null:
+		in_safe(cb, "settings close", 40.0)
+		await tap_ctrl(cb)
+	check(Game.state == "menu", "PHONE settings closed -> menu: " + Game.state)
+	# --- config + start
+	await tap_ctrl(find_btn("モード選択"))
+	check(Game.state == "config", "PHONE config: " + Game.state)
+	await shot("config")
+	audit("config")
+	var rs := find_btn("RUN START")
+	in_safe(rs, "RUN START", 40.0)
+	await tap_ctrl(rs)
+	await wait(0.8)
+	check(Game.state == "playing", "PHONE playing: " + Game.state)
+	check(Inp.mobileControlsVisible and Inp.combatDockVisible, "PHONE controls/dock visible without any mouse press")
+	await shot("play")
+	phone_hud_check()
+	# give an active skill so a slot is usable
+	Game.activeSlots[0] = {"id": "nova", "level": 1, "remaining": 0.0, "charging": null}
+	await wait(0.3)
+	# --- pause (tap) -> resume (tap)
+	var hud = UI.screens.hud
+	await tap_ctrl(hud._b_pause)
+	check(Game.state == "paused", "PHONE tap pause: " + Game.state)
+	await shot("pause")
+	audit("pause")
+	var rb := find_btn("ゲームに戻る")
+	in_safe(rb, "resume", 40.0)
+	await tap_ctrl(rb)
+	check(Game.state == "playing", "PHONE tap resume: " + Game.state)
+	# --- skill panel + slot hold + dash
+	await tap_ctrl(hud._b_abil)
+	print("PHONE after skill btn: ", Game.state)
+	if Game.state != "playing":
+		await shot("abilities")
+		audit("abilities")
+		await key(KEY_ESCAPE)
+		await wait(0.4)
+	await touch_hold(hud._slots[0], 0.3)
+	await wait(0.2)
+	check(float(Game.activeSlots[0].remaining) > 0.0, "PHONE touching skill slot 1 fires the skill (cooldown started)")
+	await tap_ctrl(hud._dash)
+	# --- level-up card pick
+	Game.player.xp = Game.player.nextXp + 1
+	await wait(0.5)
+	await tap_ctrl(hud._b_cards)
+	check(Game.state == "upgrade", "PHONE tap cards -> upgrade: " + Game.state)
+	await shot("upgrade")
+	audit("upgrade")
+	var picked := false
+	for bb in buttons():
+		if btn_text(bb).contains("選択"):
+			in_safe(bb, "card", 60.0)
+			await tap_ctrl(bb)
+			picked = true
+			break
+	check(picked and Game.state == "playing", "PHONE card pick -> playing: " + Game.state)
+	# --- settings from pause
+	await tap_ctrl(hud._b_pause)
+	var ab := find_btn("音声設定")
+	if ab != null:
+		in_safe(ab, "pause audio", 40.0)
+		await tap_ctrl(ab)
+		check(Game.state == "tools", "PHONE settings from pause: " + Game.state)
+		await shot("settings_run")
+		audit("settings_run")
+		cb = find_btn("戻る")
+		if cb != null: await tap_ctrl(cb)
+	for t in ["ドローン", "操作", "中断セーブ"]:
+		var tb := find_btn(t)
+		if tb != null:
+			await tap_ctrl(tb)
+			audit("pause_" + t)
+
+func touch_hold(c: Control, sec: float) -> void:
+	var pos := c.get_global_rect().get_center()
+	touch(2, pos, true)
+	await wait(sec)
+	touch(2, pos, false)
+	await frames(3)
