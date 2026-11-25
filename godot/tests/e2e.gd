@@ -14,6 +14,7 @@ func frames(k: int = 3) -> void:
 	for i in k: await get_tree().process_frame
 
 var godmode: bool = true
+var meta_from: String = "home"
 func wait(sec: float) -> void:
 	var t: float = 0.0
 	while t < sec:
@@ -68,14 +69,15 @@ func _texts(node: Node, acc: Array) -> void:
 		_texts(c, acc)
 
 func find_btn(sub: String) -> Control:
-	var best: Control = null
+	var vr := get_viewport().get_visible_rect()
 	for b in buttons():
-		if btn_text(b).strip_edges() == sub: return b
+		if btn_text(b).strip_edges() == sub and vr.has_point((b as Control).get_global_rect().get_center()): return b
+	var cands: Array = []
 	for b in buttons():
-		if btn_text(b).contains(sub):
-			# prefer topmost-most-recent (later in tree)
-			best = b
-	return best
+		if btn_text(b).contains(sub): cands.append(b)
+	for b in cands:
+		if vr.has_point((b as Control).get_global_rect().get_center()): return b
+	return cands[0] if cands.size() > 0 else null
 
 func dump_btns(tag: String = "") -> void:
 	var s: Array = []
@@ -374,6 +376,7 @@ func die_flow() -> void:
 
 func meta_flow() -> void:
 	# from game over: CRを使って強化 -> meta (return path = gameover)
+	meta_from = "gameover"
 	await click("CRを使って強化")
 	await wait(0.6)
 	check(Game.state == "meta", "meta from gameover: " + Game.state)
@@ -397,7 +400,7 @@ func meta_tabs() -> void:
 	await shot("meta_growth")
 	await click("すべて最大値に追従")
 	await click("Lv.1・研究0に固定")
-	await click("✓ 最大追従")
+	await click("最大追従に戻す")
 	await shot("meta_growth2")
 	audit("meta_growth")
 	await click("強化")
@@ -490,16 +493,67 @@ func save_tab() -> void:
 	await click("このセーブに置き換える", false)
 	await wait(0.6)
 	await shot("meta_save_applied")
+	check(UI.modals.size() == 1, "import confirm dialog open")
+	dump_btns("import dlg")
+	await key(KEY_ESCAPE)
+	await wait(0.4)
+	check(UI.modals.size() == 0, "Esc closes confirm dialog")
+	await click("このセーブに置き換える", false)
+	await wait(0.5)
+	await click("置き換える")
+	await wait(0.8)
+	await shot("meta_save_replaced")
+	check(UI.modals.size() == 0, "dialog closed after confirm")
 	# back
 	await click("戻る")
 	await wait(0.6)
 	print("after meta back: state=", Game.state, " open=", UI.stack)
 	await shot("after_meta_back")
-	check(UI.is_open("home") and Game.state == "menu", "meta back -> home")
+	if meta_from == "gameover":
+		check(UI.is_open("gameover") and Game.state == "gameover" and not UI.is_open("meta"), "meta back -> gameover: " + Game.state)
+		await click("ホームへ")
+		await wait(0.8)
+		await shot("gameover_home")
+	check(UI.is_open("home") and Game.state == "menu", "-> home, state=" + Game.state)
 	await settings_flow()
 
 func settings_flow() -> void:
-	pass
+	await click("音声・設定")
+	await wait(0.5)
+	check(Game.state == "tools", "settings -> tools: " + Game.state)
+	check(UI.is_open("settings") and not UI.is_open("home"), "settings open, home hidden")
+	await shot("settings_audio")
+	audit("settings_audio")
+	dump_btns("settings")
+	var segs: Array = _find_all(UI.root, "Control").filter(func(c): return c.get_script() != null and "Segmented" in str(c.get_script().get_global_name()))
+	print("segmented count ", segs.size())
+	var sls := _find_all(UI.root, "HSlider")
+	if sls.size() > 0:
+		var sl: HSlider = sls[0]
+		var r := sl.get_global_rect()
+		var v0 := sl.value
+		await click_at(Vector2(r.position.x + r.size.x * 0.2, r.get_center().y))
+		check(sl.value != v0, "audio slider moved")
+	await click("操作設定")
+	await shot("settings_controls")
+	audit("settings_controls")
+	await click("開発者")
+	await shot("settings_dev")
+	audit("settings_dev")
+	dump_btns("settings dev")
+	await key(KEY_ESCAPE)
+	await wait(0.5)
+	check(Game.state == "menu" and UI.is_open("home") and not UI.is_open("settings"), "Esc closes settings -> home: " + Game.state)
+	await click("遊び方を見る")
+	await wait(0.5)
+	check(Game.state == "how" and UI.is_open("how") and not UI.is_open("home"), "how open: " + Game.state)
+	await shot("how")
+	audit("how")
+	dump_btns("how")
+	await key(KEY_ESCAPE)
+	await wait(0.5)
+	check(Game.state == "menu" and UI.is_open("home") and not UI.is_open("how"), "Esc closes how -> home: " + Game.state)
+	await shot("home_final")
 
 ## Walk focus with Tab and with arrow keys; report visible buttons never focused (keyboard/gamepad reachability).
 func focus_walk(tag: String) -> void:

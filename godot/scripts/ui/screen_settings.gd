@@ -143,6 +143,7 @@ func h_openUtility(tab: Variant = "audio") -> void:
 	Game.flash = 0.0
 	Game.sceneDirty = true
 	_tab = maxi(0, TAB_KEYS.find(t if t != "controls" else "input"))
+	if _return_state == "menu": UI.hide_screen("home")   # never leave the home panel (focusable) behind the settings panel
 	UI.show_screen("settings")
 	_set_message("設定はこの端末に保存。閉じると元の画面に戻ります。")
 	Game.syncCombatHud()
@@ -152,6 +153,7 @@ func h_closeUtility() -> void:
 	if Game.state != "tools" or not is_open: return
 	UI.hide_screen("settings")
 	Game.state = _return_state
+	if Game.state == "menu": UI.show_screen("home")
 	Game.sceneDirty = true
 	Game.last = U.now_ms()
 	Game.syncCombatHud()
