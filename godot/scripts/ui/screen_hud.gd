@@ -893,7 +893,16 @@ func _process(dt: float) -> void:
 		_refresh_boss()
 	if Inp.mobileControlsVisible or _stick.get_meta("had", false):
 		_stick.set_meta("had", Inp.mobileControlsVisible)
-		_stick.queue_redraw()
+		# Perf: only redraw the sticks when something they show changed (they were redrawn every frame).
+		var mv: Dictionary = Inp.mobileMove
+		var am: Dictionary = Inp.mobileAim
+		var sig := [Inp.mobileControlsVisible, mv.active, mv.revealed, mv.originX, mv.originY, mv.knobX, mv.knobY,
+			am.active, am.revealed, am.originX, am.originY, am.knobX, am.knobY, float(am.mag) > 0.18, Inp.moveZone, Inp.aimZone]
+		if sig != _stick_sig:
+			_stick_sig = sig
+			_stick.queue_redraw()
+
+var _stick_sig: Array = []
 
 func _st(l: Label, t: String) -> void:
 	if l.text != t: l.text = t
@@ -1006,7 +1015,10 @@ func _sync_drone_btn() -> void:
 	var t := "%s DRN %s" % ["◎" if on else "○", "ON" if on else "OFF"]
 	if _b_drone.label_text != t:
 		_b_drone.label_text = t
-	_b_drone.set_tone(Kit.VIOLET if on else Kit.SLATE, false, not on)
+		_drone_sig = -1
+	if _drone_sig != int(on):
+		_drone_sig = int(on)
+		_b_drone.set_tone(Kit.VIOLET if on else Kit.SLATE, false, not on)
 
 func _on_dash() -> void:
 	if Game.state != "playing": return
@@ -1016,34 +1028,51 @@ func _on_dash() -> void:
 	Game.dash()
 	_refresh_dock()
 
+# Perf: this runs every frame from _process. It used to rebuild 3 StyleBoxes per tone button, re-format strings and
+# queue_redraw ~8 controls every frame; now controls are only touched/redrawn when a displayed value changed and the
+# string-heavy parts (enemy level, effects, key tooltips) refresh at ~5 Hz.
+var _slow_clock := 0.0
+var _slot_sig: Array = ["", "", ""]
+var _dash_pct_shown := -1.0
+var _dash_status_shown := ""
+var _drone_sig := -1
+
 func _refresh_dock() -> void:
 	var p: Dictionary = Game.player
 	if p.is_empty() or _slots.is_empty(): return
 	var pend: int = Game.pendingLevelUps
 	var ab: int = Game.abilityRewards.size()
-	_b_cards.count = pend
-	_b_cards.set_tone(Kit.EMERALD if pend > 0 else Kit.CYAN, pend > 0, false)
-	_b_abil.count = ab
-	_b_abil.set_tone(Kit.EMERALD if ab > 0 else Kit.CYAN, ab > 0, false)
-	_b_cards.queue_redraw(); _b_abil.queue_redraw()
+	if _b_cards.count != pend or _b_cards.lit != (pend > 0):
+		_b_cards.count = pend
+		_b_cards.set_tone(Kit.EMERALD if pend > 0 else Kit.CYAN, pend > 0, false)
+	if _b_abil.count != ab or _b_abil.lit != (ab > 0):
+		_b_abil.count = ab
+		_b_abil.set_tone(Kit.EMERALD if ab > 0 else Kit.CYAN, ab > 0, false)
 	var auto: bool = Game.playPreferences.get("autoCards", false)
 	var at := auto_cards_text(false)
 	if _b_auto.label_text != at or _b_auto.lit != auto:
 		_b_auto.label_text = at
 		_b_auto.set_tone(Kit.EMERALD if auto else Kit.SLATE, auto, false)
 	_sync_drone_btn()
-	_st(_enemy_lv, "敵 Lv.%d" % int(Enemies.enemyLevelForWave()))
-	var deb: Array = []
-	if float(p.get("barrierLock", 0)) > 0: deb.append("バリア付与不可 %.1f秒" % float(p.barrierLock))
-	if float(p.get("wounded", 0)) > 0: deb.append("回復低下 %.1f秒" % float(p.wounded))
-	if int(p.get("shieldHits", 0)) > 0: deb.append("シールド %d" % int(p.shieldHits))
-	if float(p.get("barrierTime", 0)) > 0: deb.append("バリア %.1f秒" % float(p.barrierTime))
-	_st(_effects, " / ".join(deb))
+	var now := Time.get_ticks_msec()
+	var slow: bool = now - int(_slow_clock) >= 200
+	if slow:
+		_slow_clock = float(now)
+		_st(_enemy_lv, "敵 Lv.%d" % int(Enemies.enemyLevelForWave()))
+		var deb: Array = []
+		if float(p.get("barrierLock", 0)) > 0: deb.append("バリア付与不可 %.1f秒" % float(p.barrierLock))
+		if float(p.get("wounded", 0)) > 0: deb.append("回復低下 %.1f秒" % float(p.wounded))
+		if int(p.get("shieldHits", 0)) > 0: deb.append("シールド %d" % int(p.shieldHits))
+		if float(p.get("barrierTime", 0)) > 0: deb.append("バリア %.1f秒" % float(p.barrierTime))
+		_st(_effects, " / ".join(deb))
 	var keys: Dictionary = Inp.currentKeys()
 	for i in 3:
 		var sb: SlotBtn = _slots[i]
 		var slot = Game.activeSlots[i] if i < Game.activeSlots.size() else null
 		if slot == null:
+			if _slot_sig[i] == "-":
+				continue
+			_slot_sig[i] = "-"
 			sb.has_slot = false; sb.can_use = false; sb.charging = false
 			sb.title = "未取得"; sb.sub = "ボス報酬"; sb.rdy = 0.0
 			sb.tooltip_text = "ボスを倒すと取得できます"
@@ -1051,26 +1080,39 @@ func _refresh_dock() -> void:
 			var def: Dictionary = Combat.ACTIVE_DEFS[slot.id]
 			var ch = slot.get("charging")
 			var is_ch: bool = ch is Dictionary
-			sb.has_slot = true
-			sb.charging = is_ch
-			sb.can_use = float(slot.remaining) <= 0.0 and not is_ch
-			sb.title = str(def.name)
+			var can_use: bool = float(slot.remaining) <= 0.0 and not is_ch
+			var sub: String
 			if is_ch:
 				var warn: float = maxf(0.0001, float(ch.get("warn", 1.0)))
-				sb.sub = "充填 %d%%" % roundi(clampf(float(ch.get("age", 0.0)) / warn, 0.0, 1.0) * 100.0)
+				sub = "充填 %d%%" % roundi(clampf(float(ch.get("age", 0.0)) / warn, 0.0, 1.0) * 100.0)
 			elif float(slot.remaining) > 0.0:
-				sb.sub = "%.1fs" % float(slot.remaining)
+				sub = "%.1fs" % float(slot.remaining)
 			else:
-				sb.sub = "Lv.%d" % int(slot.level)
-			sb.rdy = 1.0 - clampf(float(slot.remaining) / maxf(0.001, Combat.activeCooldown(slot)), 0.0, 1.0)
+				sub = "Lv.%d" % int(slot.level)
+			var rdy: float = 1.0 - clampf(float(slot.remaining) / maxf(0.001, Combat.activeCooldown(slot)), 0.0, 1.0)
+			var sig := "%s|%s|%d|%d|%d|%s" % [slot.id, sub, int(can_use), int(is_ch), roundi(rdy * 200.0), str(sb.held)]
+			if _slot_sig[i] == sig:
+				continue
+			_slot_sig[i] = sig
+			sb.has_slot = true
+			sb.charging = is_ch
+			sb.can_use = can_use
+			sb.title = str(def.name)
+			sb.sub = sub
+			sb.rdy = rdy
 			sb.tooltip_text = "%s [%s]%s" % [def.name, Inp.keyLabel(str((keys.skills as Array)[i])),
 				(" / 再使用まで %.1f秒" % float(slot.remaining)) if float(slot.remaining) > 0.0 else ""]
 		sb.queue_redraw()
 	var dr: float = float(p.dashReady)
-	_dash.pct = dr
-	_dash.status = "READY" if dr >= 1.0 else "%.1fs" % ((1.0 - dr) * float(p.dashCooldown))
-	_dash.queue_redraw()
-	_refresh_keys()
+	var dstat: String = "READY" if dr >= 1.0 else "%.1fs" % ((1.0 - dr) * float(p.dashCooldown))
+	if dstat != _dash_status_shown or absf(dr - _dash_pct_shown) > 0.004:
+		_dash_status_shown = dstat
+		_dash_pct_shown = dr
+		_dash.pct = dr
+		_dash.status = dstat
+		_dash.queue_redraw()
+	if slow:
+		_refresh_keys()
 
 func _refresh_boss() -> void:
 	var boss = null
