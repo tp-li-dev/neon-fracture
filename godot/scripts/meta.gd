@@ -363,7 +363,7 @@ func research_value(key: String, lv) -> float:
 	match key:
 		"power", "hull", "active": return l * 5.0
 		"mobility": return mobilityPercent(l)
-		"critical", "economy" if false else "critical": return l * 2.0
+		"critical": return l * 2.0
 		"recovery": return recoveryPercent(l)
 		"magnet": return l * 4.0
 		"economy": return l * 3.0
@@ -372,7 +372,7 @@ func research_value(key: String, lv) -> float:
 
 func research_desc(key: String, lv) -> String:
 	var l := float(lv)
-	var n := researchNumber
+	var n: Callable = researchNumber
 	match key:
 		"power": return "本体弾ダメージ +%s%%" % n.call(l * 5.0)
 		"hull": return "最大HP +%s%%" % n.call(l * 5.0)
