@@ -24,7 +24,7 @@ func _ready() -> void:
 	UI.load_drone_config()
 	World.generateWorld()
 	var want: String = OS.get_environment("NF_SCENARIO")
-	var all: Array = ["enemies", "bosses", "elites", "levelups", "modules", "cards", "drones", "actives", "dash", "death", "clear", "hardcore", "fracture", "perf"]
+	var all: Array = ["enemies", "bosses", "elites", "levelups", "modules", "gear", "cards", "drones", "actives", "dash", "death", "clear", "hardcore", "fracture", "perf", "perf2"]
 	var list: Array = all if want == "" else want.split(",")
 	for s in list:
 		print("=== scenario ", s)
@@ -34,6 +34,7 @@ func _ready() -> void:
 	var ks: Array = cov.keys()
 	ks.sort()
 	print("=== COVERAGE: ", ", ".join(ks))
+	print("=== MAX array sizes: ", maxes, "  PERF caps: ", Game.PERF)
 	print("=== DONE fails=", fails)
 	get_tree().quit(1 if fails > 0 else 0)
 
@@ -127,7 +128,14 @@ func handle_panels() -> void:
 	elif Game.state == "paused":
 		Game.state = "playing"
 
+var maxes: Dictionary = {}
+func track_max() -> void:
+	for k in ["bullets", "enemies", "particles", "gems", "texts", "rings", "hazards", "friendlyEffects", "drones"]:
+		var n: int = Game.get(k).size()
+		if n > int(maxes.get(k, 0)): maxes[k] = n
+
 func sample_coverage() -> void:
+	track_max()
 	if Game.hazards.size() > 0:
 		cov["hazards"] = int(cov.get("hazards", 0)) + 1
 		for h in Game.hazards:
@@ -493,3 +501,74 @@ func sc_perf() -> void:
 			e.hp = 1e12
 	var dtms: float = float(Time.get_ticks_usec() - t0) / 1000.0 / maxf(1.0, n)
 	print("  PERF Game.update ms/step with %d enemies, %d bullets: %.2f" % [Game.enemies.size(), Game.bullets.size(), dtms])
+
+func sc_gear() -> void:
+	# Real path: Meta.meta.modules/equippedGear -> resetGame -> Meta.applyMetaBonuses -> Cards.MODULE_BY_ID[id].apply
+	var saved_mods: Dictionary = Meta.meta.modules.duplicate()
+	var saved_gear: Dictionary = Meta.meta.equippedGear.duplicate()
+	for slot in ["core", "armor", "drive"]:
+		Meta.meta.equippedGear[slot] = null
+	start()
+	var base: Dictionary = Game.player.duplicate(true)
+	var by_slot: Dictionary = {"core": [], "armor": [], "drive": []}
+	for m in Cards.MODULES:
+		Meta.meta.modules[m.id] = 10
+		by_slot[Cards.moduleSlot(m.id)].append(m.id)
+	for slot in by_slot:
+		for id in by_slot[slot]:
+			for s2 in ["core", "armor", "drive"]:
+				Meta.meta.equippedGear[s2] = null
+			Meta.meta.equippedGear[slot] = id
+			start()
+			var changed: Array = []
+			for k in base:
+				if str(Game.player.get(k)) != str(base[k]):
+					changed.append(k)
+			if changed.is_empty():
+				fail("gear %s (%s) changed nothing on player" % [id, slot])
+			Game.wave = 3
+			for i in 6:
+				Enemies.spawnEnemy()
+			await run(5.0, "gear_" + id)
+	for n in 6:
+		for slot in by_slot:
+			Meta.meta.equippedGear[slot] = by_slot[slot][randi() % by_slot[slot].size()]
+		start()
+		set_wave(8)
+		await run(15.0, "gearcombo")
+	Meta.meta.modules = saved_mods
+	Meta.meta.equippedGear = saved_gear
+
+func sc_perf2() -> void:
+	# realistic heavy load: all modules, mixed enemy types kept at ~190, enemies tanky so bullets/hazards pile up
+	start()
+	for m in Cards.MODULES:
+		Cards.module_apply(m.id, Game.player, 10)
+	Game.player.maxHp = 1e9
+	Game.player.hp = 1e9
+	Game.player.droneCount = 8
+	Enemies.syncDrones()
+	set_wave(25)
+	var types: Array = Enemies.ENEMY_TYPES.keys()
+	var times: Array = []
+	for i in 1200:
+		if Game.state != "playing":
+			handle_panels()
+			continue
+		while Game.enemies.size() < 190:
+			var e = Enemies.spawnEnemy(types[randi() % types.size()])
+			if e == null: break
+			e.spawnDelay = 0.0
+			e.hp = 1e9
+			e.maxHp = 1e9
+		bot_step()
+		var t0 := Time.get_ticks_usec()
+		Game.update(DT)
+		times.append(float(Time.get_ticks_usec() - t0) / 1000.0)
+		sample_coverage()
+		if i % 60 == 0:
+			check_invariants("perf2")
+	times.sort()
+	var sum := 0.0
+	for t in times: sum += t
+	print("  PERF2 heavy: mean %.2f ms, p95 %.2f ms, max %.2f ms over %d steps; en=%d bul=%d" % [sum / times.size(), times[int(times.size() * 0.95)], times[-1], times.size(), Game.enemies.size(), Game.bullets.size()])
